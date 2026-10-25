@@ -48,7 +48,7 @@ src/
     labelbar.js  label size: the printer's presets, continuous, custom, remembered per printer
     text-insert.js  emoji picker and Field menu, inserting at the cursor
     printing.js  printer choice and settings, status line, print
-    report.js    the report buttons, and the note after an untested model prints
+    report.js    the pop-up after an untested model prints, Report a problem, diagnostics
     virtual-output.js  the virtual printer's decoded labels
     batch.js, files.js, clipboard.js, keyboard.js, history-panel.js, idb.js, caret.js
 test/            node:test suites for the pure modules

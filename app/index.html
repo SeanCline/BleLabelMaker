@@ -156,11 +156,6 @@
 					<button id="btnPrint" class="primary" title="Print (Ctrl+Enter)">Print</button>
 					<progress id="progress" max="1" value="0" hidden></progress>
 				</section>
-				<p class="notice" id="untestedNote" hidden>
-					<span id="untestedText"></span>
-					<button type="button" id="btnNoteReportWorks">Report that it works</button>
-					<button type="button" id="btnNoteDismiss">Not now</button>
-				</p>
 
 				<details class="batch" id="batchPanel">
 					<summary>Batch: one label per line <span class="hint" id="batchSummary"></span></summary>
@@ -226,17 +221,13 @@
 							picker</label
 						>
 						<button id="btnForget">Forget connected printer</button>
-						<div class="report-row" role="group" aria-labelledby="reportProblemLabel">
-							<span id="reportProblemLabel">Something not working?</span>
-							<button type="button" id="btnCopyDiagnostics">Copy diagnostics</button>
-							<button type="button" id="btnReportProblem">Report a problem</button>
-						</div>
-						<div class="report-row" role="group" aria-labelledby="reportWorksLabel">
-							<span id="reportWorksLabel">Printed well?</span>
-							<button type="button" id="btnCopyWorks">Copy printer details</button>
-							<button type="button" id="btnReportWorks">Report that it works</button>
-							<span class="hint" id="reportWorksHint"></span>
-						</div>
+						<button
+							type="button"
+							id="btnCopyDiagnostics"
+							title="App version, browser, printer and settings, for a bug report"
+						>
+							Copy diagnostics
+						</button>
 						<p class="hint" id="appVersion"></p>
 					</div>
 				</details>
@@ -705,10 +696,23 @@
 			</p>
 			<p>
 				<a href="https://github.com/SeanCline/BleLabelMaker" data-app="repo">Source code</a> ·
+				<button type="button" class="link" id="btnReportProblem">Report a problem</button> ·
 				Licenses: <a href="LICENSE.txt">this app</a> · <a href="fonts/LICENSE.txt">fonts</a> ·
 				<a href="src/vendor/LICENSE.txt">QR code library</a>
 			</p>
 		</footer>
+
+		<dialog id="printedDialog" aria-labelledby="printedTitle">
+			<form method="dialog">
+				<h2 id="printedTitle">Did that print correctly?</h2>
+				<p id="printedText"></p>
+				<div class="dialog-actions">
+					<button value="later">Not now</button>
+					<button value="problem">No, report a problem</button>
+					<button value="works" class="primary">Yes, confirm it works</button>
+				</div>
+			</form>
+		</dialog>
 
 		<dialog id="emojiDialog">
 			<form method="dialog">

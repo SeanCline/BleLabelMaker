@@ -1,13 +1,14 @@
-// The report buttons under Advanced, and the note offering an "it works" report after an
-// untested model prints.
+// Bug reports and "confirmed working" reports. After the first real print on a model nobody has
+// confirmed yet, a pop-up asks how it came out; a problem can be reported from the footer at
+// any time, and diagnostics copied from Advanced.
 import { APP_VERSION, storageKey } from "../app-info.js";
 import { diagnostics, problemReport, worksReport, issueUrl } from "../report.js";
 import { bluetoothAvailable, serialAvailable } from "../transport.js";
 import { $, loadJson, storeJson, toast } from "./dom.js";
 import { state } from "./store.js";
-import { printerInfo, currentPrinter, onPrinted, onPrinterChange } from "./printing.js";
+import { printerInfo, currentPrinter, onPrinted } from "./printing.js";
 
-// Models the person has reported working (or said "not now" about), so the note asks once.
+// Models the pop-up has asked about, so it asks once per model.
 const ASKED_KEY = storageKey("worksAsked");
 
 /** @returns {import("../report.js").ReportInfo} */
@@ -44,21 +45,7 @@ const openIssue = (make) => {
 const asked = () => loadJson(ASKED_KEY) ?? [];
 const markAsked = (id) => storeJson(ASKED_KEY, [...new Set([...asked(), id])]);
 
-const hideNote = () => ($("#untestedNote").hidden = true);
-
-const renderWorksHint = () => {
-	const m = currentPrinter();
-	$("#reportWorksHint").textContent = m.tested
-		? ""
-		: `The ${m.name} hasn't been tested yet; a report helps everyone who has one.`;
-	if (m.id !== $("#untestedNote").dataset.model) hideNote();
-};
-
-const reportWorks = () => {
-	markAsked(currentPrinter().id);
-	hideNote();
-	openIssue(worksReport);
-};
+const dialog = /** @type {HTMLDialogElement} */ ($("#printedDialog"));
 
 const init = () => {
 	$("#appVersion").textContent = `Version ${APP_VERSION}`;
@@ -66,25 +53,19 @@ const init = () => {
 		copy(diagnostics(reportInfo()), "Diagnostics"),
 	);
 	$("#btnReportProblem").addEventListener("click", () => openIssue(problemReport));
-	$("#btnCopyWorks").addEventListener("click", () =>
-		copy(worksReport(reportInfo()).body, "Printer details"),
-	);
-	$("#btnReportWorks").addEventListener("click", reportWorks);
-	$("#btnNoteReportWorks").addEventListener("click", reportWorks);
-	$("#btnNoteDismiss").addEventListener("click", () => {
-		markAsked(currentPrinter().id);
-		hideNote();
-	});
-	// A real print on an untested model is the evidence that would mark it tested.
+	// A real print on an unconfirmed model is the evidence that would mark it tested.
 	onPrinted(({ target }) => {
 		const m = currentPrinter();
-		if (target === "virtual" || m.tested || asked().includes(m.id)) return;
-		$("#untestedText").textContent =
-			`Did that print correctly? The ${m.name} is untested; a quick report would let it be marked as working.`;
-		$("#untestedNote").dataset.model = m.id;
-		$("#untestedNote").hidden = false;
+		if (target === "virtual" || m.tested || asked().includes(m.id) || dialog.open) return;
+		markAsked(m.id);
+		$("#printedText").textContent =
+			`Nobody has confirmed the ${m.name} works with this app yet. If the label came out right, a quick report lets everyone with one know.`;
+		dialog.returnValue = "";
+		dialog.showModal();
 	});
-	onPrinterChange(renderWorksHint);
-	renderWorksHint();
+	dialog.addEventListener("close", () => {
+		if (dialog.returnValue === "works") openIssue(worksReport);
+		if (dialog.returnValue === "problem") openIssue(problemReport);
+	});
 };
 init();

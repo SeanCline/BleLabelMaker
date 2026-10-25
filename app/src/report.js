@@ -62,13 +62,9 @@ export const diagnostics = (info, { messages = 20 } = {}) => {
 	return lines.join("\n");
 };
 
-const details = (text) =>
-	["<details><summary>Diagnostics</summary>", "", "```", text, "```", "", "</details>"].join("\n");
-
 /**
- * @typedef {{template: string, title: string, fields: Record<string, string>, body: string}} Report
- *   `template` and `fields` fill in one of the repository's issue forms (.github/ISSUE_TEMPLATE),
- *   keyed by its field ids; `body` is the same report as one piece of Markdown, for copying.
+ * @typedef {{template: string, title: string, fields: Record<string, string>}} Report one of
+ *   the repository's issue forms (.github/ISSUE_TEMPLATE), with `fields` keyed by its field ids
  */
 
 /**
@@ -81,19 +77,6 @@ export const problemReport = (info, options) => ({
 	template: "problem.yml",
 	title: "",
 	fields: { diagnostics: diagnostics(info, options) },
-	body: [
-		"**What happened?**",
-		"",
-		"",
-		"**What did you expect to happen?**",
-		"",
-		"",
-		"**Steps to reproduce** (attaching the .label file helps)",
-		"",
-		"1. ",
-		"",
-		details(diagnostics(info, options)),
-	].join("\n"),
 });
 
 /**
@@ -105,33 +88,15 @@ export const problemReport = (info, options) => ({
 export const worksReport = (info, options) => {
 	const p = info.printer;
 	const device = p.deviceName ? ` (it calls itself "${p.deviceName}")` : "";
-	const fields = {
-		printer: `${p.model.vendor} ${p.model.name}${device}`,
-		connection: TARGETS[p.target] ?? p.target,
-		labels: labelText(info.label),
-		diagnostics: diagnostics(info, options),
-	};
 	return {
-		template: "printer-works.yml",
-		title: `Works: ${p.model.vendor} ${p.model.name}`,
-		fields,
-		body: [
-			`**Printer:** ${fields.printer}`,
-			`**Connected over:** ${fields.connection}`,
-			`**Labels:** ${fields.labels}`,
-			"",
-			"Tick what you checked:",
-			"",
-			"- [ ] It printed the right way up",
-			"- [ ] The size and position matched the preview",
-			"- [ ] The darkness settings look right",
-			"- [ ] Barcodes or QR codes scan (if you printed any)",
-			"",
-			"**Anything you had to change?** (Flip 180°, the feed, the model under Advanced…)",
-			"",
-			"",
-			details(fields.diagnostics),
-		].join("\n"),
+		template: "confirmed-working.yml",
+		title: `Confirmed working: ${p.model.vendor} ${p.model.name}`,
+		fields: {
+			printer: `${p.model.vendor} ${p.model.name}${device}`,
+			connection: TARGETS[p.target] ?? p.target,
+			labels: labelText(info.label),
+			diagnostics: diagnostics(info, options),
+		},
 	};
 };
 

@@ -168,7 +168,7 @@ test("cancelling the device picker is silent; out-of-paper notification warns", 
 	assert.deepEqual(page.errors, []);
 });
 
-test("reports: an untested model that prints offers an 'it works' issue; diagnostics copy", async () => {
+test("reports: after an untested model prints, a pop-up asks; diagnostics copy", async () => {
 	const page = await openWithFakeD30();
 	await page.evaluate(() => {
 		window.fakeD30.name = "Q30-FAKE";
@@ -179,23 +179,24 @@ test("reports: an untested model that prints offers an 'it works' issue; diagnos
 	});
 	await page.click("#btnPrint");
 	await page.waitForFunction(() => window.fakeD30.labels.length === 1);
-	await page.waitForFunction(() => !document.querySelector("#untestedNote").hidden);
-	assert.match(await page.$eval("#untestedText", (t) => t.textContent), /Q30 is untested/);
+	await page.waitForFunction(() => document.querySelector("#printedDialog").open);
+	assert.match(await page.$eval("#printedText", (t) => t.textContent), /confirmed the Q30/);
 
-	await page.click("#btnNoteReportWorks");
+	await page.click('#printedDialog button[value="works"]');
+	await page.waitForFunction(() => window.opened.length === 1);
 	const works = new URL(await page.evaluate(() => window.opened[0]));
 	assert.match(works.pathname, /\/issues\/new$/);
-	assert.equal(works.searchParams.get("title"), "Works: Phomemo Q30");
-	assert.equal(works.searchParams.get("template"), "printer-works.yml");
+	assert.equal(works.searchParams.get("title"), "Confirmed working: Phomemo Q30");
+	assert.equal(works.searchParams.get("template"), "confirmed-working.yml");
 	assert.match(works.searchParams.get("printer"), /it calls itself "Q30-FAKE"/);
 	const diagnostics = works.searchParams.get("diagnostics");
 	assert.match(diagnostics, /Firmware: 2\.1\.7/);
 	assert.match(diagnostics, /1a 04 40/, "what the printer said");
-	assert.equal(await page.$eval("#untestedNote", (n) => n.hidden), true);
+	assert.equal(await page.$eval("#printedDialog", (d) => d.open), false);
 	// Asked once per model.
 	await page.click("#btnPrint");
 	await page.waitForFunction(() => window.fakeD30.labels.length === 2);
-	assert.equal(await page.$eval("#untestedNote", (n) => n.hidden), true);
+	assert.equal(await page.$eval("#printedDialog", (d) => d.open), false);
 
 	await page.click(".advanced summary");
 	assert.match(await page.$eval("#appVersion", (p) => p.textContent), /^Version \d+\.\d+\.\d+$/);

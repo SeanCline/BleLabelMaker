@@ -1,4 +1,4 @@
-# The app's "Report a problem" button opens this form with the diagnostics filled in
+# The app's "Report a problem" (in the footer, or the pop-up after printing) opens this form with the diagnostics filled in
 # (?template=problem.yml&diagnostics=…, see app/src/report.js), so field ids are part of that link.
 name: Report a problem
 description: Something doesn't work, prints wrongly or looks broken.
@@ -28,6 +28,6 @@ body:
     attributes:
       label: Diagnostics
       description: >-
-        The app fills this in when you use "Report a problem" (under Advanced). From elsewhere,
-        use "Copy diagnostics" there and paste it here.
+        The app fills this in when you use its "Report a problem" link. From elsewhere, use
+        "Copy diagnostics" under Advanced and paste it here.
       render: text

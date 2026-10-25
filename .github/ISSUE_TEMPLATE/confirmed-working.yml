@@ -1,10 +1,10 @@
-# The app's "Report that it works" button opens this form with the printer, connection, labels
-# and diagnostics filled in (?template=printer-works.yml&printer=…, see app/src/report.js), so
+# The app's "Yes, confirm it works" (asked after the first print on an untested model) opens this form with the printer, connection, labels
+# and diagnostics filled in (?template=confirmed-working.yml&printer=…, see app/src/report.js), so
 # field ids are part of that link.
-name: Report that a printer works
+name: Confirm a printer works
 description: An untested label maker printed correctly, so it can be marked as tested.
-title: "Works: "
-labels: ["printer works"]
+title: "Confirmed working: "
+labels: ["confirmed working"]
 body:
   - type: markdown
     attributes:
@@ -44,5 +44,5 @@ body:
     id: diagnostics
     attributes:
       label: Diagnostics
-      description: The app fills this in when you use "Report that it works" (under Advanced).
+      description: The app fills this in when you confirm a printer from its pop-up.
       render: text

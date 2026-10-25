@@ -53,9 +53,9 @@ your device.
 | Phomemo P15     | 12, 14, 15 mm pre-cut; 12 mm continuous | Untested (should work) |
 
 "Untested" models use the same commands as a tested one, so they should work, but nobody
-has confirmed it yet. If you have one, please try it. To report that an untested printer
-works, or to report an issue, use the buttons under Advanced in the app or open an
-[issue](https://github.com/SeanCline/BleLabelMaker/issues).
+has confirmed it yet. If you have one, please try it: after its first print, the app asks
+whether it came out right, so you can confirm it works or report a problem. You can also
+open an [issue](https://github.com/SeanCline/BleLabelMaker/issues).
 
 <!-- /generated:printers -->
 

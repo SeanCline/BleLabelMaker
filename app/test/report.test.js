@@ -51,16 +51,14 @@ test("diagnostics keep only the printer's last messages", () => {
 test("an issue link opens the repository's issue form, filled in", () => {
 	const url = new URL(issueUrl(worksReport, info()));
 	assert.equal(url.origin + url.pathname, `${REPO_URL}/issues/new`);
-	assert.equal(url.searchParams.get("template"), "printer-works.yml");
-	assert.equal(url.searchParams.get("title"), "Works: Acme Q1");
+	assert.equal(url.searchParams.get("template"), "confirmed-working.yml");
+	assert.equal(url.searchParams.get("title"), "Confirmed working: Acme Q1");
 	assert.equal(url.searchParams.get("printer"), 'Acme Q1 (it calls itself "Q1-ABCD")');
 	assert.equal(url.searchParams.get("connection"), "Bluetooth");
 	assert.ok(url.searchParams.get("diagnostics").includes("Model: Acme Q1"));
 	const problem = new URL(issueUrl(problemReport, info()));
 	assert.equal(problem.searchParams.get("template"), "problem.yml");
 	assert.equal(problem.searchParams.get("title"), null, "the reporter writes the title");
-	// The copied version is the same report in one piece.
-	assert.ok(worksReport(info()).body.includes('it calls itself "Q1-ABCD"'));
 });
 
 test("every field a report fills in is one its issue form has", async () => {
