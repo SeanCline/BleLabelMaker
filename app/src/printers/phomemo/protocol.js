@@ -15,6 +15,14 @@ export const feed = (lines) => Uint8Array.of(0x1b, 0x64, lines & 0xff);
 // Shifts an image narrower than the head across it, in bytes.
 export const setOffset = (bytes) => Uint8Array.of(0x1f, 0x11, 0x24, bytes & 0xff);
 export const setCopies = (n) => Uint8Array.of(0x1f, 0x11, 0x21, n & 0xff);
+/**
+ * Which paper is loaded. The printer keeps this setting, and it decides what happens after an
+ * image: on "gaps" it feeds on to the next gap, and on continuous tape (which has none) it
+ * goes on feeding a distance that grows with the label before giving up. So every job says
+ * which paper it was laid out for.
+ */
+export const PAPER_TYPE = { gaps: 0x0a, continuous: 0x0b };
+export const setPaperType = (paper) => Uint8Array.of(0x1f, 0x11, PAPER_TYPE[paper]);
 
 // Print density. Sending nothing leaves whatever the printer last used.
 export const DENSITY = { light: 1, normal: 2, dark: 4 };
@@ -80,7 +88,7 @@ export const buildPrintJob = (
 	// After INIT, in case the reset clears it; the printer keeps it as a persistent setting.
 	const densityCmd = density !== null ? [setDensity(density)] : [];
 	if (paper === "continuous") {
-		const parts = [INIT, ...densityCmd];
+		const parts = [setPaperType("continuous"), INIT, ...densityCmd];
 		for (let i = 0; i < copies; i++) {
 			parts.push(image);
 			const last = i === copies - 1;
@@ -92,6 +100,7 @@ export const buildPrintJob = (
 	// The copy count goes even with a single copy, so a count left over from an earlier job
 	// can't apply to this one.
 	return concat(
+		setPaperType("gaps"),
 		setOffset(Math.max(0, printer.headDots / 8 - raster.bytesPerRow)),
 		INIT,
 		...densityCmd,

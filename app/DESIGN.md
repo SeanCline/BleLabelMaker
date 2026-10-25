@@ -277,6 +277,7 @@ What a print job sends:
 
 | Step    | Bytes                            | Meaning                                                            |
 | ------- | -------------------------------- | ------------------------------------------------------------------ |
+| paper   | `1F 11 0A` / `1F 11 0B`          | Paper type: gap labels / continuous (the printer keeps it)         |
 | offset  | `1F 11 24 n`                     | Shift by n bytes; n = 12 − bytes/row, so 0 on a full-width image   |
 | init    | `1B 40`                          | ESC @ (reset)                                                      |
 | density | `1F 11 02 n`                     | n = 1 light, 2 normal, 4 dark (sent after init; Normal by default) |
@@ -287,17 +288,23 @@ What a print job sends:
 There is one sequence per paper type. The label decides which one is
 used: pre-cut sizes use gaps, and _Continuous roll_ uses the continuous one.
 
-- **Labels with gaps** (the default): offset, init, density, copies,
-  image. Nothing comes after the image, because the printer stops at the next
+- **Labels with gaps** (the default): paper type gaps, offset, init,
+  density, copies, image. Nothing comes after the image, because the printer stops at the next
   gap by itself. The first real print used the continuous sequence on a
   gapped roll, and the D30 kept feeding blank labels after the image.
-- **Continuous roll:** init, density, then image + `ESC d 23` for
-  each copy.
+- **Continuous roll:** paper type continuous, init, density, then image +
+  `ESC d 23` for each copy.
 
 The copy count goes even for a single copy, so a count left over from an
-earlier job can't carry into this one. Phomemo printers also have paper-type
-codes (`1F 11 0A` gaps, `0B` continuous, `26` black mark), which the D30's
-sequences don't need.
+earlier job can't carry into this one.
+
+The paper type is a setting the printer keeps, and every job sends it. It
+decides what happens after the image: set to gaps, the printer feeds on until
+its sensor finds the next gap. On continuous tape there is none, so it feeds a
+distance that grows with the label's length before giving up. A D30 left set
+to gaps did exactly that even with the continuous sequence, until jobs said
+which paper they were for. (`1F 11 26` is black-mark paper, which no model
+here uses.)
 
 Status:
 

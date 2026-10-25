@@ -15,12 +15,12 @@ test("raster header is the GS v 0 layout", () => {
 	assert.equal(cmd.length, 8 + 12 * 320);
 });
 
-test("gap labels: offset, init, copy count, one image and no feed", () => {
+test("gap labels: paper type, offset, init, copy count, one image and no feed", () => {
 	const raster = { bytesPerRow: 12, rows: 1, data: new Uint8Array(12).fill(0xff) };
 	const image = [0x1d, 0x76, 0x30, 0x00, 12, 0, 1, 0, ...raster.data];
 	assert.deepEqual(
 		[...buildPrintJob(raster, { printer: D30, copies: 3 })],
-		[0x1f, 0x11, 0x24, 0, 0x1b, 0x40, 0x1f, 0x11, 0x21, 3, ...image],
+		[0x1f, 0x11, 0x0a, 0x1f, 0x11, 0x24, 0, 0x1b, 0x40, 0x1f, 0x11, 0x21, 3, ...image],
 	);
 	// A trailing ESC d makes a real D30 on gapped labels keep feeding blank ones.
 	assert.ok(
@@ -29,16 +29,19 @@ test("gap labels: offset, init, copy count, one image and no feed", () => {
 	// Narrower than the 12-byte head: the offset makes up the difference.
 	const narrow = { bytesPerRow: 10, rows: 1, data: new Uint8Array(10) };
 	assert.deepEqual(
-		[...buildPrintJob(narrow, { printer: D30 }).subarray(0, 4)],
+		[...buildPrintJob(narrow, { printer: D30 }).subarray(3, 7)],
 		[0x1f, 0x11, 0x24, 2],
 	);
 });
 
-test("continuous paper: init, then image + feed per copy", () => {
+test("continuous paper: paper type, init, then image + feed per copy", () => {
 	const raster = { bytesPerRow: 1, rows: 2, data: Uint8Array.of(0xff, 0x01) };
 	const job = buildPrintJob(raster, { printer: D30, copies: 2, paper: "continuous" });
 	const image = [0x1d, 0x76, 0x30, 0x00, 1, 0, 2, 0, 0xff, 0x01];
-	assert.deepEqual([...job], [0x1b, 0x40, ...image, 0x1b, 0x64, 23, ...image, 0x1b, 0x64, 23]);
+	assert.deepEqual(
+		[...job],
+		[0x1f, 0x11, 0x0b, 0x1b, 0x40, ...image, 0x1b, 0x64, 23, ...image, 0x1b, 0x64, 23],
+	);
 });
 
 test("rejects bad copies and mismatched data", () => {
@@ -117,8 +120,8 @@ test("end to end: image → job → 128-byte packets → decoder → same image"
 	const img = makeImage(320, 96, noise(11));
 	const raster = toPrinterRaster(img);
 	const expected = {
-		gaps: ["offset", "init", "copies", "raster"],
-		continuous: ["init", "raster", "feed", "raster", "feed", "raster", "feed"],
+		gaps: ["paperType", "offset", "init", "copies", "raster"],
+		continuous: ["paperType", "init", "raster", "feed", "raster", "feed", "raster", "feed"],
 	};
 	for (const paper of ["gaps", "continuous"]) {
 		const events = [];

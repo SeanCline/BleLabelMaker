@@ -58,21 +58,21 @@ test("battery codes, unprefixed records, and records split across notifications"
 test("density is sent right after init and decodes; omitted when unset", () => {
 	const raster = { bytesPerRow: 1, rows: 1, data: Uint8Array.of(0xff) };
 	const job = buildPrintJob(raster, { printer: D30, density: DENSITY.dark });
-	assert.deepEqual([...job.subarray(4, 10)], [0x1b, 0x40, 0x1f, 0x11, 0x02, 4]);
+	assert.deepEqual([...job.subarray(7, 13)], [0x1b, 0x40, 0x1f, 0x11, 0x02, 4]);
 	const events = [];
 	const d = new PrinterDecoder({ onEvent: (e) => events.push(e) });
 	for (const p of packetize(job, PACKET_SIZE)) d.feed(p);
 	assert.deepEqual(
 		events.map((e) => e.type),
-		["offset", "init", "density", "copies", "raster"],
+		["paperType", "offset", "init", "density", "copies", "raster"],
 	);
-	assert.equal(events[2].value, 4);
+	assert.equal(events[3].value, 4);
 	assert.deepEqual(
-		[...buildPrintJob(raster, { printer: D30 }).subarray(4, 9)],
+		[...buildPrintJob(raster, { printer: D30 }).subarray(7, 12)],
 		[0x1b, 0x40, 0x1f, 0x11, 0x21],
 	);
 	assert.deepEqual(
-		[...buildPrintJob(raster, { printer: D30, paper: "continuous", density: 1 }).subarray(0, 6)],
+		[...buildPrintJob(raster, { printer: D30, paper: "continuous", density: 1 }).subarray(3, 9)],
 		[0x1b, 0x40, 0x1f, 0x11, 0x02, 1],
 	);
 });

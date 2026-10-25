@@ -75,9 +75,9 @@ test("print over Bluetooth: chunked writes decode to the previewed label, one pi
 	);
 	const bytes = job.flat();
 	assert.deepEqual(
-		bytes.slice(0, 14),
-		[0x1f, 0x11, 0x24, 0, 0x1b, 0x40, 0x1f, 0x11, 0x02, 1, 0x1f, 0x11, 0x21, 1],
-		"offset, init, density light, copies",
+		bytes.slice(0, 17),
+		[0x1f, 0x11, 0x0a, 0x1f, 0x11, 0x24, 0, 0x1b, 0x40, 0x1f, 0x11, 0x02, 1, 0x1f, 0x11, 0x21, 1],
+		"paper type gaps, offset, init, density light, copies",
 	);
 	assert.notDeepEqual(bytes.slice(-3, -1), [0x1b, 0x64], "no feed after a gap label");
 

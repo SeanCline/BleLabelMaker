@@ -41,9 +41,10 @@ export const showVirtualOutput = (result, copies, { flip180 }, printer) => {
 		return c;
 	});
 	const feeds = result.events.filter((e) => e.type === "feed").map((e) => e.lines);
-	// Only gap jobs set an offset, so a continuous job without a feed still reads as one.
-	const gapped = result.events.some((e) => e.type === "offset");
-	const paper = feeds.length ? `feed ${feeds[0]}` : gapped ? "stops at gap" : "no feed";
+	const gapped = result.events.some((e) => e.type === "paperType" && e.value === "gaps");
+	const paper = gapped
+		? "gap labels: stops at the gap"
+		: `continuous: ${feeds.length ? `feed ${feeds[0]}` : "no feed"}`;
 	const density = result.events.find((e) => e.type === "density");
 	const { densities } = printer.driver;
 	const densityName = density

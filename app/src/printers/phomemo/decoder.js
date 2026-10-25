@@ -75,6 +75,11 @@ export class PrinterDecoder {
 				this.onEvent({ type: withValue, value: b[pos + 3] });
 				return 4;
 			}
+			const paperType = { 0x0a: "gaps", 0x0b: "continuous" }[sub];
+			if (paperType) {
+				this.onEvent({ type: "paperType", value: paperType });
+				return 3;
+			}
 			const query = { 0x08: "battery", 0x11: "paper", 0x07: "firmware", 0x0e: "autoPowerOff" }[sub];
 			if (!query) throw new DecodeError(`unknown 1f 11 command 0x${hex(sub)}`);
 			this.onEvent({ type: "query", query });

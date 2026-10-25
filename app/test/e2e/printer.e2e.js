@@ -76,7 +76,10 @@ test("pre-cut labels stop at the gap; a continuous roll feeds and has a free len
 	const page = await env.open();
 	await page.click("#btnPrint");
 	await page.waitForSelector("#tape .printed");
-	assert.match(await page.$eval("#tape .printed .hint", (e) => e.textContent), /stops at gap/);
+	assert.match(
+		await page.$eval("#tape .printed .hint", (e) => e.textContent),
+		/gap labels: stops at the gap/,
+	);
 
 	await page.select("#labelPreset", "continuous");
 	assert.equal(await page.$eval("#continuousSize", (e) => e.hidden), false);
@@ -122,7 +125,10 @@ test("the continuous feed can be overridden, and a model change restores its def
 	await page.select("#virtualModel", "p15");
 	await page.click("#btnPrint");
 	await page.waitForSelector("#tape .printed");
-	assert.match(await page.$eval("#tape .printed .hint", (e) => e.textContent), /no feed/);
+	assert.match(
+		await page.$eval("#tape .printed .hint", (e) => e.textContent),
+		/continuous: no feed/,
+	);
 
 	await page.select("#virtualModel", "d30");
 	await typeInto(page, "#setFeed", "999");
