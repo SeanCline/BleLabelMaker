@@ -213,30 +213,6 @@ input[type="number"] {
 .custom-size input[type="number"] {
 	width: 4.5em;
 }
-.label-kind {
-	padding: 2px 8px;
-	border-radius: 999px;
-	font-size: 12px;
-	background: var(--surface-2);
-	border: 1px solid var(--border);
-	color: var(--muted);
-}
-/* A tiny label: rounded like the pre-cut preview, or tape with cut (dashed) ends. */
-.label-kind::before {
-	content: "";
-	display: inline-block;
-	width: 14px;
-	height: 8px;
-	margin-right: 6px;
-	vertical-align: 0;
-	background: #fff;
-	border: 1px solid var(--muted);
-	border-radius: 3px;
-}
-.label-kind[data-kind="continuous"]::before {
-	border-radius: 0;
-	border-style: none dashed;
-}
 
 .sr-only {
 	position: absolute;

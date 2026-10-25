@@ -11,6 +11,11 @@ const presetKey = (l) => `${l.widthMm}x${l.heightMm}`;
 // The sizes the printer being used takes; some models only take 12 mm labels, say.
 const visiblePresets = () => currentPrinter().presets;
 
+const KIND_TITLES = {
+	precut: "Pre-cut labels: the printer stops at each gap",
+	continuous: "Continuous tape: printed to length, then fed out to tear off",
+};
+
 const renderPresetOptions = () => {
 	const sel = $("#labelPreset");
 	const presets = visiblePresets();
@@ -18,17 +23,25 @@ const renderPresetOptions = () => {
 	if (sel.dataset.key === key) return;
 	sel.dataset.key = key;
 	// Grouped by what the printer does at the end of a label, which matters more than the size.
+	// Options repeat their group's tooltip, since an open dropdown may not show the group's.
+	const option = (text, value, title) => Object.assign(new Option(text, value), { title });
 	sel.replaceChildren(
 		el(
 			"optgroup",
-			{ label: "Pre-cut labels" },
-			...presets.map((p) => new Option(`${p.widthMm} × ${p.heightMm} mm`, presetKey(p))),
-			new Option("Custom size…", "custom"),
+			{ label: "Pre-cut labels", title: KIND_TITLES.precut },
+			...presets.map((p) =>
+				option(`${p.widthMm} × ${p.heightMm} mm`, presetKey(p), KIND_TITLES.precut),
+			),
+			option("Custom size…", "custom", KIND_TITLES.precut),
 		),
 		el(
 			"optgroup",
-			{ label: "Continuous tape" },
-			new Option(`Continuous roll (${currentPrinter().continuousHeightMm} mm)`, "continuous"),
+			{ label: "Continuous tape", title: KIND_TITLES.continuous },
+			option(
+				`Continuous roll (${currentPrinter().continuousHeightMm} mm)`,
+				"continuous",
+				KIND_TITLES.continuous,
+			),
 		),
 	);
 };
@@ -57,11 +70,7 @@ const renderLabelBar = () => {
 	]) {
 		if (document.activeElement !== $(id)) $(id).value = v;
 	}
-	const kind = $("#labelKind");
-	kind.dataset.kind = l.continuous ? "continuous" : "precut";
-	kind.textContent = l.continuous
-		? "Continuous tape: printed to length, then fed out to tear off"
-		: "Pre-cut labels: the printer stops at each gap";
+	sel.title = KIND_TITLES[l.continuous ? "continuous" : "precut"];
 	const { width, height } = labelDots(l);
 	$("#labelInfo").textContent = `${width} × ${height} dots`;
 };

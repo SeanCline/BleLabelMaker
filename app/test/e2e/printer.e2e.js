@@ -163,9 +163,9 @@ test("auto power-off shows what the printer reports and sets it", async () => {
 	assert.deepEqual(page.errors, []);
 });
 
-test("the label menu says pre-cut or continuous, and each printer remembers its label", async () => {
+test("the label menu groups pre-cut and continuous, and each printer remembers its label", async () => {
 	const page = await env.open();
-	const kind = () => page.$eval("#labelKind", (k) => k.textContent);
+	const kind = () => page.$eval("#labelPreset", (s) => s.title);
 	const label = () => appState(page).then((s) => s.doc.label);
 	assert.match(await kind(), /^Pre-cut labels/);
 	assert.deepEqual(await page.$$eval("#labelPreset optgroup", (g) => g.map((x) => x.label)), [
