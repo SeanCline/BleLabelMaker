@@ -66,13 +66,21 @@ const details = (text) =>
 	["<details><summary>Diagnostics</summary>", "", "```", text, "```", "", "</details>"].join("\n");
 
 /**
+ * @typedef {{template: string, title: string, fields: Record<string, string>, body: string}} Report
+ *   `template` and `fields` fill in one of the repository's issue forms (.github/ISSUE_TEMPLATE),
+ *   keyed by its field ids; `body` is the same report as one piece of Markdown, for copying.
+ */
+
+/**
  * A bug report to fill in.
  * @param {ReportInfo} info
  * @param {{messages?: number}} [options] as for diagnostics
+ * @returns {Report}
  */
 export const problemReport = (info, options) => ({
+	template: "problem.yml",
 	title: "",
-	labels: "bug",
+	fields: { diagnostics: diagnostics(info, options) },
 	body: [
 		"**What happened?**",
 		"",
@@ -92,17 +100,25 @@ export const problemReport = (info, options) => ({
  * A report that a printer works, so an untested model can be marked tested.
  * @param {ReportInfo} info
  * @param {{messages?: number}} [options] as for diagnostics
+ * @returns {Report}
  */
 export const worksReport = (info, options) => {
 	const p = info.printer;
 	const device = p.deviceName ? ` (it calls itself "${p.deviceName}")` : "";
+	const fields = {
+		printer: `${p.model.vendor} ${p.model.name}${device}`,
+		connection: TARGETS[p.target] ?? p.target,
+		labels: labelText(info.label),
+		diagnostics: diagnostics(info, options),
+	};
 	return {
+		template: "printer-works.yml",
 		title: `Works: ${p.model.vendor} ${p.model.name}`,
-		labels: "printer works",
+		fields,
 		body: [
-			`**Printer:** ${p.model.vendor} ${p.model.name}${device}`,
-			`**Connected over:** ${TARGETS[p.target] ?? p.target}`,
-			`**Labels:** ${labelText(info.label)}`,
+			`**Printer:** ${fields.printer}`,
+			`**Connected over:** ${fields.connection}`,
+			`**Labels:** ${fields.labels}`,
 			"",
 			"Tick what you checked:",
 			"",
@@ -114,7 +130,7 @@ export const worksReport = (info, options) => {
 			"**Anything you had to change?** (Flip 180°, the feed, the model under Advanced…)",
 			"",
 			"",
-			details(diagnostics(info, options)),
+			details(fields.diagnostics),
 		].join("\n"),
 	};
 };
@@ -123,17 +139,17 @@ export const worksReport = (info, options) => {
 const MAX_URL = 7500;
 
 /**
- * GitHub's new-issue page with the report filled in, leaving out printer messages if they'd
- * make the address too long.
- * @param {(info: ReportInfo, options: {messages: number}) => {title: string, labels: string,
- *   body: string}} make problemReport or worksReport
+ * GitHub's new-issue page with the report's form filled in, leaving out printer messages if
+ * they'd make the address too long. The form applies its own label.
+ * @param {(info: ReportInfo, options: {messages: number}) => Report} make problemReport or
+ *   worksReport
  * @param {ReportInfo} info
  */
 export const issueUrl = (make, info) => {
 	let url = "";
 	for (const messages of [20, 5, 0]) {
-		const { title, labels, body } = make(info, { messages });
-		const params = new URLSearchParams({ body, labels });
+		const { template, title, fields } = make(info, { messages });
+		const params = new URLSearchParams({ template, ...fields });
 		if (title) params.set("title", title);
 		url = `${REPO_URL}/issues/new?${params}`;
 		if (url.length <= MAX_URL) break;

@@ -1,0 +1,48 @@
+# The app's "Report that it works" button opens this form with the printer, connection, labels
+# and diagnostics filled in (?template=printer-works.yml&printer=…, see app/src/report.js), so
+# field ids are part of that link.
+name: Report that a printer works
+description: An untested label maker printed correctly, so it can be marked as tested.
+title: "Works: "
+labels: ["printer works"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for trying it! A report like this lets everyone with the same printer know it works.
+  - type: input
+    id: printer
+    attributes:
+      label: Printer
+      description: The model, and what it calls itself over Bluetooth if you know.
+    validations:
+      required: true
+  - type: input
+    id: connection
+    attributes:
+      label: Connected over
+      description: Bluetooth or serial port.
+  - type: input
+    id: labels
+    attributes:
+      label: Labels
+      description: Size, and whether pre-cut or continuous.
+  - type: checkboxes
+    id: checked
+    attributes:
+      label: What did you check?
+      options:
+        - label: It printed the right way up
+        - label: The size and position matched the preview
+        - label: The darkness settings look right
+        - label: Barcodes or QR codes scan (if you printed any)
+  - type: textarea
+    id: changes
+    attributes:
+      label: Anything you had to change?
+      description: Flip 180°, the feed, the model under Advanced…
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Diagnostics
+      description: The app fills this in when you use "Report that it works" (under Advanced).
+      render: text

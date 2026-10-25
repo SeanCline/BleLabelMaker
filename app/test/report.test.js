@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
 import { diagnostics, problemReport, worksReport, issueUrl } from "../src/report.js";
 import { APP_NAME, APP_VERSION, REPO_URL } from "../src/app-info.js";
 
@@ -47,15 +48,30 @@ test("diagnostics keep only the printer's last messages", () => {
 	assert.ok(diagnostics(info(), { messages: 0 }).includes("3 left out"));
 });
 
-test("an issue link opens the repository's new-issue page, filled in", () => {
+test("an issue link opens the repository's issue form, filled in", () => {
 	const url = new URL(issueUrl(worksReport, info()));
 	assert.equal(url.origin + url.pathname, `${REPO_URL}/issues/new`);
+	assert.equal(url.searchParams.get("template"), "printer-works.yml");
 	assert.equal(url.searchParams.get("title"), "Works: Acme Q1");
-	assert.ok(url.searchParams.get("body").includes('it calls itself "Q1-ABCD"'));
-	assert.ok(url.searchParams.get("body").includes("Model: Acme Q1"));
+	assert.equal(url.searchParams.get("printer"), 'Acme Q1 (it calls itself "Q1-ABCD")');
+	assert.equal(url.searchParams.get("connection"), "Bluetooth");
+	assert.ok(url.searchParams.get("diagnostics").includes("Model: Acme Q1"));
 	const problem = new URL(issueUrl(problemReport, info()));
+	assert.equal(problem.searchParams.get("template"), "problem.yml");
 	assert.equal(problem.searchParams.get("title"), null, "the reporter writes the title");
-	assert.equal(problem.searchParams.get("labels"), "bug");
+	// The copied version is the same report in one piece.
+	assert.ok(worksReport(info()).body.includes('it calls itself "Q1-ABCD"'));
+});
+
+test("every field a report fills in is one its issue form has", async () => {
+	const forms = new URL("../../.github/ISSUE_TEMPLATE/", import.meta.url);
+	for (const make of [problemReport, worksReport]) {
+		const { template, fields } = make(info());
+		const yaml = await readFile(new URL(template, forms), "utf8");
+		const ids = [...yaml.matchAll(/^\s+id: (\S+)$/gm)].map((m) => m[1]);
+		for (const field of Object.keys(fields))
+			assert.ok(ids.includes(field), `${template}: ${field}`);
+	}
 });
 
 test("a link that would be too long leaves out printer messages first", () => {
@@ -63,5 +79,5 @@ test("a link that would be too long leaves out printer messages first", () => {
 	many.printer.messages.forEach((m) => (m.hex = "1a ".repeat(100).trim()));
 	const url = issueUrl(problemReport, many);
 	assert.ok(url.length <= 7500, `${url.length} characters`);
-	assert.ok(new URL(url).searchParams.get("body").includes("Firmware: 1.2.3"));
+	assert.ok(new URL(url).searchParams.get("diagnostics").includes("Firmware: 1.2.3"));
 });

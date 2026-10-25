@@ -186,10 +186,11 @@ test("reports: an untested model that prints offers an 'it works' issue; diagnos
 	const works = new URL(await page.evaluate(() => window.opened[0]));
 	assert.match(works.pathname, /\/issues\/new$/);
 	assert.equal(works.searchParams.get("title"), "Works: Phomemo Q30");
-	const body = works.searchParams.get("body");
-	assert.match(body, /it calls itself "Q30-FAKE"/);
-	assert.match(body, /Firmware: 2\.1\.7/);
-	assert.match(body, /1a 04 40/, "what the printer said");
+	assert.equal(works.searchParams.get("template"), "printer-works.yml");
+	assert.match(works.searchParams.get("printer"), /it calls itself "Q30-FAKE"/);
+	const diagnostics = works.searchParams.get("diagnostics");
+	assert.match(diagnostics, /Firmware: 2\.1\.7/);
+	assert.match(diagnostics, /1a 04 40/, "what the printer said");
 	assert.equal(await page.$eval("#untestedNote", (n) => n.hidden), true);
 	// Asked once per model.
 	await page.click("#btnPrint");
@@ -205,7 +206,7 @@ test("reports: an untested model that prints offers an 'it works' issue; diagnos
 	assert.doesNotMatch(copied, /#label=/, "never the shared label in the URL");
 	await page.click("#btnReportProblem");
 	const problem = new URL(await page.evaluate(() => window.opened[1]));
-	assert.equal(problem.searchParams.get("labels"), "bug");
-	assert.match(problem.searchParams.get("body"), /Model: Phomemo Q30 \(q30\), untested/);
+	assert.equal(problem.searchParams.get("template"), "problem.yml");
+	assert.match(problem.searchParams.get("diagnostics"), /Model: Phomemo Q30 \(q30\), untested/);
 	assert.deepEqual(page.errors, []);
 });
