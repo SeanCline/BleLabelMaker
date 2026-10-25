@@ -210,7 +210,7 @@ input[type="number"] {
 	align-items: center;
 	gap: 6px;
 }
-.custom-size input {
+.custom-size input[type="number"] {
 	width: 4.5em;
 }
 .label-kind {

@@ -97,6 +97,13 @@ export const commit = (
 	notify();
 };
 
+/** Changes the document within the current undo step (see History.amend). */
+export const amend = (doc) => {
+	state.doc = doc;
+	history.amend(snapshot());
+	notify();
+};
+
 const patched = (e, patch) =>
 	e.type === "text" && "text" in patch
 		? { ...e, ...patch, text: plainText(patch.text) }

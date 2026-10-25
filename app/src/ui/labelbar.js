@@ -1,9 +1,10 @@
 // The label bar: pre-cut sizes for the printer in use, a continuous roll, or a custom size.
-import { LIMITS, CONTINUOUS_LENGTH_MM, resizeLabel } from "../model.js";
-import { labelDots } from "../render.js";
+import { LIMITS, CONTINUOUS_LENGTH_MM, resizeLabel, withLength } from "../model.js";
+import { labelDots, contentLengthMm } from "../render.js";
 import { storageKey } from "../app-info.js";
 import { $, el, loadJson, storeJson } from "./dom.js";
-import { state, history, commit, subscribe } from "./store.js";
+import { state, history, commit, amend, subscribe } from "./store.js";
+import { onDrawn, previewDocument } from "./stage.js";
 import { currentPrinter, onPrinterChange } from "./printing.js";
 
 const presetKey = (l) => `${l.widthMm}x${l.heightMm}`;
@@ -46,6 +47,9 @@ const renderLabelBar = () => {
 	}
 	$("#customSize").hidden = sel.value !== "custom";
 	$("#continuousSize").hidden = sel.value !== "continuous";
+	$("#labelAutoLength").checked = !!l.autoLength;
+	// The length follows the content, so there's nothing to type.
+	$("#labelLen").disabled = !!l.autoLength;
 	for (const [id, v] of [
 		["#labelW", l.widthMm],
 		["#labelH", l.heightMm],
@@ -66,11 +70,19 @@ const renderLabelBar = () => {
 // brings back the roll that's usually in it.
 const MEMORY_KEY = storageKey("labelByPrinter");
 const remembered = () => loadJson(MEMORY_KEY) ?? {};
-const remember = ({ widthMm, heightMm, continuous }) =>
-	storeJson(MEMORY_KEY, {
-		...remembered(),
-		[currentPrinter().id]: { widthMm, heightMm, continuous },
-	});
+const remember = (label) =>
+	storeJson(MEMORY_KEY, { ...remembered(), [currentPrinter().id]: label });
+
+/**
+ * A label as stored: auto length only on a continuous roll, and only when set.
+ * @param {{widthMm: number, heightMm: number, continuous?: boolean, autoLength?: boolean}} l
+ */
+const labelOf = ({ widthMm, heightMm, continuous, autoLength }) => ({
+	widthMm,
+	heightMm,
+	continuous: continuous === true,
+	...(continuous === true && autoLength === true ? { autoLength: true } : {}),
+});
 
 let printerId = currentPrinter().id;
 onPrinterChange(() => {
@@ -78,14 +90,15 @@ onPrinterChange(() => {
 		printerId = currentPrinter().id;
 		const l = remembered()[printerId];
 		if (l) {
-			setLabel({ widthMm: l.widthMm, heightMm: l.heightMm, continuous: l.continuous === true });
+			setLabel(l);
 			history.seal();
 		}
 	}
 	renderLabelBar();
 });
 
-const setLabel = (label) => {
+const setLabel = (wanted) => {
+	const label = labelOf(wanted);
 	const ok =
 		Number.isFinite(label.widthMm) &&
 		Number.isFinite(label.heightMm) &&
@@ -96,12 +109,7 @@ const setLabel = (label) => {
 	if (!ok) return;
 	remember(label);
 	const l = state.doc.label;
-	if (
-		l.widthMm === label.widthMm &&
-		l.heightMm === label.heightMm &&
-		l.continuous === label.continuous
-	)
-		return;
+	if (JSON.stringify(labelOf(l)) === JSON.stringify(label)) return;
 	commit(resizeLabel(state.doc, label, { refitSimple: state.mode === "simple" }), {
 		group: "label-size",
 	});
@@ -143,5 +151,19 @@ $("#labelLen").addEventListener("input", () =>
 	setLabel({ ...state.doc.label, widthMm: $("#labelLen").valueAsNumber }),
 );
 $("#labelLen").addEventListener("change", () => history.seal());
+$("#labelAutoLength").addEventListener("change", (ev) => {
+	setLabel({ ...state.doc.label, autoLength: ev.target.checked });
+	history.seal();
+});
+
+// Auto length: after each redraw (which has the fonts loaded and the fields filled in as
+// previewed), the label takes the length its content needs. It's part of the edit that
+// changed the content, so one undo takes back both.
+onDrawn(() => {
+	const l = state.doc.label;
+	if (!l.continuous || !l.autoLength) return;
+	const mm = contentLengthMm(previewDocument());
+	if (mm !== l.widthMm) amend(withLength(state.doc, mm));
+});
 
 subscribe(renderLabelBar);

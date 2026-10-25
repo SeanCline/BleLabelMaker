@@ -76,7 +76,9 @@ it never needs the internet.
   "Fit to label" picks the largest size that fits and shows it in the size
   box; typing a size there turns fitting off.
 - **Emoji** go in text: type them, or use the _Emoji_ button next to the text
-  field to insert one where the cursor is. They print as crisp line art.
+  field to insert one where the cursor is. They print as crisp line art, or
+  tick _Dithered emoji_ (shown once the text has one) to print them in shades
+  of dots, like a photo.
 - **Fields** fill themselves in when the label prints. Type them, or pick one
   from the _Field_ menu next to the text:
   - `{date}`, `{date+30d}` (also `-1w`, `+3m`, `+1y`), `{date:iso}` for
@@ -90,7 +92,8 @@ it never needs the internet.
   `{Column name}` with _First line is column names_) in the design. Print then
   makes one label per row; the arrows preview each one.
 - **Labels:** pick a pre-cut size, or _Continuous roll_ for rolls that are one
-  long label, then set the length. Only the sizes the selected printer model
+  long label, then set the length, or tick _Auto_ to make it as long as the
+  text (in a batch, each label gets its own length). Only the sizes the selected printer model
   takes are listed.
 - **Design:** add text, shapes, barcodes, QR codes and images (or drop a
   picture on the page), then drag to move and use the handles to resize.

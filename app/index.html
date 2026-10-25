@@ -62,6 +62,9 @@
 							aria-label="Label length (mm)"
 						/>
 						mm
+						<label class="check" title="Make the label as long as what's on it"
+							><input type="checkbox" id="labelAutoLength" /> Auto</label
+						>
 					</span>
 					<span id="customSize" class="custom-size" hidden>
 						<input
@@ -268,6 +271,14 @@
 							</select></span
 						>
 						<textarea id="simpleText" data-prop="text" rows="3" spellcheck="true"></textarea>
+						<label
+							class="check"
+							data-show-if-emoji
+							title="Print emoji in colour, as dots like a photo, instead of as line art"
+							hidden
+							><input type="checkbox" data-prop="ditherEmoji" data-type="bool" /> Dithered
+							emoji</label
+						>
 					</div>
 					<label class="field">
 						Font
@@ -355,6 +366,14 @@
 								</select></span
 							>
 							<textarea id="designText" data-prop="text" rows="3"></textarea>
+							<label
+								class="check"
+								data-show-if-emoji
+								title="Print emoji in colour, as dots like a photo, instead of as line art"
+								hidden
+								><input type="checkbox" data-prop="ditherEmoji" data-type="bool" /> Dithered
+								emoji</label
+							>
 						</div>
 						<label class="field">
 							Font

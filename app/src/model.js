@@ -4,13 +4,15 @@ import { plainText } from "./layout.js";
 
 /**
  * The document model, as saved in .label files (see DESIGN.md). Units are mm and pt.
- * @typedef {{widthMm: number, heightMm: number, continuous: boolean}} Label
+ * @typedef {{widthMm: number, heightMm: number, continuous: boolean, autoLength?: boolean}} Label
+ *   autoLength (continuous only, and only present when set): the length follows the content
  * @typedef {{id: string, x: number, y: number, w: number, h: number}} Rect
  * @typedef {Rect & {rotation: 0|90|180|270}} Box
  * @typedef {Box & {type: "text", text: string, fontFamily: string, fontSizePt: number,
  *   fontWeight: number, italic: boolean, align: "left"|"center"|"right",
  *   vAlign: "top"|"middle"|"bottom", fit: boolean, invert: boolean, letterSpacingPt: number,
- *   underline: boolean, outline: boolean, stacked: boolean, firstLineScale: 1|1.5|2}} TextElement
+ *   underline: boolean, outline: boolean, stacked: boolean, firstLineScale: 1|1.5|2,
+ *   ditherEmoji: boolean}} TextElement
  * @typedef {Box & {type: "shape", shape: "rect"|"ellipse"|"line", strokeMm: number,
  *   fill: boolean, radiusMm: number}} ShapeElement
  * @typedef {Box & {type: "barcode", data: string, symbology: "CODE128"|"EAN13"|"UPCA",
@@ -96,6 +98,8 @@ export const TEXT_DEFAULTS = {
 	stacked: false,
 	// A title: the first line larger than the rest.
 	firstLineScale: 1,
+	// Emoji in colour, dithered like a photo, instead of the monochrome outline font.
+	ditherEmoji: false,
 };
 
 /**
@@ -266,6 +270,36 @@ export const toSimple = (doc) => {
  * @param {Label} label
  * @returns {Doc}
  */
+/** One text box filling the printable area, as in simple mode: auto length sizes it to its text. */
+export const textFillsLabel = (doc) => {
+	if (doc.elements.length !== 1) return false;
+	const e = doc.elements[0];
+	const area = printableArea(doc.label);
+	return (
+		e.type === "text" &&
+		e.rotation === 0 &&
+		e.x === area.x &&
+		e.y === area.y &&
+		e.w === area.w &&
+		e.h === area.h
+	);
+};
+
+/**
+ * The document on a label `widthMm` long. A text box that filled the label still fills it;
+ * anything else stays where it is, kept on the label.
+ * @param {Doc} doc
+ * @param {number} widthMm
+ * @returns {Doc}
+ */
+export const withLength = (doc, widthMm) => {
+	const label = { ...doc.label, widthMm };
+	if (textFillsLabel(doc)) {
+		return { label, elements: [{ ...doc.elements[0], ...printableArea(label) }] };
+	}
+	return resizeLabel(doc, label);
+};
+
 export const resizeLabel = (doc, label, { refitSimple = false } = {}) => {
 	if (refitSimple) return toSimple({ ...doc, label });
 	return {

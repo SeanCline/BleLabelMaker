@@ -648,3 +648,17 @@ test("the ruler toggles, spans the label, still fits the window, and is remember
 	assert.equal((await rulers()).hidden, true);
 	assert.deepEqual(page.errors, []);
 });
+
+test("dithered emoji: offered only with an emoji in the text, and printed as previewed", async () => {
+	const page = await env.open();
+	const option = "#simplePanel [data-show-if-emoji]";
+	await typeInto(page, "#simpleText", "Pantry");
+	assert.equal(await page.$eval(option, (l) => l.hidden), true);
+	await typeInto(page, "#simpleText", "Hot 🔥");
+	assert.equal(await page.$eval(option, (l) => l.hidden), false);
+	await page.click('#simplePanel [data-prop="ditherEmoji"]');
+	assert.equal((await appState(page)).doc.elements[0].ditherEmoji, true);
+	await printVirtual(page);
+	assert.equal(await previewMatchesPrint(page), true);
+	assert.deepEqual(page.errors, []);
+});

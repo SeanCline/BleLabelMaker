@@ -1,6 +1,6 @@
 import { planLabels, buildJobs, sentPart } from "../printjob.js";
 import { DEFAULT_PRINTER, printerById, PRINTERS } from "../printers/index.js";
-import { renderLabel } from "../render.js";
+import { renderLabel, withAutoLength } from "../render.js";
 import { ensureFontsFor } from "../fonts.js";
 import { fieldsUsed } from "../fields.js";
 import {
@@ -142,11 +142,14 @@ const reportPrintError = (err) => {
 	toast(`Print failed: ${err.message ?? err}`, { error: true });
 };
 
-/** The pixels for one label, rendered off-screen the same way the preview is. */
+/**
+ * The pixels for one label, rendered off-screen the same way the preview is. With auto length,
+ * each label is as long as its own text, so batch rows can differ.
+ */
 const renderForPrint = async (doc) => {
 	await ensureFontsFor(doc);
 	const canvas = document.createElement("canvas");
-	await renderLabel(doc, canvas);
+	await renderLabel(withAutoLength(doc), canvas);
 	return canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
 };
 

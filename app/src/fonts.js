@@ -101,11 +101,23 @@ export const nearestWeight = (family, weight) =>
 export const cssFamily = (family) =>
 	`${GENERIC.has(family) ? family : `"${family}", sans-serif`}, "${EMOJI_MONO_FONT}"`;
 
+// Colour emoji, for text set to dither them: whichever colour emoji font the system has.
+// They come before the generic family, which on some systems has monochrome symbols (❤).
+const COLOR_EMOJI_FONTS = `"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"`;
+const colorFamily = (family) =>
+	GENERIC.has(family)
+		? `${COLOR_EMOJI_FONTS}, ${family}`
+		: `"${family}", ${COLOR_EMOJI_FONTS}, sans-serif`;
+
 const EMOJI_RE = /\p{Extended_Pictographic}/u;
 export const hasEmoji = (s) => EMOJI_RE.test(s);
 
-export const cssFont = ({ fontFamily, fontWeight, italic }, px) =>
-	`${italic ? "italic " : ""}${fontWeight} ${px}px ${cssFamily(fontFamily)}`;
+/**
+ * The CSS font for a text element at a size in px. Everything that lays the text out or
+ * measures it goes through here, so the dithered-emoji setting changes them all alike.
+ */
+export const cssFont = ({ fontFamily, fontWeight, italic, ditherEmoji = false }, px) =>
+	`${italic ? "italic " : ""}${fontWeight} ${px}px ${ditherEmoji ? colorFamily(fontFamily) : cssFamily(fontFamily)}`;
 
 /** Fonts are self-hosted (see tools/fetch-fonts.mjs) so the app works offline. */
 export const installFontStylesheet = () => {

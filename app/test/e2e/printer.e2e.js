@@ -190,3 +190,35 @@ test("the label menu says pre-cut or continuous, and each printer remembers its 
 	assert.equal((await label()).continuous, true);
 	assert.deepEqual(page.errors, []);
 });
+
+test("auto length: a continuous label grows with its text, per batch row when printing", async () => {
+	const page = await env.open();
+	const label = () => appState(page).then((s) => s.doc.label);
+	await page.select("#labelPreset", "continuous");
+	await page.click("#labelAutoLength");
+	assert.equal(await page.$eval("#labelLen", (i) => i.disabled), true, "nothing to type");
+	await typeInto(page, "#simpleText", "Hi");
+	await page.waitForFunction(() => window.labelApp.state.doc.label.widthMm < 20);
+	const short = (await label()).widthMm;
+	await typeInto(page, "#simpleText", "Hi there, this is a much longer label");
+	await page.waitForFunction((s) => window.labelApp.state.doc.label.widthMm > s * 3, {}, short);
+	const long = await label();
+	assert.equal(long.autoLength, true);
+	// The text still fits on one line at the height's size, with the margins either side.
+	const text = (await appState(page)).doc.elements[0];
+	assert.equal(text.w, long.widthMm - 2);
+	// The length came with the typing, so one undo takes both back.
+	await page.evaluate(() => window.labelApp.undo());
+	await page.waitForFunction((s) => window.labelApp.state.doc.label.widthMm === s, {}, short);
+	assert.equal((await appState(page)).doc.elements[0].text, "Hi");
+
+	// A batch prints each row at its own length.
+	await typeInto(page, "#simpleText", "{1}");
+	await page.click("#batchPanel summary");
+	await typeInto(page, "#batchData", "Salt\nSmoked paprika and cumin");
+	await page.click("#btnPrint");
+	await page.waitForFunction(() => document.querySelectorAll("#tape .printed canvas").length >= 2);
+	const lengths = await page.$$eval("#tape .printed canvas", (c) => c.map((x) => x.width));
+	assert.ok(lengths[0] !== lengths[1], `printed lengths ${lengths}`);
+	assert.deepEqual(page.errors, []);
+});

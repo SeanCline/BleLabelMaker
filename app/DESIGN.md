@@ -175,7 +175,16 @@ different lists.
   another repository, opens the same.
 - `label.continuous` marks a continuous roll (one long label): `widthMm` is
   then the length to print, and the print job ends with a feed instead of
-  stopping at a gap.
+  stopping at a gap. `label.autoLength` (continuous only, present only when
+  on) makes the length follow the content: one text box filling the label is
+  as long as its text at the height's size, one line per paragraph; anything
+  else ends a margin past its furthest element (`contentLengthMm` in
+  `render.js`). The editor applies it after each redraw, inside the undo step
+  of the edit that caused it, and printing applies it per label, so batch rows
+  can differ in length.
+- A text element's `ditherEmoji` draws its emoji with the system's colour emoji
+  font on a layer of their own, dithered like a photo, instead of the outline
+  emoji font; the letters stay a plain threshold.
 - `x/y/w/h` are in mm from the label's top-left, as you read the label. They
   describe the element's box _after_ rotation, so the box is always
   axis-aligned. Rotating a quarter turn swaps `w` and `h` around the centre.

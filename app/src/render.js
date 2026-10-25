@@ -1,14 +1,54 @@
-import { mmToDots, ptToDots } from "./units.js";
-import { layoutText, stackLetters, LINE_HEIGHT } from "./layout.js";
+import { mmToDots, ptToDots, DOTS_PER_MM } from "./units.js";
+import { LIMITS, MARGIN, textFillsLabel, withLength } from "./model.js";
+import { layoutText, stackLetters, graphemes, LINE_HEIGHT } from "./layout.js";
 import { threshold, toOneBit } from "./raster.js";
-import { cssFont, cssFamily } from "./fonts.js";
+import { cssFont, cssFamily, hasEmoji } from "./fonts.js";
 import { encodeBarcode } from "./barcode.js";
 import { encodeQr, QR_QUIET } from "./qr.js";
+
+// Measures text for contentLengthMm. Created on first use, so importing this module needs no DOM.
+let lengthCanvasCtx = null;
+const lengthContext = () => (lengthCanvasCtx ??= document.createElement("canvas").getContext("2d"));
 
 export const labelDots = (label) => ({
 	width: Math.round(mmToDots(label.widthMm)),
 	height: Math.round(mmToDots(label.heightMm)),
 });
+
+/**
+ * How long a continuous label needs to be for what's on it, in whole mm. A label that is one
+ * text box is as long as its text at the size the height allows (fit) or the size set, one line
+ * per paragraph; anything else ends a margin past its furthest element.
+ * @param {import("./model.js").Doc} doc with its fields filled in
+ */
+export const contentLengthMm = (doc) => {
+	let mm;
+	if (textFillsLabel(doc)) {
+		const e = /** @type {import("./model.js").TextElement} */ (doc.elements[0]);
+		// So wide nothing wraps: the label grows to the text instead.
+		const { lines, sizes } = layoutTextBox(lengthContext(), e, {
+			w: 1e6,
+			h: Math.round(mmToDots(e.h)),
+		});
+		const widest = Math.max(
+			0,
+			...lines.map((line, i) => {
+				const ctx = lengthContext();
+				ctx.font = cssFont(e, sizes[i]);
+				return ctx.measureText(line).width;
+			}),
+		);
+		mm = widest / DOTS_PER_MM + 2 * MARGIN.x;
+	} else {
+		mm = Math.max(0, ...doc.elements.map((e) => e.x + e.w)) + MARGIN.x;
+	}
+	const [lo, hi] = LIMITS.labelWidthMm;
+	return Math.min(hi, Math.max(lo, Math.ceil(mm)));
+};
+
+/** The document at the length its content needs, if it's a continuous roll set to auto length. */
+export const withAutoLength = (doc) =>
+	doc.label.continuous && doc.label.autoLength ? withLength(doc, contentLengthMm(doc)) : doc;
 
 const makeCanvas = (w, h) => {
 	const c = document.createElement("canvas");
@@ -160,6 +200,53 @@ export const layoutTextBox = (ctx, e, box) => {
 	return { ...layout, starts, top, ascent, descent };
 };
 
+/** A transparent canvas the size of ctx's, drawing in the same (rotated) frame, clipped to box. */
+const layerLike = (ctx, box) => {
+	const layer = makeCanvas(ctx.canvas.width, ctx.canvas.height).getContext("2d", {
+		willReadFrequently: true,
+	});
+	layer.setTransform(ctx.getTransform());
+	layer.beginPath();
+	layer.rect(0, 0, box.w, box.h);
+	layer.clip();
+	layer.textBaseline = "alphabetic";
+	return layer;
+};
+
+/**
+ * Draws a line in runs: letters on ctx as usual, emoji on their own layer. Each run starts
+ * where the whole line, laid out in one font, puts it, so spacing matches the measured layout.
+ */
+const drawRuns = (ctx, layer, e, line, box, baseline) => {
+	const width = ctx.measureText(line).width;
+	const left = e.align === "left" ? 0 : e.align === "right" ? box.w - width : (box.w - width) / 2;
+	const align = ctx.textAlign;
+	ctx.textAlign = "left";
+	layer.font = ctx.font;
+	layer.letterSpacing = ctx.letterSpacing;
+	let prefix = "";
+	for (const run of emojiRuns(line)) {
+		const x = left + (prefix ? ctx.measureText(prefix).width : 0);
+		if (run.emoji) layer.fillText(run.text, x, baseline);
+		else if (e.outline) ctx.strokeText(run.text, x, baseline);
+		else ctx.fillText(run.text, x, baseline);
+		prefix += run.text;
+	}
+	ctx.textAlign = align;
+};
+
+/** A line split into runs of emoji and of everything else. */
+const emojiRuns = (line) => {
+	const runs = [];
+	for (const g of graphemes(line)) {
+		const emoji = hasEmoji(g);
+		const last = runs.at(-1);
+		if (last && last.emoji === emoji) last.text += g;
+		else runs.push({ text: g, emoji });
+	}
+	return runs;
+};
+
 const drawText = (ctx, e, box) => {
 	const { fontSize, lines, sizes, top, ascent, descent } = layoutTextBox(ctx, e, box);
 
@@ -179,6 +266,9 @@ const drawText = (ctx, e, box) => {
 
 	ctx.lineJoin = "round";
 	ctx.strokeStyle = ctx.fillStyle;
+	// Dithered emoji go on a layer of their own, drawn in colour and dithered like a photo,
+	// while the letters around them stay a crisp threshold.
+	const emojiLayer = e.ditherEmoji && hasEmoji(e.text) ? layerLike(ctx, box) : null;
 	let y = top;
 	lines.forEach((line, i) => {
 		// Each line at its own size (a larger first line), its metrics scaled to match.
@@ -192,7 +282,8 @@ const drawText = (ctx, e, box) => {
 		// small text a heavier one fills the letters back in. Outlines read well from about 20 pt.
 		const stroke = Math.max(1, Math.round(size / 16));
 		ctx.lineWidth = Math.max(1, Math.round(size / 24));
-		if (e.outline) ctx.strokeText(line, x, baseline);
+		if (emojiLayer && hasEmoji(line)) drawRuns(ctx, emojiLayer, e, line, box, baseline);
+		else if (e.outline) ctx.strokeText(line, x, baseline);
 		else ctx.fillText(line, x, baseline);
 		if (e.underline && line) {
 			const w = ctx.measureText(line).width;
@@ -202,7 +293,22 @@ const drawText = (ctx, e, box) => {
 		}
 	});
 	ctx.restore();
-	return { fittedPx: fontSize };
+	if (!emojiLayer) return { fittedPx: fontSize };
+	return {
+		fittedPx: fontSize,
+		process: (image) => {
+			const { width, height } = image;
+			const dots = toOneBit(emojiLayer.getImageData(0, 0, width, height), { mode: "dither" });
+			// On white-on-black text the emoji print as a negative, like the letters.
+			const ink = e.invert ? 255 : 0;
+			for (let i = 0; i < dots.data.length; i += 4) {
+				if (dots.data[i + 3] === 0) continue;
+				image.data[i] = image.data[i + 1] = image.data[i + 2] = ink;
+				image.data[i + 3] = 255;
+			}
+			return image;
+		},
+	};
 };
 
 const roundRectPath = (ctx, x, y, w, h, r) => {

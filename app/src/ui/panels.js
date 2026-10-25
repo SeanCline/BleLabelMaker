@@ -14,7 +14,7 @@ import {
 	distributePatches,
 	placeCopies,
 } from "../model.js";
-import { FONTS, WEIGHT_NAMES, weightsFor, nearestWeight, fontInfo } from "../fonts.js";
+import { FONTS, WEIGHT_NAMES, weightsFor, nearestWeight, fontInfo, hasEmoji } from "../fonts.js";
 import { clamp, round, dotsToMm } from "../units.js";
 import { encodeBarcode } from "../barcode.js";
 import { $, $$, el, toast, announce } from "./dom.js";
@@ -80,6 +80,8 @@ const syncProps = (root, element) => {
 		node.hidden = !node.dataset.showFor.split(" ").includes(element.shape);
 	}
 	for (const node of $$("[data-show-if]", root)) node.hidden = !element[node.dataset.showIf];
+	// Only worth offering while there's an emoji to print.
+	for (const node of $$("[data-show-if-emoji]", root)) node.hidden = !hasEmoji(element.text ?? "");
 };
 
 /** The size a text is drawn at: the fitted one while it fits itself, else the one set. */

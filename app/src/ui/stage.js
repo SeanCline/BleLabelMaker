@@ -58,11 +58,15 @@ export const setFieldContext = (fn) => {
 	scheduleCanvas();
 };
 
+/** The document as the preview shows it: fields filled in for the row and number in view. */
+export const previewDocument = () =>
+	// The text being typed on the label stays as typed, so the caret lines up with it.
+	fillDocument(state.doc, fieldContext(), { except: inline?.id });
+
 /** Resolves once the canvas shows the current document with its real fonts. */
 export const drawCanvas = async () => {
 	const token = ++renderToken;
-	// The text being typed on the label stays as typed, so the caret lines up with it.
-	const doc = fillDocument(state.doc, fieldContext(), { except: inline?.id });
+	const doc = previewDocument();
 	await ensureFontsFor(doc);
 	if (token !== renderToken) return;
 	// Off-screen first: a render that waits on an image can overlap a newer one, and two

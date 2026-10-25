@@ -75,6 +75,15 @@ test("rejects malformed files with readable messages", () => {
 	rejects((r) => (r.elements[2].type = "emoji"), /unknown type/);
 });
 
+test("auto length is kept only on continuous rolls, and only when on", () => {
+	const raw = JSON.parse(serialize(sampleDoc(), { mode: "simple" }));
+	const label = (l) => parse(JSON.stringify({ ...raw, label: { ...raw.label, ...l } })).doc.label;
+	assert.equal(label({ continuous: true, autoLength: true }).autoLength, true);
+	assert.equal("autoLength" in label({ continuous: true, autoLength: false }), false);
+	assert.equal("autoLength" in label({ continuous: false, autoLength: true }), false);
+	rejects((r) => (r.label = { ...r.label, continuous: true, autoLength: "yes" }), /auto length/);
+});
+
 test("a file may leave out what a new element would have anyway", () => {
 	const text = JSON.stringify({
 		format: "labelmaker-label",

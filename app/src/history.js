@@ -25,6 +25,14 @@ export class History {
 		this.lastGroup = group;
 	}
 
+	/**
+	 * Replaces the current step's state, for changes that follow from the edit just made (an
+	 * auto length following the text), so undoing that edit undoes them too.
+	 */
+	amend(state) {
+		this.stack[this.index] = snapshot(state);
+	}
+
 	/** Ends the current group so the next edit starts a new undo step. */
 	seal() {
 		this.lastGroup = null;

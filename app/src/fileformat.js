@@ -123,6 +123,8 @@ const checkLabel = (l) => {
 		widthMm: num(l.widthMm, "label width", LIMITS.labelWidthMm),
 		heightMm: num(l.heightMm, "label height", LIMITS.labelHeightMm),
 		continuous: bool(l.continuous ?? false, "continuous label"),
+		// Only present when on, and only on continuous rolls.
+		...(l.continuous && bool(l.autoLength ?? false, "auto length") ? { autoLength: true } : {}),
 	};
 };
 
@@ -172,6 +174,7 @@ const checkElement = (raw, where) => {
 			outline: bool(e.outline, `${where} outline`),
 			stacked: bool(e.stacked, `${where} stacked`),
 			firstLineScale: oneOf(e.firstLineScale, FIRST_LINE_SCALES, `${where} first line size`),
+			ditherEmoji: bool(e.ditherEmoji, `${where} dithered emoji`),
 		};
 	}
 	if (e.type === "shape") {
