@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      REPORTERS: >-
+        --test-reporter=spec --test-reporter-destination=stdout
+        --test-reporter=./test/github-reporter.mjs --test-reporter-destination=stdout
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      # npm test and npm run test:e2e, plus a reporter that puts each failure on the commit as
+      # an annotation. Node only takes reporter options before the file patterns, so these call
+      # node directly.
+      - run: node --test $REPORTERS "test/*.test.js"
+      # ubuntu-latest ships Google Chrome at /usr/bin/google-chrome, which the e2e harness finds.
+      - run: node --test --test-concurrency=1 $REPORTERS "test/e2e/*.e2e.js"
+
+  # Publishes the tested commit to GitHub Pages (custom domain in app/CNAME). Only main
+  # deploys, and only after every test passed.
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    # One deploy at a time, and a newer push doesn't cancel one half way through.
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+      # The site builder uses only Node's standard library, so no npm ci.
+      - run: node tools/make-site.mjs _site
+        working-directory: app
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: app/_site
+      - id: deployment
+        uses: actions/deploy-pages@v4

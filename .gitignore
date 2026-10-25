@@ -1,0 +1,13 @@
+# Reference material.
+/reference/
+
+# Notes kept locally.
+/todo.md
+
+node_modules/
+
+# Local HTTPS test certificates (app/tools/make-cert.mjs). Contains private keys.
+/certs/
+
+# The deployable site, built by app/tools/make-site.mjs.
+/app/_site/

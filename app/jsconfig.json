@@ -1,0 +1,24 @@
+{
+	"compilerOptions": {
+		"target": "es2023",
+		"module": "nodenext",
+		"moduleResolution": "nodenext",
+		"lib": ["es2023", "dom", "dom.iterable", "webworker.importscripts"],
+		"allowJs": true,
+		"checkJs": true,
+		"noEmit": true,
+		"strict": false,
+		"skipLibCheck": true,
+		"types": ["web-bluetooth", "node"],
+		"maxNodeModuleJsDepth": 0
+	},
+	"include": [
+		"src/**/*.js",
+		"src/**/*.d.ts",
+		"serve.js",
+		"tools/*.mjs",
+		"test/*.js",
+		"types/*.d.ts"
+	],
+	"exclude": ["src/vendor/*.js"]
+}

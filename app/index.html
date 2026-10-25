@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<!-- Labels and links from strangers get opened here, so only this site's own code runs. -->
+		<meta
+			http-equiv="Content-Security-Policy"
+			content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'"
+		/>
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>BLE Label Maker</title>
+		<meta
+			name="description"
+			content="Design and print labels on Bluetooth label makers, right from the web."
+		/>
+		<meta name="theme-color" content="#2459d6" />
+		<link rel="manifest" href="manifest.webmanifest" />
+		<link rel="apple-touch-icon" href="icons/icon-192.png" />
+		<link rel="stylesheet" href="styles.css" />
+		<link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+	</head>
+	<body>
+		<header class="topbar">
+			<h1 data-app="name">BLE Label Maker</h1>
+			<div class="segmented" role="tablist" aria-label="Editor mode">
+				<button role="tab" id="modeSimple" aria-selected="true">Simple</button>
+				<button role="tab" id="modeDesign" aria-selected="false">Design</button>
+			</div>
+			<div class="spacer"></div>
+			<div class="filebar">
+				<button id="btnHistory" title="Labels you've printed">History</button>
+				<button id="btnNew" title="New label">New</button>
+				<button id="btnOpen" title="Open a .label file (Ctrl+O)">Open…</button>
+				<button id="btnSave" title="Download as .label (Ctrl+S)">Save</button>
+				<button id="btnShare" title="Copy a link that opens this label">Share</button>
+				<input type="file" id="fileInput" accept=".label,application/json" hidden />
+			</div>
+		</header>
+
+		<div id="noBluetooth" class="banner" hidden>
+			This browser can't connect to Bluetooth printers (Web Bluetooth isn't available). You can
+			still design, save, load and test-print with the virtual printer. To print for real, open this
+			page in Chrome or Edge.
+		</div>
+
+		<main class="layout">
+			<section class="workspace">
+				<div class="labelbar">
+					<label>
+						Label
+						<select id="labelPreset"></select>
+					</label>
+					<span class="label-kind" id="labelKind"></span>
+					<span id="continuousSize" class="custom-size" hidden>
+						Length
+						<input
+							type="number"
+							id="labelLen"
+							min="10"
+							max="200"
+							step="1"
+							aria-label="Label length (mm)"
+						/>
+						mm
+					</span>
+					<span id="customSize" class="custom-size" hidden>
+						<input
+							type="number"
+							id="labelW"
+							min="10"
+							max="200"
+							step="1"
+							aria-label="Label width (mm)"
+						/>
+						×
+						<input
+							type="number"
+							id="labelH"
+							min="6"
+							max="15"
+							step="0.5"
+							aria-label="Label height (mm)"
+						/>
+						mm
+					</span>
+					<span class="hint" id="labelInfo"></span>
+					<button
+						id="btnRuler"
+						class="ruler-toggle"
+						aria-pressed="false"
+						title="Show rulers in millimetres"
+					>
+						Ruler
+					</button>
+					<span class="zoom" role="group" aria-label="Zoom">
+						<button id="zoomOut" title="Zoom out (−)" aria-label="Zoom out">−</button>
+						<button id="zoomFit" title="Fit the label to the window (0)">Fit</button>
+						<button id="zoomIn" title="Zoom in (+)" aria-label="Zoom in">+</button>
+					</span>
+				</div>
+
+				<div class="stage" id="stage">
+					<div class="paper-wrap">
+						<canvas class="ruler top" id="rulerTop" aria-hidden="true" hidden></canvas>
+						<canvas class="ruler left" id="rulerLeft" aria-hidden="true" hidden></canvas>
+						<div class="paper" id="paper">
+							<canvas id="labelCanvas" role="img" aria-label="Label preview"></canvas>
+							<div
+								class="overlay"
+								id="overlay"
+								tabindex="0"
+								role="application"
+								aria-roledescription="label editor"
+								aria-label="Label canvas. Arrow keys move the selected element, R rotates, Delete removes it."
+							></div>
+						</div>
+					</div>
+				</div>
+				<p class="hint stage-hint" id="stageHint"></p>
+
+				<section class="printbar" aria-label="Print">
+					<label>
+						Printer
+						<select id="target">
+							<option value="virtual">Virtual printer (no hardware)</option>
+							<option value="bluetooth">Bluetooth</option>
+							<option value="serial">Serial port (experimental)</option>
+						</select>
+					</label>
+					<span id="printerStatus" class="status"></span>
+					<button id="btnConnect" hidden>Connect</button>
+					<label id="virtualModelRow" title="Which printer the virtual printer pretends to be"
+						>Model
+						<select id="virtualModel"></select
+					></label>
+					<label>
+						Copies
+						<input type="number" id="copies" min="1" max="99" value="1" />
+					</label>
+					<label
+						id="counterRow"
+						title="The number {n} prints next. It moves on after every print."
+						hidden
+					>
+						Next number
+						<input type="number" id="counterStart" min="0" step="1" />
+					</label>
+					<label>
+						Darkness
+						<select id="density" title="How dark the print is">
+							<option value="light">Light</option>
+							<option value="normal">Normal</option>
+							<option value="dark">Dark</option>
+						</select>
+					</label>
+					<button id="btnPrint" class="primary" title="Print (Ctrl+Enter)">Print</button>
+					<progress id="progress" max="1" value="0" hidden></progress>
+				</section>
+				<p class="notice" id="untestedNote" hidden>
+					<span id="untestedText"></span>
+					<button type="button" id="btnNoteReportWorks">Report that it works</button>
+					<button type="button" id="btnNoteDismiss">Not now</button>
+				</p>
+
+				<details class="batch" id="batchPanel">
+					<summary>Batch: one label per line <span class="hint" id="batchSummary"></span></summary>
+					<p class="hint">
+						Paste a list, or cells from a spreadsheet, and put {1}, {2}… in your text where each
+						value goes. Every line prints as its own label.
+					</p>
+					<textarea
+						id="batchData"
+						rows="4"
+						spellcheck="false"
+						aria-label="Batch list, one label per line"
+						placeholder="Paprika&#10;Cumin&#10;Oregano"
+					></textarea>
+					<div class="row">
+						<label class="check"
+							><input type="checkbox" id="batchHeadings" /> First line is column names</label
+						>
+						<button id="batchOpen" title="Open a .csv or text file">Open CSV…</button>
+						<input type="file" id="batchFile" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden />
+						<button id="batchClear">Clear</button>
+						<span class="spacer"></span>
+						<span id="batchNav" class="row" hidden>
+							Preview
+							<button id="batchPrev" aria-label="Preview the previous line">‹</button>
+							<span id="batchPos" aria-live="polite"></span>
+							<button id="batchNext" aria-label="Preview the next line">›</button>
+						</span>
+					</div>
+					<p class="hint" id="batchHint"></p>
+					<p class="warning" id="batchUnused" hidden>
+						The label doesn't use the list yet, so every label would come out the same. Put {1} in a
+						text box (or use the Field menu).
+					</p>
+				</details>
+
+				<details class="advanced">
+					<summary>Advanced</summary>
+					<div class="advanced-body">
+						<label
+							><input type="checkbox" id="setFlip" /> Flip 180° (use if labels print upside
+							down)</label
+						>
+						<label id="setPrinterRow" title="Picked up from the printer's name when one connects"
+							>Printer model
+							<select id="setPrinter"></select
+						></label>
+						<label
+							>Feed after continuous label
+							<input type="number" id="setFeed" min="0" max="255" step="1" /> dot lines
+							<span class="hint" id="setFeedDefault"></span>
+							<button type="button" id="setFeedReset" hidden>Reset</button></label
+						>
+						<label id="setAutoPowerRow"
+							>Turn the printer off after
+							<select id="setAutoPower">
+								<option value="">(as set on the printer)</option>
+							</select>
+							<span class="hint">experimental</span></label
+						>
+						<label
+							><input type="checkbox" id="setAllDevices" /> Show all Bluetooth devices in
+							picker</label
+						>
+						<button id="btnForget">Forget connected printer</button>
+						<div class="report-row" role="group" aria-labelledby="reportProblemLabel">
+							<span id="reportProblemLabel">Something not working?</span>
+							<button type="button" id="btnCopyDiagnostics">Copy diagnostics</button>
+							<button type="button" id="btnReportProblem">Report a problem</button>
+						</div>
+						<div class="report-row" role="group" aria-labelledby="reportWorksLabel">
+							<span id="reportWorksLabel">Printed well?</span>
+							<button type="button" id="btnCopyWorks">Copy printer details</button>
+							<button type="button" id="btnReportWorks">Report that it works</button>
+							<span class="hint" id="reportWorksHint"></span>
+						</div>
+						<p class="hint" id="appVersion"></p>
+					</div>
+				</details>
+
+				<section class="virtual" id="virtualOut" hidden>
+					<div class="virtual-head">
+						<h2>Virtual printer output</h2>
+						<button id="btnClearVirtual">Clear</button>
+					</div>
+					<p class="hint" id="virtualNote"></p>
+					<div class="tape" id="tape"></div>
+				</section>
+			</section>
+
+			<aside class="panel">
+				<!-- Simple mode -->
+				<div id="simplePanel" class="props" data-panel="simple">
+					<div class="field">
+						<span class="field-head"
+							><label for="simpleText">Text</label
+							><button
+								type="button"
+								class="insert-emoji small"
+								title="Insert an emoji where the cursor is"
+							>
+								😀 Emoji
+							</button>
+							<select class="insert-field small" aria-label="Insert a field">
+								<option value="">{ } Field…</option>
+								<option value="{date}">Today's date</option>
+								<option value="{date+30d}">Date in 30 days</option>
+								<option value="{date:iso}">Date as 2026-12-31</option>
+								<option value="{time}">Time</option>
+								<option value="{n}">Counter (1, 2, 3…)</option>
+								<option value="{n:000}">Counter (001, 002…)</option>
+								<option value="{1}">Batch column 1</option>
+								<option value="{2}">Batch column 2</option>
+							</select></span
+						>
+						<textarea id="simpleText" data-prop="text" rows="3" spellcheck="true"></textarea>
+					</div>
+					<label class="field">
+						Font
+						<select data-prop="fontFamily" class="font-select"></select>
+					</label>
+					<div class="field">
+						<span>Size</span>
+						<div class="row">
+							<input
+								type="number"
+								data-prop="fontSizePt"
+								data-type="number"
+								min="4"
+								max="200"
+								step="0.5"
+								aria-label="Font size in points"
+							/>
+							<span class="unit">pt</span>
+							<label class="check"
+								><input type="checkbox" data-prop="fit" data-type="bool" /> Fit to label</label
+							>
+						</div>
+					</div>
+					<label class="field">
+						Weight
+						<select data-prop="fontWeight" data-type="number" class="weight-select"></select>
+					</label>
+				</div>
+
+				<!-- Design mode -->
+				<div id="designPanel" hidden>
+					<div class="toolbar">
+						<button id="addText">+ Text</button>
+						<button id="addShape">+ Shape</button>
+						<button id="addBarcode">+ Barcode</button>
+						<button id="addQr">+ QR</button>
+						<button id="addImage">+ Image</button>
+						<input
+							type="file"
+							id="imageFile"
+							accept="image/png,image/jpeg,image/webp,image/gif"
+							hidden
+						/>
+						<span class="spacer"></span>
+						<span class="toolbar-group">
+							<button id="btnUndo" title="Undo (Ctrl+Z)" aria-label="Undo">↶</button>
+							<button id="btnRedo" title="Redo (Ctrl+Y)" aria-label="Redo">↷</button>
+						</span>
+					</div>
+
+					<h2 class="section">Elements</h2>
+					<ol
+						class="layers"
+						id="layers"
+						role="listbox"
+						aria-multiselectable="true"
+						aria-label="Elements on the label"
+					></ol>
+
+					<div id="noSelection" class="hint">
+						Select an element on the label to edit it, or add one above.
+					</div>
+
+					<div id="textProps" class="props" data-panel="text" data-types="text" hidden>
+						<div class="field">
+							<span class="field-head"
+								><label for="designText">Text</label
+								><button
+									type="button"
+									class="insert-emoji small"
+									title="Insert an emoji where the cursor is"
+								>
+									😀 Emoji
+								</button>
+								<select class="insert-field small" aria-label="Insert a field">
+									<option value="">{ } Field…</option>
+									<option value="{date}">Today's date</option>
+									<option value="{date+30d}">Date in 30 days</option>
+									<option value="{date:iso}">Date as 2026-12-31</option>
+									<option value="{time}">Time</option>
+									<option value="{n}">Counter (1, 2, 3…)</option>
+									<option value="{n:000}">Counter (001, 002…)</option>
+									<option value="{1}">Batch column 1</option>
+									<option value="{2}">Batch column 2</option>
+								</select></span
+							>
+							<textarea id="designText" data-prop="text" rows="3"></textarea>
+						</div>
+						<label class="field">
+							Font
+							<select data-prop="fontFamily" class="font-select"></select>
+						</label>
+						<div class="field">
+							<span>Size</span>
+							<div class="row">
+								<input
+									type="number"
+									data-prop="fontSizePt"
+									data-type="number"
+									min="4"
+									max="200"
+									step="0.5"
+									aria-label="Font size in points"
+								/>
+								<span class="unit">pt</span>
+								<label class="check"
+									><input type="checkbox" data-prop="fit" data-type="bool" /> Fit to box</label
+								>
+							</div>
+						</div>
+						<div class="row two">
+							<label class="field">
+								Weight
+								<select data-prop="fontWeight" data-type="number" class="weight-select"></select>
+							</label>
+							<label class="check italic-check"
+								><input type="checkbox" data-prop="italic" data-type="bool" /> <i>Italic</i></label
+							>
+						</div>
+						<div class="field">
+							<span>Alignment</span>
+							<div class="row">
+								<div
+									class="segmented small"
+									data-radio="align"
+									role="group"
+									aria-label="Horizontal alignment"
+								>
+									<button data-value="left" title="Align left" aria-label="Align left">⯇</button>
+									<button data-value="center" title="Center" aria-label="Center">≡</button>
+									<button data-value="right" title="Align right" aria-label="Align right">⯈</button>
+								</div>
+								<div
+									class="segmented small"
+									data-radio="vAlign"
+									role="group"
+									aria-label="Vertical alignment"
+								>
+									<button data-value="top" title="Top" aria-label="Top">⯅</button>
+									<button data-value="middle" title="Middle" aria-label="Middle">⬌</button>
+									<button data-value="bottom" title="Bottom" aria-label="Bottom">⯆</button>
+								</div>
+							</div>
+						</div>
+						<div class="field">
+							<span>First line</span>
+							<div
+								class="segmented small"
+								data-radio="firstLineScale"
+								data-radio-type="number"
+								role="group"
+								aria-label="First line size"
+							>
+								<button data-value="1" title="Same size as the rest">Same</button>
+								<button data-value="1.5" title="One and a half times the rest">Larger</button>
+								<button data-value="2" title="Twice the rest">Much larger</button>
+							</div>
+						</div>
+						<label class="field">
+							Letter spacing (pt)
+							<input
+								type="number"
+								data-prop="letterSpacingPt"
+								data-type="number"
+								min="-5"
+								max="50"
+								step="0.5"
+							/>
+						</label>
+						<div class="row style-checks">
+							<label class="check"
+								><input type="checkbox" data-prop="underline" data-type="bool" />
+								<u>Underline</u></label
+							>
+							<label class="check"
+								><input type="checkbox" data-prop="outline" data-type="bool" /> Outline</label
+							>
+							<label class="check" title="One letter per line, read top to bottom"
+								><input type="checkbox" data-prop="stacked" data-type="bool" /> Stacked</label
+							>
+						</div>
+						<label class="check"
+							><input type="checkbox" data-prop="invert" data-type="bool" /> White text on
+							black</label
+						>
+					</div>
+
+					<div id="shapeProps" class="props" data-panel="shape" data-types="shape" hidden>
+						<div class="field">
+							<span>Shape</span>
+							<div class="segmented small" data-radio="shape" role="group" aria-label="Shape">
+								<button data-value="rect">Box</button>
+								<button data-value="ellipse">Circle</button>
+								<button data-value="line">Line</button>
+							</div>
+						</div>
+						<div class="row">
+							<label class="field">
+								Line thickness (mm)
+								<input
+									type="number"
+									data-prop="strokeMm"
+									data-type="number"
+									min="0.125"
+									max="5"
+									step="0.125"
+								/>
+							</label>
+							<label class="field" data-show-for="rect">
+								Corner radius (mm)
+								<input
+									type="number"
+									data-prop="radiusMm"
+									data-type="number"
+									min="0"
+									max="20"
+									step="0.25"
+								/>
+							</label>
+						</div>
+						<label class="check" data-show-for="rect ellipse"
+							><input type="checkbox" data-prop="fill" data-type="bool" /> Filled</label
+						>
+					</div>
+
+					<div id="barcodeProps" class="props" data-panel="barcode" data-types="barcode" hidden>
+						<label class="field">
+							Data
+							<input type="text" data-prop="data" spellcheck="false" />
+						</label>
+						<label class="field">
+							Type
+							<select data-prop="symbology">
+								<option value="CODE128">Code 128 (letters &amp; numbers)</option>
+								<option value="EAN13">EAN-13 (retail, 12–13 digits)</option>
+								<option value="UPCA">UPC-A (retail, 11–12 digits)</option>
+							</select>
+						</label>
+						<label class="check"
+							><input type="checkbox" data-prop="showText" data-type="bool" /> Show text under the
+							bars</label
+						>
+						<label class="field" data-show-if="showText">
+							Text font
+							<select data-prop="textFont" class="font-select"></select>
+						</label>
+						<p class="hint">
+							Scanners need blank space on both sides of the bars, about 2–3 mm. Keep other elements
+							out of it.
+						</p>
+					</div>
+
+					<div id="qrProps" class="props" data-panel="qr" data-types="qr" hidden>
+						<label class="field">
+							Text or link
+							<textarea data-prop="data" rows="2" spellcheck="false"></textarea>
+						</label>
+						<label class="field">
+							Error correction
+							<select data-prop="level">
+								<option value="L">Low: smallest code</option>
+								<option value="M">Medium (recommended)</option>
+								<option value="Q">Quartile</option>
+								<option value="H">High: survives scratches</option>
+							</select>
+						</label>
+					</div>
+
+					<div id="imageProps" class="props" data-panel="image" data-types="image" hidden>
+						<div class="field">
+							<span>Style</span>
+							<div class="segmented small" data-radio="mode" role="group" aria-label="Image style">
+								<button data-value="dither" title="Dots of varying density; best for photos">
+									Photo (dithered)
+								</button>
+								<button
+									data-value="threshold"
+									title="Solid black or white; best for logos and line art"
+								>
+									Logo (solid)
+								</button>
+							</div>
+						</div>
+						<div class="field">
+							<span>Fit</span>
+							<div
+								class="segmented small"
+								data-radio="fit"
+								role="group"
+								aria-label="Fit in the box"
+							>
+								<button data-value="contain" title="Show the whole picture">Fit</button>
+								<button data-value="cover" title="Fill the box, cropping what doesn't fit">
+									Fill
+								</button>
+								<button data-value="stretch" title="Stretch to the box's shape">Stretch</button>
+							</div>
+						</div>
+						<div class="field">
+							<span>Position (which part shows when filling)</span>
+							<div class="row">
+								<div
+									class="segmented small"
+									data-radio="align"
+									role="group"
+									aria-label="Horizontal position"
+								>
+									<button data-value="left">Left</button>
+									<button data-value="center">Centre</button>
+									<button data-value="right">Right</button>
+								</div>
+								<div
+									class="segmented small"
+									data-radio="vAlign"
+									role="group"
+									aria-label="Vertical position"
+								>
+									<button data-value="top">Top</button>
+									<button data-value="middle">Middle</button>
+									<button data-value="bottom">Bottom</button>
+								</div>
+							</div>
+						</div>
+						<label class="field">
+							Darkness
+							<input type="range" data-prop="level" data-type="number" min="0" max="255" step="1" />
+						</label>
+						<div class="row">
+							<label class="check"
+								><input type="checkbox" data-prop="invert" data-type="bool" /> Invert</label
+							>
+							<span class="spacer"></span>
+							<button id="replaceImage">Replace image…</button>
+						</div>
+					</div>
+
+					<p id="elementWarning" class="warning" role="status" hidden></p>
+
+					<div id="multiProps" class="props" hidden>
+						<p class="hint" id="multiCount"></p>
+						<div class="field">
+							<span>Align</span>
+							<div class="row">
+								<div class="segmented small" role="group" aria-label="Align horizontally">
+									<button data-align="left" title="Line up left edges">Left</button>
+									<button data-align="center" title="Line up centres">Centre</button>
+									<button data-align="right" title="Line up right edges">Right</button>
+								</div>
+								<div class="segmented small" role="group" aria-label="Align vertically">
+									<button data-align="top" title="Line up top edges">Top</button>
+									<button data-align="middle" title="Line up middles">Middle</button>
+									<button data-align="bottom" title="Line up bottom edges">Bottom</button>
+								</div>
+							</div>
+						</div>
+						<div class="field">
+							<span>Distribute (3 or more)</span>
+							<div class="row">
+								<button data-distribute="x" title="Equal gaps from left to right">
+									Horizontally
+								</button>
+								<button data-distribute="y" title="Equal gaps from top to bottom">
+									Vertically
+								</button>
+							</div>
+						</div>
+						<div class="toolbar">
+							<button id="btnDuplicateMulti" title="Duplicate (Ctrl+D)">Duplicate</button>
+							<span class="spacer"></span>
+							<button id="btnDeleteMulti" class="danger" title="Delete (Del)">Delete</button>
+						</div>
+					</div>
+
+					<div id="geomProps" class="props geom" data-panel="geom" data-types="*" hidden>
+						<div class="field">
+							<span>Rotation</span>
+							<div
+								class="segmented small"
+								data-radio="rotation"
+								data-radio-type="number"
+								role="group"
+								aria-label="Rotation"
+							>
+								<button data-value="0" title="Upright">0°</button>
+								<button data-value="90" title="Reads top to bottom">90°</button>
+								<button data-value="180" title="Upside down">180°</button>
+								<button data-value="270" title="Reads bottom to top">270°</button>
+							</div>
+						</div>
+						<span class="section-label">Position &amp; size (mm)</span>
+						<div class="grid4">
+							<label>X <input type="number" data-prop="x" data-type="number" step="0.25" /></label>
+							<label>Y <input type="number" data-prop="y" data-type="number" step="0.25" /></label>
+							<label
+								>W <input type="number" data-prop="w" data-type="number" step="0.25" min="1"
+							/></label>
+							<label
+								>H <input type="number" data-prop="h" data-type="number" step="0.25" min="1"
+							/></label>
+						</div>
+						<div class="toolbar">
+							<button id="btnForward" title="Bring forward">Bring forward</button>
+							<button id="btnBackward" title="Send backward">Send back</button>
+							<button id="btnDuplicate" title="Duplicate (Ctrl+D)">Duplicate</button>
+							<span class="spacer"></span>
+							<button id="btnDelete" class="danger" title="Delete (Del)">Delete</button>
+						</div>
+					</div>
+
+					<p class="hint keys">
+						Drag to move, drag corners to resize. Elements snap to the centre, margins and each
+						other; hold <kbd>Alt</kbd> to turn snapping off. <kbd>Del</kbd> deletes, arrow keys
+						nudge (<kbd>Shift</kbd> for 1 mm), <kbd>R</kbd> rotates. <kbd>Shift</kbd>-click or drag
+						across empty space to select several. <kbd>Ctrl</kbd>+<kbd>C</kbd> / <kbd>V</kbd> copy
+						and paste (also between labels), <kbd>Ctrl</kbd>+<kbd>D</kbd> duplicates,
+						<kbd>Ctrl</kbd>+<kbd>A</kbd> selects all.
+					</p>
+				</div>
+			</aside>
+		</main>
+
+		<footer class="site-footer">
+			<p data-app="disclaimer">
+				BLE Label Maker is not affiliated with any label maker manufacturer. Label maker models are
+				trademarks of their respective owners.
+			</p>
+			<p>
+				<a href="https://github.com/SeanCline/BleLabelMaker" data-app="repo">Source code</a> ·
+				Licenses: <a href="LICENSE.txt">this app</a> · <a href="fonts/LICENSE.txt">fonts</a> ·
+				<a href="src/vendor/LICENSE.txt">QR code library</a>
+			</p>
+		</footer>
+
+		<dialog id="emojiDialog">
+			<form method="dialog">
+				<h2>Choose an emoji</h2>
+				<input
+					type="search"
+					id="emojiSearch"
+					class="emoji-search"
+					placeholder="Search: jar, frozen, warning…"
+					aria-label="Search emoji by name"
+					autocomplete="off"
+				/>
+				<div class="emoji-grid" id="emojiGrid"></div>
+				<p class="hint" id="emojiNone" hidden>Nothing matches. Type or paste the emoji below.</p>
+				<label class="field">
+					Or type or paste any emoji
+					<span class="row"
+						><input type="text" id="emojiCustom" maxlength="16" placeholder="e.g. 🦖" />
+						<button value="custom" id="emojiCustomBtn">Use</button></span
+					>
+				</label>
+				<div class="dialog-actions"><button value="cancel">Cancel</button></div>
+			</form>
+		</dialog>
+
+		<dialog id="historyDialog" class="history-dialog" aria-labelledby="historyTitle">
+			<div class="history-head">
+				<h2 id="historyTitle">Print history</h2>
+				<span class="hint" id="historyCount"></span>
+				<span class="spacer"></span>
+				<form method="dialog"><button aria-label="Close">✕</button></form>
+			</div>
+			<div class="history-tools">
+				<input
+					type="search"
+					id="historySearch"
+					placeholder="Search labels…"
+					aria-label="Search print history"
+				/>
+				<button id="btnHistoryExport" title="Download the history as a file">Export</button>
+				<button id="btnHistoryImport" title="Merge an exported history into this one">
+					Import…
+				</button>
+				<button id="btnHistoryClear" class="danger">Clear</button>
+				<input type="file" id="historyFile" accept=".json,application/json" hidden />
+			</div>
+			<p class="hint" id="historyEmpty" hidden></p>
+			<ol class="history-list" id="historyList"></ol>
+			<p class="hint">
+				Stored in this browser only. Export to back it up or move it to another computer.
+			</p>
+		</dialog>
+
+		<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+		<div id="announcer" class="sr-only" aria-live="polite"></div>
+
+		<script type="module" src="src/app.js"></script>
+	</body>
+</html>
