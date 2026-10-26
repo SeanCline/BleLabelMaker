@@ -314,6 +314,28 @@ input[type="number"] {
 	margin: -4px 0 0;
 }
 
+.welcome {
+	display: flex;
+	align-items: flex-start;
+	gap: 8px;
+	padding: 8px 10px;
+	border: 1px solid var(--border);
+	border-left: 3px solid var(--accent);
+	border-radius: 6px;
+	background: var(--surface);
+	font-size: 13px;
+}
+.welcome[hidden] {
+	display: none;
+}
+.welcome p {
+	margin: 0;
+	flex: 1;
+}
+.welcome button {
+	padding: 0 6px;
+}
+
 .overlay {
 	position: absolute;
 	inset: 0;

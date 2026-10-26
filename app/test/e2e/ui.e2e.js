@@ -695,3 +695,18 @@ test("New offers templates drawn on the loaded label; picking one opens it in th
 	assert.equal((await appState(page)).doc.elements[0].text, "Hello world", "undo brings it back");
 	assert.deepEqual(page.errors, []);
 });
+
+test("the first-run tip goes when dismissed or after a print, and stays gone", async () => {
+	const page = await env.open();
+	assert.equal(await page.$eval("#welcome", (w) => w.hidden), false);
+	// Ctrl+P prints here, rather than opening the browser's print dialog.
+	await page.keyboard.down("Control");
+	await page.keyboard.press("p");
+	await page.keyboard.up("Control");
+	await page.waitForSelector("#tape .printed");
+	assert.equal(await page.$eval("#welcome", (w) => w.hidden), true);
+	await page.reload();
+	await page.evaluate(() => window.labelApp.ready);
+	assert.equal(await page.$eval("#welcome", (w) => w.hidden), true);
+	assert.deepEqual(page.errors, []);
+});
