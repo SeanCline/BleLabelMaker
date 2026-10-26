@@ -194,6 +194,9 @@ overlay.addEventListener("pointerdown", (ev) => {
 	if (state.mode !== "design" || ev.button !== 0) return;
 	// So arrow keys, R and Delete act on what was just clicked, not on a panel field.
 	overlay.focus({ preventScroll: true });
+	// The preventDefault below keeps the browser from clearing a text selection elsewhere on
+	// the page, and a selection left there would make Ctrl+C copy it instead of the elements.
+	document.getSelection()?.removeAllRanges();
 	const additive = ev.shiftKey || ev.ctrlKey || ev.metaKey;
 	const at = overlayMm(ev);
 	const boxEl = ev.target.closest(".box");

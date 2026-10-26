@@ -146,6 +146,13 @@ test("copy and paste: duplicates beside the original, and between labels at the 
 	await page.focus("#overlay");
 	const copied = await clipboardEvent(page, "copy");
 	assert.match(copied, /labelmaker-elements/);
+	// Text selected on the page copies as text, though the element is still selected.
+	await page.evaluate(() =>
+		document.getSelection().selectAllChildren(document.querySelector("h1, header")),
+	);
+	assert.equal(await clipboardEvent(page, "copy"), "", "left to the browser");
+	await page.mouse.click(...Object.values(await centreOf(page, 0)));
+	assert.match(await clipboardEvent(page, "copy"), /labelmaker-elements/, "a click clears it");
 
 	await clipboardEvent(page, "paste", copied);
 	let list = await elements(page);

@@ -10,8 +10,15 @@ import { addCopies, addElement, addImageFile, centred, deleteSelected } from "./
 // Text fields and open dialogs keep the normal clipboard behaviour.
 const forElements = (ev) => !isTyping(ev.target) && !document.querySelector("dialog[open]");
 
+// Text selected on the page (a status line, a toast, the help) is what the user means to copy,
+// even with elements still selected on the label.
+const pageTextSelected = () => {
+	const sel = document.getSelection();
+	return !!sel && !sel.isCollapsed && sel.toString().trim() !== "";
+};
+
 const copySelection = (ev) => {
-	if (!forElements(ev) || state.mode !== "design") return false;
+	if (!forElements(ev) || state.mode !== "design" || pageTextSelected()) return false;
 	const els = selectedElements();
 	if (!els.length) return false;
 	ev.clipboardData.setData("text/plain", serializeElements(els));
