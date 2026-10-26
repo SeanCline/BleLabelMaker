@@ -29,7 +29,7 @@
 			<div class="spacer"></div>
 			<div class="filebar">
 				<button id="btnHistory" title="Labels you've printed">History</button>
-				<button id="btnNew" title="New label">New</button>
+				<button id="btnNew" title="Start a new label, blank or from a template">New…</button>
 				<button id="btnOpen" title="Open a .label file (Ctrl+O)">Open…</button>
 				<button id="btnSave" title="Download as .label (Ctrl+S)">Save</button>
 				<button id="btnShare" title="Copy a link that opens this label">Share</button>
@@ -780,6 +780,17 @@
 			<p class="hint">
 				Stored in this browser only. Export to back it up or move it to another computer.
 			</p>
+		</dialog>
+
+		<dialog id="newDialog" class="history-dialog" aria-labelledby="newTitle">
+			<div class="history-head">
+				<h2 id="newTitle">New label</h2>
+				<span class="hint" id="newLabelSize"></span>
+				<span class="spacer"></span>
+				<form method="dialog"><button aria-label="Close">✕</button></form>
+			</div>
+			<ul class="template-list" id="templateList"></ul>
+			<p class="hint">Change anything afterwards. Undo (Ctrl+Z) brings back what you had.</p>
 		</dialog>
 
 		<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

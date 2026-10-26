@@ -49,6 +49,7 @@ test("import an image, switch styles and invert, print, and save/load it", async
 
 	const saved = await serialized(page);
 	await page.click("#btnNew");
+	await page.click('#templateList [data-id="blank"]');
 	await page.evaluate((t) => window.labelApp.loadText(t), saved);
 	assert.equal(await serialized(page), saved);
 	assert.deepEqual(page.errors, []);

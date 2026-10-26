@@ -1,0 +1,62 @@
+// New: pick a starting point. Templates show what the app can do, which a blank label doesn't.
+import { TEMPLATES, fromTemplate } from "../templates.js";
+import { fillDocument } from "../fields.js";
+import { renderLabel } from "../render.js";
+import { ensureFontsFor } from "../fonts.js";
+import { $, el, toast } from "./dom.js";
+import { state, commit, history } from "./store.js";
+
+const dialog = $("#newDialog");
+const list = $("#templateList");
+
+let thumbToken = 0;
+const renderList = async () => {
+	const label = state.doc.label;
+	$("#newLabelSize").textContent = label.continuous
+		? `${label.heightMm} mm continuous tape`
+		: `${label.widthMm} × ${label.heightMm} mm labels`;
+	const jobs = TEMPLATES.map((t) => {
+		const thumb = el("canvas", { className: "thumb" });
+		const item = el(
+			"li",
+			{},
+			el(
+				"button",
+				{ className: "template", dataset: { id: t.id } },
+				el("span", { className: "thumb-frame" }, thumb),
+				el("strong", {}, t.name),
+				el("span", { className: "hint" }, t.description),
+			),
+		);
+		return { item, thumb, doc: fromTemplate(t, label).doc };
+	});
+	list.replaceChildren(...jobs.map((j) => j.item));
+	// Thumbnails show fields filled in, as the preview does, so "{date}" reads as a date.
+	const fields = { now: new Date(), n: 1, row: null, columns: null };
+	const token = ++thumbToken;
+	for (const { thumb, doc } of jobs) {
+		const filled = fillDocument(doc, fields);
+		await ensureFontsFor(filled);
+		if (token !== thumbToken) return;
+		await renderLabel(filled, thumb);
+	}
+};
+
+list.addEventListener("click", (ev) => {
+	const id = ev.target.closest("[data-id]")?.dataset.id;
+	const template = TEMPLATES.find((t) => t.id === id);
+	if (!template) return;
+	const { doc, mode } = fromTemplate(template, state.doc.label);
+	commit(doc, { selectedIds: [], ...(mode && { mode }) });
+	history.seal();
+	dialog.close();
+	toast(
+		`New ${template.id === "blank" ? "label" : template.name.toLowerCase()}. Undo (Ctrl+Z) brings the previous one back.`,
+	);
+});
+
+$("#btnNew").addEventListener("click", () => {
+	renderList();
+	dialog.showModal();
+	list.querySelector("button")?.focus();
+});

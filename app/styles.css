@@ -878,6 +878,40 @@ dialog form {
 	border: 1px solid var(--border);
 	border-radius: 8px;
 }
+.template-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	overflow: auto;
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+	gap: 8px;
+}
+.template {
+	width: 100%;
+	height: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 4px;
+	padding: 8px;
+	text-align: left;
+}
+.template .thumb-frame {
+	align-self: stretch;
+	display: flex;
+	justify-content: center;
+	padding: 4px;
+	margin-bottom: 2px;
+	background: #fff;
+	border-radius: 4px;
+	line-height: 0;
+}
+.template .thumb {
+	width: auto;
+	max-width: 100%;
+	height: 48px;
+}
 .thumb-btn {
 	padding: 4px;
 	background: #fff;

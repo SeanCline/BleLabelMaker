@@ -101,6 +101,7 @@ test("save → load restores exactly; bad files leave the label alone; autosave 
 	const saved = await serialized(page);
 
 	await page.click("#btnNew");
+	await page.click('#templateList [data-id="blank"]');
 	assert.notEqual(await serialized(page), saved);
 	await page.evaluate((t) => window.labelApp.loadText(t), saved);
 	assert.equal(await serialized(page), saved);
@@ -660,5 +661,37 @@ test("dithered emoji: offered only with an emoji in the text, and printed as pre
 	assert.equal((await appState(page)).doc.elements[0].ditherEmoji, true);
 	await printVirtual(page);
 	assert.equal(await previewMatchesPrint(page), true);
+	assert.deepEqual(page.errors, []);
+});
+
+test("New offers templates drawn on the loaded label; picking one opens it in the right mode", async () => {
+	const page = await env.open();
+	await page.click("#btnNew");
+	await page.waitForFunction(() => document.querySelector("#newDialog").open);
+	assert.match(await page.$eval("#newLabelSize", (s) => s.textContent), /× 12 mm labels/);
+	const names = await page.$$eval("#templateList strong", (n) => n.map((x) => x.textContent));
+	assert.equal(names[0], "Blank");
+	assert.ok(names.includes("Storage bin"), names.join());
+	// Every thumbnail gets drawn, with something on it.
+	await page.waitForFunction(() =>
+		[...document.querySelectorAll("#templateList canvas")].every((c) => {
+			if (!c.width) return false;
+			const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+			return d.some((v, i) => i % 4 === 0 && v === 0);
+		}),
+	);
+
+	await page.click('#templateList [data-id="bin"]');
+	assert.equal(await page.$eval("#newDialog", (d) => d.open), false);
+	const { mode, doc } = await appState(page);
+	assert.equal(mode, "design");
+	assert.deepEqual(
+		doc.elements.map((e) => e.type),
+		["qr", "text"],
+	);
+	await page.keyboard.down("Control");
+	await page.keyboard.press("z");
+	await page.keyboard.up("Control");
+	assert.equal((await appState(page)).doc.elements[0].text, "Hello world", "undo brings it back");
 	assert.deepEqual(page.errors, []);
 });

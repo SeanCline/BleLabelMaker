@@ -162,6 +162,7 @@ test("copy and paste: duplicates beside the original, and between labels at the 
 
 	// Into a new label: same position, since nothing is in the way.
 	await page.click("#btnNew");
+	await page.click('#templateList [data-id="blank"]');
 	await page.click("#modeDesign");
 	await page.focus("#overlay");
 	await clipboardEvent(page, "paste", copied);

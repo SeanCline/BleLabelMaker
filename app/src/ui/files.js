@@ -1,8 +1,8 @@
-import { createDocument, LIMITS } from "../model.js";
+import { LIMITS } from "../model.js";
 import { parse, FILE_EXTENSION, TOO_LARGE } from "../fileformat.js";
 import { encodeShare, decodeShare } from "../share.js";
 import { $, toast, download } from "./dom.js";
-import { state, commit, history, loadState, currentFile } from "./store.js";
+import { state, loadState, currentFile } from "./store.js";
 import { addImageFile } from "./panels.js";
 import { keepStorage } from "./idb.js";
 
@@ -84,12 +84,6 @@ $("#fileInput").addEventListener("change", (ev) => {
 	ev.target.value = ""; // so re-opening the same file still fires change
 	if (f) loadFile(f);
 });
-$("#btnNew").addEventListener("click", () => {
-	commit(createDocument(state.doc.label), { selectedIds: [] });
-	history.seal();
-	toast("New label. Undo (Ctrl+Z) brings the previous one back.");
-});
-
 document.addEventListener("dragover", (ev) => ev.preventDefault());
 document.addEventListener("drop", (ev) => {
 	ev.preventDefault();
