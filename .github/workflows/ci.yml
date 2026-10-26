@@ -27,12 +27,18 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - run: npm ci
       - run: npm run lint
-      # npm test and npm run test:e2e, plus a reporter that puts each failure on the commit as
-      # an annotation. Node only takes reporter options before the file patterns, so these call
-      # node directly.
-      - run: node --test $REPORTERS "test/*.test.js"
+      # npm run coverage, step by step: npm test and npm run test:e2e under c8, plus a reporter
+      # that puts each failure on the commit as an annotation. Node only takes reporter options
+      # before the file patterns, so these call node directly.
+      - run: npx c8 --reporter=none node --test $REPORTERS "test/*.test.js"
       # ubuntu-latest ships Google Chrome at /usr/bin/google-chrome, which the e2e harness finds.
-      - run: node --test --test-concurrency=1 $REPORTERS "test/e2e/*.e2e.js"
+      # The harness adds what ran in the browser to the same coverage.
+      - run: npx c8 --clean=false --reporter=none node --test --test-concurrency=1 $REPORTERS "test/e2e/*.e2e.js"
+      # The per-file table goes on the run's summary page; the floors are in app/.c8rc.json.
+      - name: Coverage
+        run: |
+          { echo "### Coverage"; echo '```'; npx c8 report --reporter=text; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          npx c8 report --check-coverage
 
   # Publishes the tested commit to GitHub Pages (custom domain in app/CNAME). Only main
   # deploys, and only after every test passed.

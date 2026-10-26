@@ -11,3 +11,6 @@ node_modules/
 
 # The deployable site, built by app/tools/make-site.mjs.
 /app/_site/
+
+# Test coverage, from npm run coverage.
+/app/coverage/

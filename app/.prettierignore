@@ -5,3 +5,4 @@ icons/
 package-lock.json
 precache.js
 _site/
+coverage/

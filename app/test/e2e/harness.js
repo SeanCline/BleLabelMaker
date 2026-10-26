@@ -1,4 +1,6 @@
-import { existsSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import puppeteer from "puppeteer-core";
 import { startServer } from "../../serve.js";
 import { storageKey } from "../../src/app-info.js";
@@ -14,6 +16,11 @@ const CANDIDATES = [
 ];
 
 export const findBrowser = () => CANDIDATES.find((p) => p && existsSync(p));
+
+// Set by c8 (npm run coverage). Most of the app only runs in the browser, so the pages
+// record what ran and it's written where c8 collects Node's own coverage.
+const coverageDir = process.env.NODE_V8_COVERAGE;
+const appRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 /**
  * Starts the static server and a headless Chromium. Each test gets a fresh page with
@@ -43,6 +50,13 @@ export const setup = async () => {
 		const page = /** @type {import("puppeteer-core").Page & {errors: string[]}} */ (
 			await context.newPage()
 		);
+		if (coverageDir) {
+			// Kept across reloads, which some tests do.
+			await page.coverage.startJSCoverage({
+				resetOnNavigation: false,
+				includeRawScriptCoverage: true,
+			});
+		}
 		if (printer) {
 			// Only on a first load: a reload keeps what the test chose since.
 			await page.evaluateOnNewDocument(
@@ -71,7 +85,26 @@ export const setup = async () => {
 			server.closeAllConnections();
 		});
 
+	/** V8's coverage in the shape Node writes, with the app's URLs turned back into its files. */
+	const saveCoverage = async () => {
+		mkdirSync(coverageDir, { recursive: true });
+		for (const [i, page] of pages.entries()) {
+			if (page.isClosed()) continue;
+			const result = (await page.coverage.stopJSCoverage())
+				.filter((e) => e.url.startsWith(url) && e.rawScriptCoverage)
+				.map((e) => ({
+					...e.rawScriptCoverage,
+					url: pathToFileURL(join(appRoot, new URL(e.url).pathname)).href,
+				}));
+			writeFileSync(
+				join(coverageDir, `coverage-browser-${process.pid}-${i}.json`),
+				JSON.stringify({ result }),
+			);
+		}
+	};
+
 	const teardown = async () => {
+		if (coverageDir) await saveCoverage();
 		await browser.close();
 		if (server.listening) await stopServer();
 	};

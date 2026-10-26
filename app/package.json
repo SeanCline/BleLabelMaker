@@ -7,6 +7,7 @@
 	"scripts": {
 		"test": "node --test \"test/*.test.js\"",
 		"test:e2e": "node --test --test-concurrency=1 \"test/e2e/*.e2e.js\"",
+		"coverage": "c8 --reporter=none npm test && c8 --clean=false --reporter=none npm run test:e2e && c8 report --check-coverage",
 		"serve": "node serve.js",
 		"cert": "node tools/make-cert.mjs",
 		"serve:lan": "node serve.js --lan",
@@ -22,6 +23,7 @@
 		"@types/web-bluetooth": "0.0.22",
 		"@zxing/library": "^0.23.0",
 		"axe-core": "^4.10.2",
+		"c8": "12.0.0",
 		"eslint": "10.13.0",
 		"globals": "17.13.0",
 		"prettier": "3.9.10",

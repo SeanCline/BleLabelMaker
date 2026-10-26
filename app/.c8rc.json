@@ -1,0 +1,12 @@
+{
+	"all": true,
+	"include": ["src/**/*.js"],
+	"exclude": ["src/vendor/**"],
+	"reporter": ["text-summary"],
+	"reports-dir": "coverage",
+	"temp-directory": "coverage/tmp",
+	"lines": 95,
+	"statements": 95,
+	"functions": 90,
+	"branches": 85
+}
