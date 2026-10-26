@@ -1,0 +1,25 @@
+# Weekly update PRs for the app's npm packages and the CI workflow's actions. Each run's
+# minor and patch updates come as one PR, so a quiet week is one review; majors come alone.
+# The cooldown waits for a release to be two weeks old, which is when a bad one has usually
+# been caught and pulled.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /app
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    groups:
+      npm:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 14
+    groups:
+      actions:
+        update-types: [minor, patch]

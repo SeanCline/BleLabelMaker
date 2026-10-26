@@ -21,13 +21,13 @@
 	"devDependencies": {
 		"@eslint/js": "10.0.1",
 		"@types/web-bluetooth": "0.0.22",
-		"@zxing/library": "^0.23.0",
-		"axe-core": "^4.10.2",
+		"@zxing/library": "0.23.0",
+		"axe-core": "4.10.2",
 		"c8": "12.0.0",
 		"eslint": "10.13.0",
 		"globals": "17.13.0",
 		"prettier": "3.9.10",
-		"puppeteer-core": "^23.11.1",
+		"puppeteer-core": "23.11.1",
 		"typescript": "7.0.2"
 	}
 }
