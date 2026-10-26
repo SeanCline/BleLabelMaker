@@ -24,6 +24,7 @@ src/
   model.js       document model, element factories, arranging, margins
   fileformat.js  .label serialize / parse / validate; copied-elements format
   fields.js      {date}, {n}, {1}… filled in per label
+  richtext.js    text with formatted parts (runs): editing, styling, normalizing
   batch.js       batch lists: lines, spreadsheet cells, CSV
   layout.js      text wrapping and fit-to-box (pure, measure fn injected)
   caretmap.js    caret positions on laid-out text, for the inline editor
@@ -120,7 +121,7 @@ spreadsheet cells, or RFC 4180 CSV from an opened file. They're kept in local
 storage, not in the .label file, since one design is often printed with
 different lists.
 
-## .label file format (version 1)
+## .label file format (versions 1 and 2)
 
 ```json
 {
@@ -182,6 +183,18 @@ different lists.
   `render.js`). The editor applies it after each redraw, inside the undo step
   of the edit that caused it, and printing applies it per label, so batch rows
   can differ in length.
+- A text element's `text` is a string, or, when part of it is formatted, a
+  list of runs (version 2): each a string in the box's own style, or a
+  `[style, string]` pair whose style (`fontWeight`, `italic`, `underline`)
+  overrides the box's, as in `["Use by ", [{"fontWeight": 700}, "Friday"]]`.
+  There's one way to write each text (`normalize` in `richtext.js`):
+  neighbouring runs with the same style are joined, empty ones dropped, a style
+  holds only what differs from the box, and text with no formatting is a plain
+  string. A run never starts inside a grapheme or a `{field}`, so fields fill
+  in run by run. `parse()` checks the runs and tidies hand-written ones.
+- A file's `version` is the oldest that can read it: 2 when some text has runs,
+  else 1, so labels without formatting still open in copies of the app from
+  before it. Copied elements on the clipboard follow the same rule.
 - A text element's `ditherEmoji` draws its emoji with the system's colour emoji
   font on a layer of their own, dithered like a photo, instead of the outline
   emoji font; the letters stay a plain threshold.

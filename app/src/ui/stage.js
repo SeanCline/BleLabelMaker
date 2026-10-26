@@ -2,9 +2,10 @@ import { LIMITS, printableArea, boundsOf } from "../model.js";
 import { renderLabel, layoutTextBox } from "../render.js";
 import { fillDocument } from "../fields.js";
 import { ensureFontsFor } from "../fonts.js";
-import { clamp, round, mmToDots, ptToDots } from "../units.js";
+import { clamp, round, mmToDots } from "../units.js";
 import { caretMap, caretAt, indexAt, lineOf, nearestStop, selectionRects } from "../caretmap.js";
-import { cssFont } from "../fonts.js";
+import { cssFont, fontInfo, nearestWeight } from "../fonts.js";
+import { applyEdit, diffText, setStyle, stylesBetween, textOf, typingStyle } from "../richtext.js";
 import { snapTargets, snapMove, snapResize } from "../snap.js";
 import { $, el } from "./dom.js";
 import { describeLabel } from "./describe.js";
@@ -373,14 +374,8 @@ const positionInline = (e) => {
 	// The same layout the renderer uses, computed now rather than taken from the last render,
 	// which lags a frame behind typing.
 	const layout = layoutTextBox(measureCtx, e, local);
-	const spacing = `${ptToDots(e.letterSpacingPt ?? 0)}px`;
-	const measure = (s, px) => {
-		measureCtx.font = cssFont(e, px);
-		measureCtx.letterSpacing = spacing;
-		return measureCtx.measureText(s).width;
-	};
 	Object.assign(inline, {
-		map: caretMap({ layout, width: local.w, align: e.align, measure }),
+		map: caretMap({ layout, width: local.w, align: e.align, measure: layout.measure }),
 		quarter,
 		box,
 		dot,
@@ -467,6 +462,35 @@ const lineKey = (key) => {
 	return nearestStop(map[to], inline.goalX).index;
 };
 
+// Ctrl+B, I and U format what's selected, or with nothing selected, what's typed next.
+const STYLE_KEYS = { b: "fontWeight", i: "italic", u: "underline" };
+const BOLD = 600;
+
+const toggleStyle = (prop) => {
+	const e = /** @type {import("../model.js").TextElement} */ (elementById(inline.id));
+	if (prop === "italic" && !(fontInfo(e.fontFamily)?.italic ?? true)) return;
+	const { selectionStart: a, selectionEnd: b } = inline.textarea;
+	const pending = a === b && inline.pending?.at === a ? inline.pending.style : {};
+	const looks = stylesBetween(e.text, a, b, e).map((s) => ({ ...s, ...pending }));
+	const on =
+		prop === "fontWeight"
+			? !looks.every((s) => s.fontWeight >= BOLD)
+			: !looks.every((s) => s[prop]);
+	// Unbolding goes back to the box's weight, unless the box itself is bold.
+	const value =
+		prop === "fontWeight"
+			? nearestWeight(e.fontFamily, on ? 700 : e.fontWeight < BOLD ? e.fontWeight : 400)
+			: on;
+	if (a === b) {
+		inline.pending = { at: a, style: { ...typingStyle(e.text, a), ...pending, [prop]: value } };
+		return;
+	}
+	// Its own undo step, apart from the typing around it.
+	history.seal();
+	updateElement(e.id, { text: setStyle(e.text, a, b, prop, value) });
+	history.seal();
+};
+
 /** @param {{start: number, end: number}} [caret] where to put the cursor; default selects all */
 export const startInlineEdit = (id, caret) => {
 	const e = elementById(id);
@@ -474,7 +498,7 @@ export const startInlineEdit = (id, caret) => {
 	stopInlineEdit();
 	const textarea = el("textarea", {
 		className: "inline-edit",
-		value: e.text,
+		value: textOf(e.text),
 		spellcheck: true,
 		"aria-label": "Label text",
 	});
@@ -491,10 +515,16 @@ export const startInlineEdit = (id, caret) => {
 		selection,
 		group: `inline-${++dragSeq}`,
 		goalX: null,
+		/** @type {{at: number, style: import("../richtext.js").Style} | null} */
+		pending: null,
 	};
 	textarea.addEventListener("input", () => {
 		inline.goalX = null;
-		updateElement(id, { text: textarea.value }, inline.group);
+		const current = /** @type {import("../model.js").TextElement} */ (elementById(id));
+		const edit = diffText(textOf(current.text), textarea.value, textarea.selectionEnd);
+		const style = inline.pending?.at === edit.at ? inline.pending.style : undefined;
+		inline.pending = null;
+		updateElement(id, { text: applyEdit(current.text, edit, style) }, inline.group);
 	});
 	textarea.addEventListener("blur", () => {
 		rememberCaret(id, textarea, "inline");
@@ -504,6 +534,12 @@ export const startInlineEdit = (id, caret) => {
 		if (ev.key === "Escape") {
 			ev.stopPropagation();
 			stopInlineEdit();
+			return;
+		}
+		const style = (ev.ctrlKey || ev.metaKey) && !ev.altKey && STYLE_KEYS[ev.key.toLowerCase()];
+		if (style) {
+			ev.preventDefault();
+			toggleStyle(style);
 			return;
 		}
 		const vertical = ev.key === "ArrowUp" || ev.key === "ArrowDown";

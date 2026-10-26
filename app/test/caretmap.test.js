@@ -9,7 +9,7 @@ import {
 	nearestStop,
 	selectionRects,
 } from "../src/caretmap.js";
-import { monoMeasure } from "./helpers.js";
+import { monoMeasure, monoRange } from "./helpers.js";
 
 // Each char is 5 units wide at size 10.
 const m = (s) => monoMeasure(s, 10);
@@ -24,12 +24,14 @@ test("every wrapped line is the slice of the text it says it starts at", () => {
 		["aaaa    bbbb", 20],
 	];
 	for (const [text, w] of cases) {
-		for (const { text: line, start } of wrapLines(text, w, m)) {
+		for (const { text: line, start } of wrapLines(text, w, (a, b) => m(text.slice(a, b)))) {
 			assert.equal(text.slice(start, start + line.length), line, JSON.stringify(text));
 		}
 	}
 	assert.deepEqual(
-		wrapLines("the quick brown fox", 50, m).map((l) => l.start),
+		wrapLines("the quick brown fox", 50, (a, b) => m("the quick brown fox".slice(a, b))).map(
+			(l) => l.start,
+		),
 		[0, 10],
 	);
 });
@@ -42,7 +44,7 @@ test("layoutText says where each line starts, across paragraphs", () => {
 		height: 100,
 		fontSize: 10,
 		fit: false,
-		measure: monoMeasure,
+		measure: monoRange(text),
 	});
 	assert.deepEqual(r.lines, ["Title", "small print", "here"]);
 	assert.deepEqual(r.starts, [0, 6, 18]);
@@ -72,10 +74,10 @@ const mapOf = (text, { width = 60, align = "left", firstScale = 1 } = {}) => {
 		height: 100,
 		fontSize: 10,
 		fit: false,
-		measure: monoMeasure,
+		measure: monoRange(text),
 		firstScale,
 	});
-	return caretMap({ layout: { ...layout, top: 0 }, width, align, measure: monoMeasure });
+	return caretMap({ layout: { ...layout, top: 0 }, width, align, measure: monoRange(text) });
 };
 
 test("the caret follows the label's line breaks, not the text's", () => {
@@ -123,14 +125,14 @@ test("the selection is drawn per line, marking a selected line break", () => {
 		height: 100,
 		fontSize: 10,
 		fit: false,
-		measure: monoMeasure,
+		measure: monoRange(stacked.text),
 	});
 	const starts = layout.starts.map((i) => stacked.source[i]);
 	const smap = caretMap({
 		layout: { ...layout, starts, top: 0 },
 		width: 60,
 		align: "left",
-		measure: monoMeasure,
+		measure: monoRange(stacked.text),
 	});
 	assert.deepEqual(selectionRects(smap, 1, 2), [{ x: 0, top: 12, width: 5, height: 12 }]);
 });

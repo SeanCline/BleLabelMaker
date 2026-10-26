@@ -26,3 +26,6 @@ export const noise = (seed) => (x, y) => {
 
 /** Monospace measure: every grapheme is `size * 0.5` wide. */
 export const monoMeasure = (s, size = 10) => [...s].length * size * 0.5;
+
+/** monoMeasure by position in `text`, as layout measures. */
+export const monoRange = (text) => (from, to, size) => monoMeasure(text.slice(from, to), size);

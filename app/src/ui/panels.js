@@ -35,6 +35,7 @@ import {
 	redo,
 } from "./store.js";
 import { fittedSizes, onDrawn, renderWarnings } from "./stage.js";
+import { STYLE_PROPS, clearStyle, mapStyles, retext, textOf } from "../richtext.js";
 
 const simpleElement = () => state.doc.elements[0];
 
@@ -62,6 +63,7 @@ const syncProps = (root, element) => {
 		}
 		if (input.type === "checkbox") input.checked = !!element[prop];
 		else if (prop === "fontSizePt") input.value = String(shownSize(element));
+		else if (prop === "text") input.value = textOf(element.text);
 		else
 			input.value =
 				typeof element[prop] === "number" ? String(round(element[prop], 3)) : (element[prop] ?? "");
@@ -81,7 +83,8 @@ const syncProps = (root, element) => {
 	}
 	for (const node of $$("[data-show-if]", root)) node.hidden = !element[node.dataset.showIf];
 	// Only worth offering while there's an emoji to print.
-	for (const node of $$("[data-show-if-emoji]", root)) node.hidden = !hasEmoji(element.text ?? "");
+	for (const node of $$("[data-show-if-emoji]", root))
+		node.hidden = !hasEmoji(textOf(element.text ?? ""));
 };
 
 /** The size a text is drawn at: the fitted one while it fits itself, else the one set. */
@@ -129,10 +132,21 @@ const onPropInput = (ev) => {
 		Object.assign(patch, { fontSizePt: clamp(value, ...LIMITS.fontSizePt), fit: false });
 	if (prop === "letterSpacingPt") patch.letterSpacingPt = clamp(value, ...LIMITS.letterSpacingPt);
 	if (prop === "w" || prop === "h") patch[prop] = Math.max(LIMITS.elementMinMm, value);
+	if (prop === "text" && e.type === "text")
+		patch.text = retext(e.text, String(value), { caret: input.selectionEnd });
 	if (prop === "fontFamily" && e.type === "text") {
 		patch.fontWeight = nearestWeight(value, e.fontWeight);
-		if (!(fontInfo(value)?.italic ?? true)) patch.italic = false;
+		const italic = fontInfo(value)?.italic ?? true;
+		if (!italic) patch.italic = false;
+		// Formatted words too: a bold word stays as bold as the new face allows.
+		patch.text = mapStyles(e.text, ({ fontWeight, italic: slanted, ...rest }) => ({
+			...rest,
+			...(fontWeight !== undefined && { fontWeight: nearestWeight(value, fontWeight) }),
+			...(italic && slanted !== undefined && { italic: slanted }),
+		}));
 	}
+	// Setting it for the whole box sets it for every word in it.
+	if (STYLE_PROPS.includes(prop) && e.type === "text") patch.text = clearStyle(e.text, prop);
 	// Turning fit off should keep what the user was looking at, not jump back to an old size.
 	if (prop === "fit" && !value && fittedSizes().has(e.id))
 		patch.fontSizePt = round(fittedSizes().get(e.id), 1);

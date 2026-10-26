@@ -1,6 +1,7 @@
 import { parse, serialize, LabelFileError } from "./fileformat.js";
 import { STORAGE_ID, REPO_URL } from "./app-info.js";
 import { plainText } from "./layout.js";
+import { textOf } from "./richtext.js";
 
 export const HISTORY_FORMAT = `${STORAGE_ID}-history`;
 export const HISTORY_VERSION = 1;
@@ -169,13 +170,16 @@ export const matches = (entry, query) => {
 	const q = plainText(query).trim().toLowerCase();
 	if (!q) return true;
 	return entry.file.elements.some((e) =>
-		plainText(e.text ?? e.data ?? "")
+		plainText(textOf(e.text ?? e.data ?? ""))
 			.toLowerCase()
 			.includes(q),
 	);
 };
 
 export const entryTitle = (entry) => {
-	const text = entry.file.elements.find((e) => e.type === "text" && e.text.trim());
-	return text ? text.text.trim().split("\n")[0] : "(empty label)";
+	const text = entry.file.elements
+		.filter((e) => e.type === "text")
+		.map((e) => textOf(e.text).trim())
+		.find(Boolean);
+	return text ? text.split("\n")[0] : "(empty label)";
 };

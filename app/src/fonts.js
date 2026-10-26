@@ -1,3 +1,5 @@
+import { stylesIn, textOf } from "./richtext.js";
+
 // A short curated list beats a giant picker: on a 9 mm tall label only a few faces read well.
 export const FONTS = [
 	{
@@ -140,10 +142,12 @@ export const ensureFontsFor = async (doc) => {
 	const loads = [];
 	for (const e of doc.elements) {
 		if (e.type === "text") {
+			const text = textOf(e.text);
+			// Each style is its own face: a bold word needs the bold one.
 			if (!GENERIC.has(e.fontFamily))
-				loads.push(document.fonts.load(cssFont(e, 20), e.text || "A"));
-			if (hasEmoji(e.text))
-				loads.push(document.fonts.load(`400 20px "${EMOJI_MONO_FONT}"`, e.text));
+				for (const style of stylesIn(e.text))
+					loads.push(document.fonts.load(cssFont({ ...e, ...style }, 20), text || "A"));
+			if (hasEmoji(text)) loads.push(document.fonts.load(`400 20px "${EMOJI_MONO_FONT}"`, text));
 		} else if (e.type === "barcode" && e.showText && !GENERIC.has(e.textFont)) {
 			loads.push(document.fonts.load(`600 20px "${e.textFont}"`, e.data || "0123456789"));
 		}

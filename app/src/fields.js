@@ -1,3 +1,5 @@
+import { mapText, textOf } from "./richtext.js";
+
 // Fields in text, barcode and QR data: {date}, {date+30d:iso}, {time}, {n}, {n:000}, {1},
 // {Column name}. The document keeps the template; each printed label gets its own values.
 // {{ and }} stand for literal braces.
@@ -10,7 +12,7 @@
  * @property {string[] | null} columns column names (first row of the batch), if any
  */
 
-const FIELD = /\{\{|\}\}|\{([^{}]+)\}/g;
+export const FIELD = /\{\{|\}\}|\{([^{}]+)\}/g;
 const DATE = /^date(?:([+-])(\d+)([dwmy]))?(?::(iso|num))?$/i;
 const COUNTER = /^n(?::(0+))?$/i;
 
@@ -84,8 +86,9 @@ export const fillDocument = (doc, ctx, { except = null } = {}) => ({
 	...doc,
 	elements: doc.elements.map((e) => {
 		const prop = TEMPLATED[e.type];
-		if (!prop || e.id === except || !e[prop].includes("{")) return e;
-		return { ...e, [prop]: fillFields(e[prop], ctx) };
+		if (!prop || e.id === except || !textOf(e[prop]).includes("{")) return e;
+		// Run by run: a field never spans two (see normalizeText).
+		return { ...e, [prop]: mapText(e[prop], (s) => fillFields(s, ctx)) };
 	}),
 });
 
@@ -99,7 +102,7 @@ export const fieldsUsed = (doc) => {
 	for (const e of doc.elements) {
 		const prop = TEMPLATED[e.type];
 		if (!prop) continue;
-		for (const [, name] of e[prop].matchAll(FIELD)) {
+		for (const [, name] of textOf(e[prop]).matchAll(FIELD)) {
 			if (!name) continue; // {{ or }}
 			const key = name.trim();
 			used.any = true;

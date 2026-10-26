@@ -2,6 +2,7 @@
 // next to each text field.
 import { searchEmoji } from "../emoji.js";
 import { plainText } from "../layout.js";
+import { applyEdit, textOf } from "../richtext.js";
 import { $, $$, el } from "./dom.js";
 import { state, history, updateElement } from "./store.js";
 import { startInlineEdit } from "./stage.js";
@@ -47,10 +48,14 @@ for (const panel of $$("[data-panel]").filter((p) => $(".insert-emoji", p))) {
 	});
 	const insert = (e, caret, value) => {
 		value = plainText(value);
-		const current = elementText(e.id);
-		const start = Math.min(caret.start, current.length);
-		const end = Math.min(caret.end, current.length);
-		updateElement(e.id, { text: current.slice(0, start) + value + current.slice(end) });
+		const current = state.doc.elements.find((x) => x.id === e.id);
+		if (current?.type !== "text") return;
+		const length = textOf(current.text).length;
+		const start = Math.min(caret.start, length);
+		const end = Math.min(caret.end, length);
+		updateElement(e.id, {
+			text: applyEdit(current.text, { at: start, removed: end - start, inserted: value }),
+		});
 		history.seal();
 		const at = { start: start + value.length, end: start + value.length };
 		if (caret.source === "inline") startInlineEdit(e.id, at);
@@ -62,7 +67,8 @@ for (const panel of $$("[data-panel]").filter((p) => $(".insert-emoji", p))) {
 	const target = () => {
 		const e = targetFor(panel);
 		if (e?.type !== "text") return null;
-		const caret = takeCaret(e.id) ?? { start: e.text.length, end: e.text.length, source: "panel" };
+		const end = textOf(e.text).length;
+		const caret = takeCaret(e.id) ?? { start: end, end, source: "panel" };
 		return { e, caret };
 	};
 	$(".insert-emoji", panel).addEventListener("click", () => {
@@ -77,10 +83,6 @@ for (const panel of $$("[data-panel]").filter((p) => $(".insert-emoji", p))) {
 		if (t && value) insert(t.e, t.caret, value);
 	});
 }
-const elementText = (id) => {
-	const e = state.doc.elements.find((x) => x.id === id);
-	return e?.type === "text" ? e.text : "";
-};
 
 // Text fields keep their text plain as it's typed or pasted (see plainText), before the app
 // reads it: otherwise the field holds characters the label doesn't, and caret positions

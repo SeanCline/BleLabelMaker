@@ -15,12 +15,22 @@ import {
 	createBarcode,
 	createQr,
 	createImage,
+	normalizeText,
 } from "./model.js";
 import { STORAGE_ID, REPO_URL } from "./app-info.js";
-import { plainText } from "./layout.js";
+import { STYLE_PROPS } from "./richtext.js";
 
 export const FORMAT_ID = `${STORAGE_ID}-label`;
-export const CURRENT_VERSION = 1;
+// 2: a text's `text` can be a list of runs, for formatting part of it.
+export const CURRENT_VERSION = 2;
+
+/**
+ * The oldest version that can read these elements, which is what a file says it is: one
+ * without formatted text still opens in copies of the app from before there was any.
+ * @param {import("./model.js").Element[]} elements
+ */
+const versionFor = (elements) =>
+	elements.some((e) => e.type === "text" && typeof e.text !== "string") ? 2 : 1;
 export const FILE_EXTENSION = ".label";
 
 export class LabelFileError extends Error {}
@@ -32,7 +42,7 @@ export const serialize = (doc, editor) =>
 			format: FORMAT_ID,
 			// Says what made the file, for anyone who finds one; never read back.
 			app: REPO_URL,
-			version: CURRENT_VERSION,
+			version: versionFor(doc.elements),
 			label: doc.label,
 			elements: doc.elements,
 			editor: { mode: editor.mode, selectedIds: editor.selectedIds ?? [] },
@@ -96,7 +106,7 @@ const ELEMENTS_FORMAT = `${STORAGE_ID}-elements`;
 
 /** @param {import("./model.js").Element[]} elements */
 export const serializeElements = (elements) =>
-	JSON.stringify({ format: ELEMENTS_FORMAT, version: CURRENT_VERSION, elements });
+	JSON.stringify({ format: ELEMENTS_FORMAT, version: versionFor(elements), elements });
 
 /**
  * Elements copied from this app, validated like a file's; null if the text is anything else
@@ -111,8 +121,8 @@ export const parseElements = (text) => {
 		return null;
 	}
 	if (!isObject(raw) || raw.format !== ELEMENTS_FORMAT) return null;
-	if (raw.version !== CURRENT_VERSION) {
-		throw new LabelFileError("These elements were copied from a different version of the app.");
+	if (!Number.isInteger(raw.version) || raw.version < 1 || raw.version > CURRENT_VERSION) {
+		throw new LabelFileError("These elements were copied from a newer version of the app.");
 	}
 	return checkElements(raw.elements);
 };
@@ -157,10 +167,10 @@ const checkElement = (raw, where) => {
 		rotation: oneOf(e.rotation, ROTATIONS, `${where} rotation`),
 	};
 	if (e.type === "text") {
-		return {
+		const element = /** @type {import("./model.js").TextElement} */ ({
 			...box,
 			type: "text",
-			text: plainText(str(e.text, `${where} text`)),
+			text: richText(e.text, `${where} text`),
 			fontFamily: str(e.fontFamily, `${where} font`) || "sans-serif",
 			fontSizePt: num(e.fontSizePt, `${where} font size`, LIMITS.fontSizePt),
 			fontWeight: oneOf(e.fontWeight, WEIGHTS, `${where} weight`),
@@ -175,7 +185,9 @@ const checkElement = (raw, where) => {
 			stacked: bool(e.stacked, `${where} stacked`),
 			firstLineScale: oneOf(e.firstLineScale, FIRST_LINE_SCALES, `${where} first line size`),
 			ditherEmoji: bool(e.ditherEmoji, `${where} dithered emoji`),
-		};
+		});
+		// Hand-written runs needn't be in their one written form; saving puts them in it.
+		return { ...element, text: normalizeText(element) };
 	}
 	if (e.type === "shape") {
 		return {
@@ -225,6 +237,39 @@ const checkElement = (raw, where) => {
 		};
 	}
 	throw new LabelFileError(`${where} has unknown type “${e.type}”.`);
+};
+
+/**
+ * A text's `text`: a string, or runs, each a string or a [style, string] pair.
+ * @returns {import("./richtext.js").RichText}
+ */
+const richText = (v, what) => {
+	if (typeof v === "string") return v;
+	if (!Array.isArray(v)) throw new LabelFileError(`${what} must be text, or a list of runs.`);
+	return v.map((run, i) => {
+		if (typeof run === "string") return run;
+		const part = `${what} part ${i + 1}`;
+		if (!Array.isArray(run) || run.length !== 2 || !isObject(run[0]))
+			throw new LabelFileError(`${part} must be text, or a style and text.`);
+		return /** @type {[import("./richtext.js").Style, string]} */ ([
+			checkStyle(run[0], part),
+			str(run[1], part),
+		]);
+	});
+};
+
+/** @returns {import("./richtext.js").Style} */
+const checkStyle = (style, where) => {
+	const known = /** @type {readonly string[]} */ (STYLE_PROPS);
+	const unknown = Object.keys(style).find((k) => !known.includes(k));
+	if (unknown) throw new LabelFileError(`${where} has an unknown style “${unknown}”.`);
+	return {
+		...("fontWeight" in style && {
+			fontWeight: oneOf(style.fontWeight, WEIGHTS, `${where} weight`),
+		}),
+		...("italic" in style && { italic: bool(style.italic, `${where} italic`) }),
+		...("underline" in style && { underline: bool(style.underline, `${where} underline`) }),
+	};
 };
 
 const isObject = (v) => typeof v === "object" && v !== null && !Array.isArray(v);

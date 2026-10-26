@@ -1,5 +1,5 @@
-import { createDocument } from "../model.js";
-import { plainText } from "../layout.js";
+import { createDocument, normalizeText } from "../model.js";
+import { STYLE_PROPS, retext } from "../richtext.js";
 import { parse, serialize } from "../fileformat.js";
 import { History } from "../history.js";
 import { loadText, storeJson } from "./dom.js";
@@ -104,10 +104,16 @@ export const amend = (doc) => {
 	notify();
 };
 
-const patched = (e, patch) =>
-	e.type === "text" && "text" in patch
-		? { ...e, ...patch, text: plainText(patch.text) }
-		: { ...e, ...patch };
+const patched = (e, patch) => {
+	if (e.type !== "text" || !["text", ...STYLE_PROPS].some((p) => p in patch))
+		return { ...e, ...patch };
+	const next = { ...e, ...patch };
+	// A string for formatted text is what a textarea holds: work out what was typed, so the
+	// formatting stays on the letters it was on.
+	if (typeof patch.text === "string") next.text = retext(e.text, patch.text);
+	// The box's own style changing can make a run's the same as it, or newly different.
+	return { ...next, text: normalizeText(next) };
+};
 
 export const updateElement = (id, patch, group) => updateElements({ [id]: patch }, group);
 

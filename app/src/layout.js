@@ -10,11 +10,15 @@ export const LINE_HEIGHT = 1.2;
  * @returns {string[]}
  */
 export const wrapText = (text, maxWidth, measure) =>
-	wrapLines(text, maxWidth, measure).map((l) => l.text);
+	wrapLines(text, maxWidth, (from, to) => measure(text.slice(from, to))).map((l) => l.text);
 
 /**
  * wrapText, saying where each line starts in `text`. Every line is a slice of it, so the
- * inline editor can map between caret positions and the lines the label draws.
+ * inline editor can map between caret positions and the lines the label draws. It measures
+ * by position rather than by string, since parts of a text may be in other fonts.
+ * @param {string} text
+ * @param {number} maxWidth
+ * @param {(from: number, to: number) => number} measure width of text.slice(from, to)
  * @returns {{text: string, start: number}[]}
  */
 export const wrapLines = (text, maxWidth, measure) => {
@@ -34,7 +38,7 @@ export const wrapLines = (text, maxWidth, measure) => {
 				if (line === "") start = pos;
 				continue;
 			}
-			if (measure(line + word) <= maxWidth) {
+			if (measure(start, pos + word.length) <= maxWidth) {
 				line += word;
 				pos += word.length;
 				continue;
@@ -43,9 +47,9 @@ export const wrapLines = (text, maxWidth, measure) => {
 			line = "";
 			start = pos;
 			// Word alone is too wide: hard-break it by grapheme so emoji/combining marks stay whole.
-			if (measure(word) > maxWidth) {
+			if (measure(pos, pos + word.length) > maxWidth) {
 				for (const g of graphemes(word)) {
-					if (line !== "" && measure(line + g) > maxWidth) {
+					if (line !== "" && measure(start, pos + g.length) > maxWidth) {
 						push(line);
 						line = "";
 						start = pos;
@@ -109,11 +113,13 @@ export const plainText = (s) => s.replace(/[\uFE0E\uFE0F]/g, "");
  * @param {number} p.height
  * @param {number} [p.fontSize] requested size (ignored when fit is set)
  * @param {boolean} p.fit
- * @param {(s: string, size: number) => number} p.measure width of s at font size
+ * @param {(from: number, to: number, size: number) => number} p.measure width of
+ *   text.slice(from, to) at a font size
  * @param {number} [p.firstScale] size of the first paragraph relative to the rest (a title)
  * @returns {{fontSize: number, lines: string[], sizes: number[], starts: number[],
- *   lineHeight: number, height: number}} fontSize is the base size; sizes holds each line's
- *   own size, and starts where in `text` it begins
+ *   offsets: number[], lineHeight: number, height: number}} fontSize is the base size; sizes
+ *   holds each line's own size, and starts and offsets where in `text` it begins (the same
+ *   here; layoutTextBox maps starts back through stacking)
  */
 export const layoutText = ({ text, width, height, fontSize, fit, measure, firstScale = 1 }) => {
 	const paragraphs = text.split("\n");
@@ -126,7 +132,8 @@ export const layoutText = ({ text, width, height, fontSize, fit, measure, firstS
 		const starts = [];
 		paragraphs.forEach((p, i) => {
 			const s = sizeOf(i, size);
-			for (const line of wrapLines(p, width, (x) => measure(x, s))) {
+			const at = paraStarts[i];
+			for (const line of wrapLines(p, width, (a, b) => measure(at + a, at + b, s))) {
 				lines.push(line.text);
 				sizes.push(s);
 				starts.push(paraStarts[i] + line.start);
@@ -138,6 +145,7 @@ export const layoutText = ({ text, width, height, fontSize, fit, measure, firstS
 			lines,
 			sizes,
 			starts,
+			offsets: starts,
 			lineHeight: size * LINE_HEIGHT,
 			height: total,
 		};
@@ -147,10 +155,10 @@ export const layoutText = ({ text, width, height, fontSize, fit, measure, firstS
 	const fits = (size) => {
 		// A size that only fits by breaking words mid-word reads worse than a smaller one.
 		const broken = paragraphs.some((p, i) =>
-			p
-				.split(/\s+/)
-				.filter(Boolean)
-				.some((w) => measure(w, sizeOf(i, size)) > width),
+			[...p.matchAll(/\S+/g)].some((w) => {
+				const from = paraStarts[i] + w.index;
+				return measure(from, from + w[0].length, sizeOf(i, size)) > width;
+			}),
 		);
 		return !broken && at(size).height <= height;
 	};

@@ -32,7 +32,8 @@ test("file carries format id, the app's repository and version", () => {
 	const raw = JSON.parse(serialize(doc, { mode: "simple" }));
 	assert.equal(raw.format, "labelmaker-label");
 	assert.equal(raw.app, REPO_URL);
-	assert.equal(raw.version, CURRENT_VERSION);
+	// Nothing in it is formatted, so copies of the app from before formatting can open it.
+	assert.equal(raw.version, 1);
 	assert.deepEqual(raw.editor.selectedIds, []);
 	// Only a note for people: a file without it, or naming somewhere else, opens the same.
 	for (const app of [undefined, "https://example.com/fork"]) {
@@ -155,7 +156,7 @@ test("copied elements round-trip through the clipboard format; other text is lef
 	raw.elements[0].fontWeight = 450;
 	assert.throws(() => parseElements(JSON.stringify(raw)), /weight/);
 	raw.version = CURRENT_VERSION + 1;
-	assert.throws(() => parseElements(JSON.stringify(raw)), /different version/);
+	assert.throws(() => parseElements(JSON.stringify(raw)), /newer version/);
 });
 
 test("text elements never keep emoji presentation selectors", () => {
@@ -164,4 +165,41 @@ test("text elements never keep emoji presentation selectors", () => {
 	const loaded = parse(serialize(doc, { mode: "simple", selectedIds: [] })).doc;
 	assert.equal(/** @type {any} */ (loaded.elements[0]).text, "Hot 🌶 ❄");
 	assert.equal(createText(doc, { text: "⚠\uFE0F" }).text, "⚠");
+});
+
+test("formatted text saves as runs, says it needs version 2, and round-trips exactly", () => {
+	const doc = sampleDoc();
+	doc.elements.push(createText(doc, { text: ["Use ", [{ fontWeight: 700 }, "by"], " Friday"] }));
+	const file = serialize(doc, { mode: "design" });
+	const raw = JSON.parse(file);
+	assert.equal(raw.version, CURRENT_VERSION);
+	assert.equal(CURRENT_VERSION, 2);
+	assert.deepEqual(raw.elements[3].text, ["Use ", [{ fontWeight: 700 }, "by"], " Friday"]);
+	const back = parse(file);
+	assert.deepEqual(back.doc, doc);
+	assert.equal(serialize(back.doc, back.editor), file);
+	// Clipboard copies carry it too.
+	assert.deepEqual(parseElements(serializeElements(doc.elements)), doc.elements);
+});
+
+test("hand-written runs are tidied; bad ones are refused", () => {
+	const raw = JSON.parse(serialize(sampleDoc(), { mode: "design" }));
+	raw.version = 2;
+	// The second element is bold already, so a bold run in it is nothing special.
+	raw.elements[1].text = ["Line ", [{ fontWeight: 700 }, "one"], "", [{}, "\nline two"]];
+	raw.elements[2].text = [
+		[{ underline: true }, "Lab"],
+		[{ underline: true }, " 👩‍🔬"],
+	];
+	const { doc } = parse(JSON.stringify(raw));
+	assert.equal(/** @type {any} */ (doc.elements[1]).text, "Line one\nline two");
+	assert.deepEqual(/** @type {any} */ (doc.elements[2]).text, [[{ underline: true }, "Lab 👩‍🔬"]]);
+
+	const withText = (text) => (r) => (r.elements[1].text = text);
+	rejects(withText(42), /list of runs/);
+	rejects(withText([["x"]]), /a style and text/);
+	rejects(withText([[{ fontWeight: 450 }, "x"]]), /weight/);
+	rejects(withText([[{ colour: "red" }, "x"]]), /unknown style “colour”/);
+	rejects(withText([[{ italic: "yes" }, "x"]]), /italic/);
+	rejects(withText([[{}, 3]]), /must be text/);
 });

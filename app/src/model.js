@@ -1,6 +1,8 @@
 import { round } from "./units.js";
 import { DEFAULT_PRINTER } from "./printers/index.js";
 import { plainText } from "./layout.js";
+import { FIELD } from "./fields.js";
+import { mapText, normalize } from "./richtext.js";
 
 /**
  * The document model, as saved in .label files (see DESIGN.md). Units are mm and pt.
@@ -8,7 +10,8 @@ import { plainText } from "./layout.js";
  *   autoLength (continuous only, and only present when set): the length follows the content
  * @typedef {{id: string, x: number, y: number, w: number, h: number}} Rect
  * @typedef {Rect & {rotation: 0|90|180|270}} Box
- * @typedef {Box & {type: "text", text: string, fontFamily: string, fontSizePt: number,
+ * @typedef {Box & {type: "text", text: import("./richtext.js").RichText, fontFamily: string,
+ *   fontSizePt: number,
  *   fontWeight: number, italic: boolean, align: "left"|"center"|"right",
  *   vAlign: "top"|"middle"|"bottom", fit: boolean, invert: boolean, letterSpacingPt: number,
  *   underline: boolean, outline: boolean, stacked: boolean, firstLineScale: 1|1.5|2,
@@ -107,18 +110,33 @@ export const TEXT_DEFAULTS = {
  * @param {Partial<TextElement>} [props]
  * @returns {TextElement}
  */
-export const createText = (doc, props = {}) => ({
-	id: newId(doc),
-	type: "text",
-	x: 2,
-	y: 2,
-	w: 20,
-	h: 6,
-	rotation: 0,
-	...TEXT_DEFAULTS,
-	...props,
-	text: plainText(props.text ?? TEXT_DEFAULTS.text),
-});
+export const createText = (doc, props = {}) => {
+	/** @type {TextElement} */
+	const e = {
+		id: newId(doc),
+		type: "text",
+		x: 2,
+		y: 2,
+		w: 20,
+		h: 6,
+		rotation: 0,
+		...TEXT_DEFAULTS,
+		...props,
+	};
+	return { ...e, text: normalizeText(e) };
+};
+
+/**
+ * A text element's text as it's kept: without emoji presentation selectors, and its runs in
+ * their one written form (see normalize), measured against the box's own style. Fields keep
+ * one style each, so they fill in run by run.
+ * @param {Pick<TextElement, "text" | "fontWeight" | "italic" | "underline">} e
+ */
+export const normalizeText = (e) =>
+	normalize(mapText(e.text, plainText), {
+		base: { fontWeight: e.fontWeight, italic: e.italic, underline: e.underline },
+		together: FIELD,
+	});
 
 /**
  * @param {Doc} doc

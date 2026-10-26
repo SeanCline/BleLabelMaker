@@ -10,11 +10,12 @@ import { graphemes, LINE_HEIGHT } from "./layout.js";
 
 /**
  * @param {object} p
- * @param {{lines: string[], sizes: number[], starts: number[], top: number}} p.layout
- *   from layoutTextBox
+ * @param {{lines: string[], sizes: number[], starts: number[], offsets: number[], top: number}}
+ *   p.layout from layoutTextBox
  * @param {number} p.width the box's width, in dots
  * @param {"left"|"center"|"right"} p.align
- * @param {(s: string, size: number) => number} p.measure width of s at a font size, as drawn
+ * @param {(from: number, to: number, size: number) => number} p.measure width of the laid-out
+ *   text between two offsets at a font size, as drawn
  * @returns {CaretLine[]}
  */
 export const caretMap = ({ layout, width, align, measure }) => {
@@ -22,13 +23,14 @@ export const caretMap = ({ layout, width, align, measure }) => {
 	return layout.lines.map((line, i) => {
 		const size = layout.sizes[i];
 		const start = layout.starts[i];
-		const full = measure(line, size);
+		const from = layout.offsets[i];
+		const full = measure(from, from + line.length, size);
 		const left = align === "left" ? 0 : align === "right" ? width - full : (width - full) / 2;
 		const stops = [{ index: start, x: left }];
-		let prefix = "";
+		let prefix = 0;
 		for (const g of graphemes(line)) {
-			prefix += g;
-			stops.push({ index: start + prefix.length, x: left + measure(prefix, size) });
+			prefix += g.length;
+			stops.push({ index: start + prefix, x: left + measure(from, from + prefix, size) });
 		}
 		const height = size * LINE_HEIGHT;
 		const out = { start, end: start + line.length, top: y, height, stops };

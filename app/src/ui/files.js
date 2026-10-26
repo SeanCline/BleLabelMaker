@@ -5,9 +5,11 @@ import { $, toast, download } from "./dom.js";
 import { state, loadState, currentFile } from "./store.js";
 import { addImageFile } from "./panels.js";
 import { keepStorage } from "./idb.js";
+import { textOf } from "../richtext.js";
 
 export const slugFor = (doc) => {
-	const first = doc.elements.find((e) => e.type === "text")?.text.split("\n")[0] ?? "";
+	const text = doc.elements.find((e) => e.type === "text")?.text ?? "";
+	const first = textOf(text).split("\n")[0];
 	return (
 		first
 			.normalize("NFKD")
