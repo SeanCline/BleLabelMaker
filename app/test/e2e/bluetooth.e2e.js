@@ -26,12 +26,15 @@ test("connect: picker filters for the D30, status arrives over notifications", a
 		"A30 sizes",
 	);
 	assert.match(await page.$eval("#setPrinter option[value=a30]", (o) => o.textContent), /untested/);
+	const printButton = () => page.$eval("#btnPrint", (b) => b.textContent);
+	assert.equal(await printButton(), "Connect & print");
 	await page.click("#btnConnect");
 	await page.waitForFunction(() =>
 		/^Connected to D30-FAKE · battery 64%$/.test(
 			document.querySelector("#printerStatus").textContent,
 		),
 	);
+	assert.equal(await printButton(), "Print on D30-FAKE");
 	// …but the printer that connects names itself D30, which only takes 12 mm labels.
 	assert.equal(await page.$eval("#setPrinter", (s) => s.value), "d30");
 	assert.ok(

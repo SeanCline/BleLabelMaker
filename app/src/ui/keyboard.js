@@ -20,6 +20,8 @@ import { print } from "./printing.js";
 const GLOBAL = {
 	s: save,
 	o: openPicker,
+	// The browser's own print dialog is never what's wanted on this page.
+	p: () => print(),
 	Enter: () => print(),
 };
 

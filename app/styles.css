@@ -92,6 +92,13 @@ button.primary {
 	font-weight: 600;
 	padding: 6px 20px;
 }
+/* It names the printer, and a Bluetooth name can be long. */
+#btnPrint {
+	max-width: 100%;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
 button.primary:hover:not(:disabled) {
 	background: var(--accent);
 	filter: brightness(1.08);

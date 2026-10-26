@@ -129,6 +129,7 @@ const renderPrinterStatus = () => {
 	s.classList.toggle("ok", !!real && t.connected && !hasProblem(t.status));
 	s.classList.toggle("problem", t.connected && hasProblem(t.status));
 	$("#btnPrint").disabled = busy;
+	renderPrintButton();
 	// Show what the printer reports; until it says, the choice reads "as set on the printer".
 	renderAutoPower(t);
 	$("#virtualOut").hidden = !$("#tape").children.length;
@@ -261,10 +262,25 @@ const renderPrintBar = () => {
 	if (document.activeElement !== $("#counterStart")) {
 		$("#counterStart").value = String(settings.counterStart);
 	}
+	renderPrintButton();
+	$("#batchUnused").hidden = !batchData() || used.columns;
+};
+
+/**
+ * The print button says what a click will do: how many labels a batch makes, and for a real
+ * printer, whether it connects first or which one it prints on. That saves a look at the
+ * status line before each print.
+ */
+const renderPrintButton = () => {
 	const batch = batchData();
 	const total = (batch?.rows.length ?? 1) * currentCopies();
-	$("#btnPrint").textContent = batch ? `Print ${total} labels` : "Print";
-	$("#batchUnused").hidden = !batch || used.columns;
+	const what = batch ? `${total} labels` : "";
+	const real = hardware();
+	const button = $("#btnPrint");
+	if (!real) button.textContent = ["Print", what].filter(Boolean).join(" ");
+	else if (!real.connected)
+		button.textContent = ["Connect & print", what].filter(Boolean).join(" ");
+	else button.textContent = ["Print", what, `on ${real.name}`].filter(Boolean).join(" ");
 };
 
 // The preview shows the batch row being looked at and the next counter value.
