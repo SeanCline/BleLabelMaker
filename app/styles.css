@@ -824,6 +824,8 @@ dialog form {
 	box-shadow: var(--shadow);
 	max-width: calc(100vw - 32px);
 	z-index: 10;
+	/* Only text, and it floats over the page: what's under it should still take clicks. */
+	pointer-events: none;
 }
 .toast.error {
 	background: var(--danger);
