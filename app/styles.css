@@ -664,9 +664,6 @@ progress {
 	font-size: 13px;
 	color: var(--text);
 }
-.italic-check {
-	padding-bottom: 6px;
-}
 .unit {
 	color: var(--muted);
 }
