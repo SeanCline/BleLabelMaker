@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import puppeteer from "puppeteer-core";
 import { startServer } from "../../serve.js";
+import { storageKey } from "../../src/app-info.js";
 
 const CANDIDATES = [
 	process.env.CHROME_PATH,
@@ -32,14 +33,26 @@ export const setup = async () => {
 	const pages = [];
 
 	/**
-	 * @param {{width?: number, height?: number, beforeLoad?: (page: import("puppeteer-core").Page) => Promise<unknown>}} [options]
+	 * Pages start on the virtual printer, so tests print without a device picker; `printer: null`
+	 * leaves the app's own default.
+	 * @param {{width?: number, height?: number, printer?: string | null, beforeLoad?: (page: import("puppeteer-core").Page) => Promise<unknown>}} [options]
 	 * @returns {Promise<import("puppeteer-core").Page & {errors: string[]}>} errors collects console errors and uncaught exceptions
 	 */
-	const open = async ({ width = 1280, height = 900, beforeLoad } = {}) => {
+	const open = async ({ width = 1280, height = 900, printer = "virtual", beforeLoad } = {}) => {
 		const context = await browser.createBrowserContext();
 		const page = /** @type {import("puppeteer-core").Page & {errors: string[]}} */ (
 			await context.newPage()
 		);
+		if (printer) {
+			// Only on a first load: a reload keeps what the test chose since.
+			await page.evaluateOnNewDocument(
+				(key, target) => {
+					if (!localStorage.getItem(key)) localStorage.setItem(key, JSON.stringify({ target }));
+				},
+				storageKey("settings"),
+				printer,
+			);
+		}
 		if (beforeLoad) await beforeLoad(page);
 		pages.push(page);
 		page.errors = [];

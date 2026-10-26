@@ -22,7 +22,9 @@ import { storageKey } from "../app-info.js";
 const SETTINGS_KEY = storageKey("settings");
 
 export const settings = {
-	target: "virtual",
+	// A real printer is what most visitors came for; the virtual one is the fallback where the
+	// browser can't reach one, and stays a choice for trying the app out.
+	target: bluetoothAvailable() ? "bluetooth" : "virtual",
 	flip180: false,
 	// Which model to print for; picked up from the Bluetooth name when one connects.
 	printer: DEFAULT_PRINTER.id,

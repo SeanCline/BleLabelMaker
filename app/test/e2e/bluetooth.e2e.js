@@ -15,6 +15,21 @@ const openWithFakeD30 = async () => {
 const fake = (page, expr) =>
 	page.evaluate(`(() => { const f = window.fakeD30; return ${expr}; })()`);
 
+test("a first visit starts on the Bluetooth printer, or the virtual one without Web Bluetooth", async () => {
+	const page = await env.open({ printer: null });
+	assert.equal(await page.$eval("#target", (s) => s.value), "bluetooth");
+	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent), "Connect & print");
+	assert.equal(await page.$eval("#noBluetooth", (b) => b.hidden), true);
+
+	const without = await env.open({
+		printer: null,
+		beforeLoad: (p) => p.evaluateOnNewDocument(() => delete Navigator.prototype.bluetooth),
+	});
+	assert.equal(await without.$eval("#target", (s) => s.value), "virtual");
+	assert.equal(await without.$eval("#noBluetooth", (b) => b.hidden), false);
+	assert.deepEqual([...page.errors, ...without.errors], []);
+});
+
 test("connect: picker filters for the D30, status arrives over notifications", async () => {
 	const page = await openWithFakeD30();
 	const sizes = () => page.$$eval("#labelPreset option", (o) => o.map((x) => x.textContent));
