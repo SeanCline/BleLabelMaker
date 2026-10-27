@@ -60,7 +60,7 @@ test("a Code 128 barcode made in the UI scans from the printed bytes", async () 
 	const page = await env.open();
 	await clearLabel(page);
 	await page.click("#addBarcode");
-	await typeInto(page, '#barcodeProps [data-prop="data"]', "SHELF-3");
+	await typeInto(page, '#quickbar [data-qb="barcode"] [data-prop="data"]', "SHELF-3");
 	const printed = await printAndCapture(page);
 	assert.equal(scan(printed, [BarcodeFormat.CODE_128]), "SHELF-3");
 	assert.equal(
@@ -70,7 +70,7 @@ test("a Code 128 barcode made in the UI scans from the printed bytes", async () 
 	);
 
 	// Longer data in the same box drops to 1-dot bars: still drawn, but flagged.
-	await typeInto(page, '#barcodeProps [data-prop="data"]', "PANTRY-SHELF-0042");
+	await typeInto(page, '#quickbar [data-qb="barcode"] [data-prop="data"]', "PANTRY-SHELF-0042");
 	await page.evaluate(() => window.labelApp.drawCanvas());
 	assert.match(await page.$eval("#elementWarning", (e) => e.textContent), /one printer dot/);
 	assert.deepEqual(page.errors, []);
@@ -80,11 +80,11 @@ test("EAN-13 gets its check digit and scans; bad input shows a warning, not a fa
 	const page = await env.open();
 	await clearLabel(page);
 	await page.click("#addBarcode");
-	await page.select('#barcodeProps [data-prop="symbology"]', "EAN13");
-	await typeInto(page, '#barcodeProps [data-prop="data"]', "400638133393");
+	await page.select('#quickbar [data-prop="symbology"]', "EAN13");
+	await typeInto(page, '#quickbar [data-qb="barcode"] [data-prop="data"]', "400638133393");
 	assert.equal(scan(await printAndCapture(page), [BarcodeFormat.EAN_13]), "4006381333931");
 
-	await typeInto(page, '#barcodeProps [data-prop="data"]', "40063813");
+	await typeInto(page, '#quickbar [data-qb="barcode"] [data-prop="data"]', "40063813");
 	await page.evaluate(() => window.labelApp.drawCanvas());
 	assert.match(await page.$eval("#elementWarning", (e) => e.textContent), /12 digits/);
 	assert.ok(await page.$(".box.warn"), "the box is flagged on the label");

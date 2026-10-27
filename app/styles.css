@@ -969,6 +969,18 @@ progress {
 	text-transform: uppercase;
 	letter-spacing: 0.04em;
 }
+h3.section {
+	margin: 0;
+	font-weight: 600;
+}
+/* Each group in the settings starts with a rule, after the first. */
+.settings .props:not([hidden]) ~ .props h3.section:first-child {
+	padding-top: 12px;
+	border-top: 1px solid var(--border);
+}
+.settings .geom h3.section ~ h3.section {
+	margin-top: 4px;
+}
 .section-label {
 	font-size: 12.5px;
 	color: var(--muted);

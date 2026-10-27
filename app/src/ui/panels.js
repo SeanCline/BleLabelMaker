@@ -33,26 +33,38 @@ import {
 	redo,
 } from "./store.js";
 import { fittedSizes, onDrawn, renderWarnings, startInlineEdit } from "./stage.js";
-import { STYLE_PROPS, clearStyle, mapStyles, retext, textOf } from "../richtext.js";
+import { STYLE_PROPS, clearStyle, mapStyles, retext, stylesBetween, textOf } from "../richtext.js";
 
 // ---------------------------------------------------------------------------
 // Property binding: inputs carry data-prop / data-type, panels carry data-panel.
 
-const weightOptions = (sel, family, current) => {
-	const weights = weightsFor(family);
-	const key = weights.join(",");
+/** The weights the face has, and "Mixed" while words in the text differ from the box's. */
+const weightOptions = (sel, element) => {
+	const weights = weightsFor(element.fontFamily);
+	const used = new Set(
+		stylesBetween(element.text, 0, textOf(element.text).length, element).map((s) => s.fontWeight),
+	);
+	const mixed = used.size > 1;
+	const key = weights.join(",") + (mixed ? ",mixed" : "");
 	if (sel.dataset.key !== key) {
-		sel.replaceChildren(...weights.map((w) => new Option(`${WEIGHT_NAMES[w]} (${w})`, String(w))));
+		sel.replaceChildren(
+			...(mixed ? [Object.assign(new Option("Mixed", ""), { disabled: true })] : []),
+			...weights.map((w) => new Option(`${WEIGHT_NAMES[w]} (${w})`, String(w))),
+		);
 		sel.dataset.key = key;
 	}
-	sel.value = String(current);
+	// Picking a weight while it's mixed sets it for every word (see onPropInput).
+	sel.value = mixed ? "" : String(element.fontWeight);
 };
 
 export const syncProps = (root, element) => {
 	for (const input of $$("[data-prop]", root)) {
 		const prop = input.dataset.prop;
-		if (prop === "fontWeight") weightOptions(input, element.fontFamily, element[prop]);
 		if (document.activeElement === input) continue; // don't fight the user's cursor
+		if (prop === "fontWeight") {
+			weightOptions(input, element);
+			continue;
+		}
 		if (prop === "fontFamily" && ![...input.options].some((o) => o.value === element.fontFamily)) {
 			// Unknown family from a loaded file: show it rather than silently switching fonts.
 			input.append(new Option(`${element.fontFamily} (from file)`, element.fontFamily));
@@ -407,8 +419,6 @@ const moveLayer = (delta) => {
 	history.seal();
 };
 
-$("#btnDelete").addEventListener("click", deleteSelected);
-$("#btnDuplicate").addEventListener("click", duplicateSelected);
 $("#btnForward").addEventListener("click", () => moveLayer(1));
 $("#btnBackward").addEventListener("click", () => moveLayer(-1));
 $("#btnUndo").addEventListener("click", undo);

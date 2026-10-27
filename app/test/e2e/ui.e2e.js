@@ -47,7 +47,7 @@ const previewMatchesPrint = (page) =>
 test("a new label: webfont, fit, and virtual print matches the preview", async () => {
 	const page = await env.open();
 	await typeInto(page, '#textProps [data-prop="text"]', "Spices\nCumin");
-	await page.select('#textProps [data-prop="fontFamily"]', "Oswald");
+	await page.select('#quickbar [data-prop="fontFamily"]', "Oswald");
 	await page.select('#textProps [data-prop="fontWeight"]', "700");
 	await redraw(page);
 	assert.ok(await page.evaluate(() => document.fonts.check('700 20px "Oswald"')), "Oswald loaded");
@@ -425,7 +425,7 @@ test("cached element drawings match a from-scratch render after moves and edits"
 	const page = await env.open();
 	await page.click("#addBarcode");
 	await dragBy(page, ".box.selected", 30, 0);
-	await typeInto(page, '#barcodeProps [data-prop="data"]', "XYZ-9");
+	await typeInto(page, '#quickbar [data-qb="barcode"] [data-prop="data"]', "XYZ-9");
 	await page.click("#addQr");
 	await dragBy(page, ".box.selected", -40, 0);
 	await page.keyboard.press("r");
@@ -497,14 +497,14 @@ test("letter spacing, underline, outline, stacked and image fit each change the 
 	await typeInto(page, "#designText", "Ab");
 	await openSettings(page);
 	await page.click('#textProps [data-prop="fit"]'); // fixed size, so spacing shows as width
-	await typeInto(page, '#textProps [data-prop="fontSizePt"]', "24");
+	await typeInto(page, '#quickbar [data-prop="fontSizePt"]', "24");
 	const plain = await pixels();
 	await typeInto(page, '#textProps [data-prop="letterSpacingPt"]', "6");
 	assert.ok((await pixels()).width > plain.width + 10, "letter spacing widens the text");
 	await typeInto(page, '#textProps [data-prop="letterSpacingPt"]', "0");
-	await page.click('#textProps [data-prop="underline"]');
+	await page.click('#quickbar [data-style="underline"]');
 	assert.ok((await pixels()).black > plain.black, "underline adds ink");
-	await page.click('#textProps [data-prop="underline"]');
+	await page.click('#quickbar [data-style="underline"]');
 	await page.click('#textProps [data-prop="outline"]');
 	const outlined = await pixels();
 	assert.notEqual(outlined.hash, plain.hash, "outline draws differently");
@@ -589,7 +589,7 @@ test("the page refuses scripts that aren't its own", async () => {
 
 test("fit to label shows the fitted size in the size box; typing a size stops fitting", async () => {
 	const page = await env.open();
-	const size = '#textProps [data-prop="fontSizePt"]';
+	const size = '#quickbar [data-prop="fontSizePt"]';
 	await typeInto(page, "#designText", "Hi");
 	await typeInto(page, '#textProps [data-prop="fit"]', true);
 	await redraw(page);

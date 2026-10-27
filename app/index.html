@@ -433,7 +433,11 @@
 							aria-label="Text or link"
 							class="qb-data"
 						/>
-						<select data-prop="level" aria-label="Error correction" title="Error correction">
+						<select
+							data-prop="level"
+							aria-label="Error correction"
+							title="Error correction: Low makes the smallest code, High survives scratches"
+						>
 							<option value="L">Low</option>
 							<option value="M">Medium</option>
 							<option value="Q">Quartile</option>
@@ -634,6 +638,7 @@
 			>
 				<div id="designPanel">
 					<div id="textProps" class="props" data-panel="text" data-types="text" hidden>
+						<h3 class="section">Text box</h3>
 						<div class="field">
 							<span class="field-head"
 								><label for="designText">Text</label
@@ -668,53 +673,24 @@
 							>
 						</div>
 						<label class="field">
-							Font
-							<select data-prop="fontFamily" class="font-select"></select>
-						</label>
-						<div class="field">
-							<span>Size</span>
-							<div class="row">
-								<input
-									type="number"
-									data-prop="fontSizePt"
-									data-type="number"
-									min="4"
-									max="200"
-									step="0.5"
-									aria-label="Font size in points"
-								/>
-								<span class="unit">pt</span>
-								<label class="check"
-									><input type="checkbox" data-prop="fit" data-type="bool" /> Fit to box</label
-								>
-							</div>
-						</div>
-						<label class="field">
 							Weight
 							<select data-prop="fontWeight" data-type="number" class="weight-select"></select>
 						</label>
+						<label class="check" title="The largest size that fits the box"
+							><input type="checkbox" data-prop="fit" data-type="bool" /> Fit to box</label
+						>
 						<div class="field">
-							<span>Alignment</span>
+							<span>Up and down</span>
 							<div class="row">
-								<div
-									class="segmented small"
-									data-radio="align"
-									role="group"
-									aria-label="Horizontal alignment"
-								>
-									<button data-value="left" title="Align left" aria-label="Align left">⯇</button>
-									<button data-value="center" title="Center" aria-label="Center">≡</button>
-									<button data-value="right" title="Align right" aria-label="Align right">⯈</button>
-								</div>
 								<div
 									class="segmented small"
 									data-radio="vAlign"
 									role="group"
 									aria-label="Vertical alignment"
 								>
-									<button data-value="top" title="Top" aria-label="Top">⯅</button>
-									<button data-value="middle" title="Middle" aria-label="Middle">⬌</button>
-									<button data-value="bottom" title="Bottom" aria-label="Bottom">⯆</button>
+									<button data-value="top">Top</button>
+									<button data-value="middle">Middle</button>
+									<button data-value="bottom">Bottom</button>
 								</div>
 							</div>
 						</div>
@@ -745,13 +721,6 @@
 						</label>
 						<div class="row style-checks">
 							<label class="check"
-								><input type="checkbox" data-prop="italic" data-type="bool" /> <i>Italic</i></label
-							>
-							<label class="check"
-								><input type="checkbox" data-prop="underline" data-type="bool" />
-								<u>Underline</u></label
-							>
-							<label class="check"
 								><input type="checkbox" data-prop="outline" data-type="bool" /> Outline</label
 							>
 							<label class="check" title="One letter per line, read top to bottom"
@@ -765,26 +734,8 @@
 					</div>
 
 					<div id="shapeProps" class="props" data-panel="shape" data-types="shape" hidden>
-						<div class="field">
-							<span>Shape</span>
-							<div class="segmented small" data-radio="shape" role="group" aria-label="Shape">
-								<button data-value="rect">Box</button>
-								<button data-value="ellipse">Circle</button>
-								<button data-value="line">Line</button>
-							</div>
-						</div>
+						<h3 class="section">Shape</h3>
 						<div class="row">
-							<label class="field">
-								Line thickness (mm)
-								<input
-									type="number"
-									data-prop="strokeMm"
-									data-type="number"
-									min="0.125"
-									max="5"
-									step="0.125"
-								/>
-							</label>
 							<label class="field" data-show-for="rect">
 								Corner radius (mm)
 								<input
@@ -797,24 +748,11 @@
 								/>
 							</label>
 						</div>
-						<label class="check" data-show-for="rect ellipse"
-							><input type="checkbox" data-prop="fill" data-type="bool" /> Filled</label
-						>
+						<p class="hint" data-show-for="ellipse line">Its look is all on the bar.</p>
 					</div>
 
 					<div id="barcodeProps" class="props" data-panel="barcode" data-types="barcode" hidden>
-						<label class="field">
-							Data
-							<input type="text" data-prop="data" spellcheck="false" />
-						</label>
-						<label class="field">
-							Type
-							<select data-prop="symbology">
-								<option value="CODE128">Code 128 (letters &amp; numbers)</option>
-								<option value="EAN13">EAN-13 (retail, 12–13 digits)</option>
-								<option value="UPCA">UPC-A (retail, 11–12 digits)</option>
-							</select>
-						</label>
+						<h3 class="section">Barcode</h3>
 						<label class="check"
 							><input type="checkbox" data-prop="showText" data-type="bool" /> Show text under the
 							bars</label
@@ -830,36 +768,19 @@
 					</div>
 
 					<div id="qrProps" class="props" data-panel="qr" data-types="qr" hidden>
+						<h3 class="section">QR code</h3>
 						<label class="field">
 							Text or link
-							<textarea data-prop="data" rows="2" spellcheck="false"></textarea>
+							<textarea data-prop="data" rows="4" spellcheck="false"></textarea>
 						</label>
-						<label class="field">
-							Error correction
-							<select data-prop="level">
-								<option value="L">Low: smallest code</option>
-								<option value="M">Medium (recommended)</option>
-								<option value="Q">Quartile</option>
-								<option value="H">High: survives scratches</option>
-							</select>
-						</label>
+						<p class="hint">
+							Error correction (on the bar): Low makes the smallest code, High still scans when
+							scratched. Medium suits most labels.
+						</p>
 					</div>
 
 					<div id="imageProps" class="props" data-panel="image" data-types="image" hidden>
-						<div class="field">
-							<span>Style</span>
-							<div class="segmented small" data-radio="mode" role="group" aria-label="Image style">
-								<button data-value="dither" title="Dots of varying density; best for photos">
-									Photo (dithered)
-								</button>
-								<button
-									data-value="threshold"
-									title="Solid black or white; best for logos and line art"
-								>
-									Logo (solid)
-								</button>
-							</div>
-						</div>
+						<h3 class="section">Picture</h3>
 						<div class="field">
 							<span>Fit</span>
 							<div
@@ -900,10 +821,6 @@
 								</div>
 							</div>
 						</div>
-						<label class="field">
-							Darkness
-							<input type="range" data-prop="level" data-type="number" min="0" max="255" step="1" />
-						</label>
 						<div class="row">
 							<label class="check"
 								><input type="checkbox" data-prop="invert" data-type="bool" /> Invert</label
@@ -916,6 +833,7 @@
 					<p id="elementWarning" class="warning" role="status" hidden></p>
 
 					<div id="geomProps" class="props geom" data-panel="geom" data-types="*" hidden>
+						<h3 class="section">Position &amp; size</h3>
 						<div class="field">
 							<span>Rotation</span>
 							<div
@@ -931,7 +849,7 @@
 								<button data-value="270" title="Reads bottom to top">270°</button>
 							</div>
 						</div>
-						<span class="section-label">Position &amp; size (mm)</span>
+						<span class="section-label">In millimetres</span>
 						<div class="grid4">
 							<label>X <input type="number" data-prop="x" data-type="number" step="0.25" /></label>
 							<label>Y <input type="number" data-prop="y" data-type="number" step="0.25" /></label>
@@ -942,12 +860,12 @@
 								>H <input type="number" data-prop="h" data-type="number" step="0.25" min="1"
 							/></label>
 						</div>
+						<h3 class="section">Layer</h3>
 						<div class="toolbar">
-							<button id="btnForward" title="Bring forward">Bring forward</button>
-							<button id="btnBackward" title="Send backward">Send back</button>
-							<button id="btnDuplicate" title="Duplicate (Ctrl+D)">Duplicate</button>
-							<span class="spacer"></span>
-							<button id="btnDelete" class="danger" title="Delete (Del)">Delete</button>
+							<button id="btnForward" title="In front of the element above it">
+								Bring forward
+							</button>
+							<button id="btnBackward" title="Behind the element below it">Send back</button>
 						</div>
 					</div>
 				</div>

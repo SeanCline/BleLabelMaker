@@ -34,7 +34,7 @@ test("works offline after one visit: app, fonts and virtual printing", async () 
 	assert.deepEqual(page.errors, ["Failed to load resource: net::ERR_FAILED"]);
 	page.errors.length = 0;
 
-	await page.select('#textProps [data-prop="fontFamily"]', "Pacifico");
+	await page.select('#quickbar [data-prop="fontFamily"]', "Pacifico");
 	await typeInto(page, '#textProps [data-prop="text"]', "Offline");
 	await redraw(page);
 	// Pacifico isn't used by the default label, so it can only come from the precache.

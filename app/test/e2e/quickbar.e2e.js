@@ -37,6 +37,11 @@ test("the bar sits over the label, and its B sets the whole text, or just what's
 	await (await bar(page, '[data-style="fontWeight"]')).click();
 	assert.deepEqual((await first(page)).text, ["Hello ", [BOLD, "world"]]);
 	assert.ok(await page.$(".inline-edit"), "still typing");
+	assert.equal(
+		await page.$eval('#textProps [data-prop="fontWeight"]', (s) => s.selectedOptions[0].text),
+		"Mixed",
+		"the settings' weight says the words differ",
+	);
 	await page.$eval(".inline-edit", (t) => t.setSelectionRange(0, 11));
 	await page.$eval(".inline-edit", (t) => t.dispatchEvent(new Event("select")));
 	assert.equal(await pressed(page, "fontWeight"), "mixed");
@@ -85,9 +90,10 @@ test("More… opens the rest of the settings under the bar; Esc or clicking away
 	const barBox = await (await page.$("#quickbar")).boundingBox();
 	assert.ok(sheet.y >= barBox.y + barBox.height, "under the bar");
 
-	// Settings changed there show on the bar too.
-	await typeInto(page, '#textProps [data-prop="fontSizePt"]', "9");
-	assert.equal(await page.$eval('#quickbar [data-prop="fontSizePt"]', (i) => i.value), "9");
+	// Settings changed there show on the bar too; the bar's own aren't repeated there.
+	assert.equal(await page.$('#settings [data-prop="fontSizePt"]'), null);
+	await typeInto(page, '#textProps [data-prop="fontWeight"]', "700");
+	assert.equal(await pressed(page, "fontWeight"), "true");
 
 	await page.keyboard.press("Escape");
 	assert.equal(await visible(page, "#settings"), false);
