@@ -28,6 +28,7 @@ import {
 export const SNAP_MM = 0.25;
 // Guides grab within this many screen pixels, whatever the zoom.
 const GUIDE_PX = 6;
+const DRAG_SLACK_PX = 4;
 
 const canvas = $("#labelCanvas");
 const paper = $("#paper");
@@ -204,6 +205,12 @@ overlay.addEventListener("pointerdown", (ev) => {
 		return;
 	}
 	const id = boxEl.dataset.id;
+	// A finger can't double-click comfortably: tapping text that's already selected types on it.
+	const tapToType =
+		ev.pointerType !== "mouse" &&
+		!additive &&
+		state.selectedId === id &&
+		elementById(id).type === "text";
 	if (additive) {
 		toggleSelected(id);
 		if (!isSelected(id)) return; // just took it out of the selection
@@ -224,6 +231,8 @@ overlay.addEventListener("pointerdown", (ev) => {
 		orig: Object.fromEntries(moving.map((e) => [e.id, { x: e.x, y: e.y, w: e.w, h: e.h }])),
 		bounds: boundsOf(moving),
 		group: `drag-${++dragSeq}`,
+		tapToType,
+		moved: false,
 		targets: snapTargets(
 			state.doc.label,
 			printableArea(state.doc.label),
@@ -276,6 +285,10 @@ const moveSelection = (dx, dy, free, grid, threshold) => {
 overlay.addEventListener("pointermove", (ev) => {
 	if (!drag) return;
 	if (drag.kind === "marquee") return updateMarquee(ev);
+	// A few pixels of slack, so a tap or click doesn't shift what it lands on.
+	if (!drag.moved && Math.hypot(ev.clientX - drag.startX, ev.clientY - drag.startY) < DRAG_SLACK_PX)
+		return;
+	drag.moved = true;
 	// Alt turns off all snapping, for fine placement.
 	const free = ev.altKey;
 	const grid = (v) => (free ? round(v, 3) : Math.round(v / SNAP_MM) * SNAP_MM);
@@ -328,12 +341,19 @@ overlay.addEventListener("pointermove", (ev) => {
 const endDrag = () => {
 	if (!drag) return;
 	const wasClick = drag.kind === "marquee" && !drag.moved;
+	const tapped = drag.tapToType && !drag.moved ? drag.id : null;
 	if (wasClick && !drag.additive) select(null);
 	drag = null;
 	marqueeEl.hidden = true;
 	activeGuides = [];
 	renderOverlay();
 	history.seal();
+	if (tapped) {
+		const end = textOf(
+			/** @type {import("../model.js").TextElement} */ (elementById(tapped)).text,
+		).length;
+		startInlineEdit(tapped, { start: end, end });
+	}
 };
 overlay.addEventListener("pointerup", endDrag);
 overlay.addEventListener("pointercancel", endDrag);

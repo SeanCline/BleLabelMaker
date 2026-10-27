@@ -1354,21 +1354,38 @@ button.link {
 	box-shadow: var(--shadow);
 }
 
-/* Narrow screens: the rail lies along the bottom of the label area, beside zoom, and the
-   header keeps the logo but not the name, so Print stays on the first line. */
+/* Phones. The bar docks to the bottom of the screen, above the on-screen keyboard
+   (--keyboard, from quickbar.js), so the top of the label area takes the label size and
+   zoom, and the rail lies along its bottom. Settings and the batch list open as sheets
+   above the bar, and the header's menus drop down the full width. The header keeps the
+   printer's dot but not its name, so Print stays on the first line. */
 @media (max-width: 600px) {
+	body {
+		padding-bottom: 72px;
+	}
 	.stage {
-		padding: 56px 12px 60px;
+		padding: 60px 12px 64px;
+	}
+	.quickbar {
+		left: 0;
+		right: 0;
+		bottom: var(--keyboard, 0px);
+		flex-wrap: nowrap;
+		overflow-x: auto;
+		border-radius: 0;
+		border-width: 1px 0 0;
+		padding: 6px 8px;
+	}
+	.quickbar .qb-group {
+		flex-wrap: nowrap;
+	}
+	.quickbar .qb-data {
+		width: 9em;
 	}
 	.rail {
 		top: auto;
 		bottom: 8px;
 		flex-direction: row;
-		padding: 2px;
-	}
-	.rail .icon-button,
-	.rail summary {
-		padding: 6px;
 	}
 	.rail hr {
 		width: auto;
@@ -1382,24 +1399,43 @@ button.link {
 		left: 0;
 	}
 	.canvas-tools {
-		bottom: 8px;
+		top: 8px;
+		bottom: auto;
 		right: 8px;
 		gap: 2px;
 	}
-	#btnRuler {
-		display: none;
-	}
 	.label-menu {
-		position: relative;
-		left: auto;
+		top: 8px;
 		bottom: auto;
-		margin-bottom: 8px;
 	}
 	.label-menu > .menu-panel {
 		top: calc(100% + 6px);
 		bottom: auto;
 	}
-	/* Just the dot; the menu it opens says the rest. */
+	.topbar .menu-panel,
+	.topbar .menu-list {
+		position: fixed;
+		top: 56px;
+		left: 12px;
+		right: 12px;
+		width: auto;
+		max-width: none;
+	}
+	.settings,
+	.sheet {
+		left: 0;
+		right: 0;
+		width: auto;
+		border-radius: var(--radius) var(--radius) 0 0;
+	}
+	.settings {
+		max-height: 60vh;
+	}
+	.sheet {
+		bottom: var(--keyboard, 0px);
+		max-height: 70vh;
+		overflow: auto;
+	}
 	.menu > .printer-chip {
 		padding: 10px;
 	}
@@ -1410,13 +1446,36 @@ button.link {
 		gap: 8px;
 	}
 	.batch-nav {
-		bottom: 56px;
+		bottom: 60px;
 	}
-	.coach {
-		bottom: 56px;
-	}
+	/* Under the label area rather than over a small label. */
+	.coach,
 	.batch-nav:not([hidden]) ~ .coach {
-		bottom: 100px;
+		top: calc(100% + 10px);
+		bottom: auto;
+	}
+	.canvas-area:has(> .coach:not([hidden])) {
+		margin-bottom: 52px;
+	}
+}
+
+/* Fingers: bigger buttons where they're small, and handles that can be caught. */
+@media (pointer: coarse) {
+	.rail .icon-button,
+	.rail summary,
+	.canvas-tools button,
+	.quickbar button {
+		min-width: 40px;
+		min-height: 40px;
+	}
+	.quickbar select,
+	.quickbar input {
+		min-height: 40px;
+	}
+	.handle {
+		width: 18px;
+		height: 18px;
+		margin: -9px 0 0 -9px;
 	}
 }
 @media (max-width: 500px) {

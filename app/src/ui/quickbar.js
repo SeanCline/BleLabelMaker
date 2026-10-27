@@ -90,8 +90,17 @@ const render = () => {
 	if (!settings.hidden) placeSettings();
 };
 
+// On a phone the bar docks to the bottom of the screen (styles.css), above the on-screen
+// keyboard; it's placed here only where it floats over the label.
+const phone = matchMedia("(max-width: 600px)");
+
 /** Above the label, centred on what it's for, kept inside the stage. */
 const place = (box) => {
+	if (phone.matches) {
+		Object.assign(bar.style, { left: "", top: "", maxWidth: "" });
+		stage.style.paddingTop = "";
+		return;
+	}
 	const o = overlay.getBoundingClientRect();
 	const s = stage.getBoundingClientRect();
 	const k = o.width / state.doc.label.widthMm;
@@ -188,6 +197,17 @@ function closeSettings() {
 /** Under the bar, as far down the window as there's room for. */
 const placeSettings = () => {
 	const b = bar.getBoundingClientRect();
+	if (phone.matches) {
+		// A sheet resting on the docked bar.
+		Object.assign(settings.style, {
+			top: "",
+			left: "",
+			bottom: `${innerHeight - b.top}px`,
+			maxHeight: "",
+		});
+		return;
+	}
+	settings.style.bottom = "";
 	const top = b.bottom + 6;
 	const left = Math.max(8, Math.min(b.left, innerWidth - settings.offsetWidth - 8));
 	Object.assign(settings.style, {
@@ -234,5 +254,15 @@ subscribe(render);
 onInlineChange(render);
 onDrawn(render);
 addEventListener("resize", render);
+phone.addEventListener("change", render);
+// How much of the window the on-screen keyboard covers, for what's docked above it.
+const keyboard = () => {
+	const v = visualViewport;
+	const covered = Math.max(0, Math.round(innerHeight - v.height - v.offsetTop));
+	document.documentElement.style.setProperty("--keyboard", `${covered}px`);
+	render();
+};
+visualViewport?.addEventListener("resize", keyboard);
+visualViewport?.addEventListener("scroll", keyboard);
 stage.addEventListener("scroll", render);
 render();

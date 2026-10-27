@@ -103,7 +103,8 @@ it never needs the internet.
   the label's left (or drop a picture on the page), then drag to move and use
   the handles to resize. The last button on the rail lists everything on the
   label, for picking what's hidden under something else.
-  Double-click text to type on the label. The bar over what's selected has
+  Double-click text to type on the label (on a phone, tap text that's
+  already selected). The bar over what's selected has
   its main settings (B, I and U work on a selection while typing); More… opens
   the rest. Text wraps inside its box. Text can
   have a larger first line (a title), letter spacing, an underline, an outline,

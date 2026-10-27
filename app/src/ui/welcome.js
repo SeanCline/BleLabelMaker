@@ -15,6 +15,9 @@ const dismiss = () => {
 };
 
 tip.hidden = loadJson(KEY) === true;
+// A finger taps once on the selected text, where a mouse double-clicks (stage.js).
+if (matchMedia("(pointer: coarse)").matches)
+	$("#welcomeText").textContent = "Tap the label to type on it";
 $("#welcomeClose").addEventListener("click", dismiss);
 onPrinted(dismiss);
 onInlineChange(() => inlineEdit() && dismiss());
