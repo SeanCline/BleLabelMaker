@@ -116,3 +116,45 @@ test("keyboard only: pick elements in the list, rotate, nudge on the canvas, del
 	);
 	assert.deepEqual(page.errors, []);
 });
+
+test("the bar and the rail are toolbars: one Tab stop for their buttons, arrows between controls", async () => {
+	const page = await env.open();
+	const focused = () =>
+		page.evaluate(() => {
+			const a = document.activeElement;
+			return a.getAttribute("aria-label") ?? a.dataset.prop ?? a.textContent.trim();
+		});
+	const stops = (sel) =>
+		page.$$eval(
+			`${sel} button, ${sel} summary`,
+			(b) => b.filter((x) => x.tabIndex === 0 && x.checkVisibility()).length,
+		);
+	assert.equal(await stops("#quickbar"), 1);
+	assert.equal(await stops(".rail"), 1);
+
+	await page.focus('#quickbar [data-style="fontWeight"]');
+	await page.keyboard.press("ArrowRight");
+	assert.equal(await focused(), "Italic");
+	await page.keyboard.press("ArrowRight");
+	await page.keyboard.press("ArrowRight");
+	assert.equal(await focused(), "Font", "on into the font menu");
+	// In a field, the arrows are the field's.
+	await page.keyboard.press("ArrowRight");
+	assert.equal(await focused(), "Font");
+	await page.focus('#quickbar [data-style="underline"]');
+	assert.equal(await stops("#quickbar"), 1, "still one stop, now on the last button used");
+	assert.equal(await page.$eval('#quickbar [data-style="underline"]', (b) => b.tabIndex), 0);
+
+	const before = (await page.evaluate(() => window.labelApp.state.doc.elements[0])).x;
+	await page.focus("#addText");
+	await page.keyboard.press("ArrowDown");
+	assert.equal(await focused(), "Add a shape");
+	await page.keyboard.press("End");
+	assert.equal(await focused(), "Elements");
+	assert.equal(
+		(await page.evaluate(() => window.labelApp.state.doc.elements[0])).x,
+		before,
+		"the arrows moved the focus, not the selected text",
+	);
+	assert.deepEqual(page.errors, []);
+});

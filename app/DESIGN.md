@@ -49,6 +49,7 @@ src/
     errors.js    a toast for errors nothing else caught
     panels.js    settings sections, Elements list, add/delete/arrange
     quickbar.js  the bar over the label (the selection's essentials) and the settings sheet
+    toolbar.js   arrow keys between a toolbar's controls, one Tab stop for its buttons
     labelbar.js  label size: the printer's presets, continuous, custom, remembered per printer
     text-insert.js  emoji picker and Field menu, inserting at the cursor
     printing.js  printer choice and settings, status line, print
@@ -398,7 +399,10 @@ printer can buffer, to adjust on hardware.
 
 ## Accessibility
 
-- The bar over the label is a `role="toolbar"`; its More… opens the settings
+- The bar over the label and the rail beside it are toolbars (`toolbar.js`): their
+  buttons are one Tab stop, and the arrow keys, Home and End move between
+  controls. Fields in them keep their own Tab stop and arrow keys, so nothing is
+  out of reach from the keyboard. The bar's More… opens the settings
   as a non-modal dialog under it, which takes the focus and closes on Esc
   (before Esc deselects). While typing on the label, the bar's buttons don't
   take the focus, and its menus hand it back.

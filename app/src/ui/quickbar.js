@@ -15,6 +15,7 @@ import {
 	subscribe,
 } from "./store.js";
 import { deleteSelected, duplicateSelected, syncProps } from "./panels.js";
+import { rovingToolbar } from "./toolbar.js";
 import {
 	inlineEdit,
 	onDrawn,
@@ -34,6 +35,8 @@ const layersMenu = /** @type {HTMLDetailsElement} */ ($("#layersMenu"));
 /** Menus that drop down from a button: File, the printer, Print's options, the label size. */
 const menus = /** @type {HTMLDetailsElement[]} */ ([...$$("details.menu"), layersMenu]);
 const BOLD = 600;
+const barKeys = rovingToolbar(bar);
+rovingToolbar($(".rail"), { vertical: true });
 
 /**
  * What the bar is for: the text being typed, simple mode's one text, or what's selected.
@@ -82,6 +85,7 @@ const render = () => {
 		$('[data-style="italic"]', bar).disabled = !(fontInfo(e.fontFamily)?.italic ?? true);
 		$('[data-style="fontWeight"]', bar).disabled = Math.max(...weightsFor(e.fontFamily)) < BOLD;
 	}
+	barKeys();
 	place(boundsOf(els));
 	if (!settings.hidden) placeSettings();
 };
