@@ -145,3 +145,25 @@ test("each kind of element gets its own bar, and new ones start where their cont
 	assert.equal((await appState(page)).selectedIds.length, 1);
 	assert.deepEqual(page.errors, []);
 });
+
+test("with nothing selected, the bar's place says what to do", async () => {
+	const page = await env.open();
+	await page.focus("#overlay");
+	await page.keyboard.press("Escape");
+	assert.deepEqual((await appState(page)).selectedIds, []);
+	assert.equal(
+		await page.$eval("#barHint", (h) => h.textContent),
+		"Click something on the label to change it",
+	);
+	assert.equal(await visible(page, '#quickbar [data-qb="text"]'), false);
+	await page.keyboard.press("Delete"); // nothing selected: nothing goes
+	await page.keyboard.down("Control");
+	await page.keyboard.press("a");
+	await page.keyboard.up("Control");
+	await page.keyboard.press("Delete");
+	assert.equal(
+		await page.$eval("#barHint", (h) => h.textContent),
+		"Add text, a shape or a code from the rail",
+	);
+	assert.deepEqual(page.errors, []);
+});

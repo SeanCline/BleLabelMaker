@@ -64,10 +64,20 @@ const pressed = (e, prop) => {
 
 const render = () => {
 	const els = targets();
-	bar.hidden = !els.length;
 	const e = els.length === 1 ? els[0] : null;
 	if (!e) closeSettings();
-	if (!els.length) return;
+	// With nothing selected the bar's room says what to do, rather than sitting empty.
+	bar.hidden = false;
+	bar.classList.toggle("empty", !els.length);
+	if (!els.length) {
+		for (const group of $$("[data-qb]", bar)) group.hidden = group.dataset.qb !== "empty";
+		$("#barHint").textContent = state.doc.elements.length
+			? `${touch.matches ? "Tap" : "Click"} something on the label to change it`
+			: "Add text, a shape or a code from the rail";
+		barKeys();
+		place({ x: 0, y: 0, w: state.doc.label.widthMm, h: 0 });
+		return;
+	}
 	const editing = !!inlineEdit();
 	for (const group of $$("[data-qb]", bar)) {
 		const kind = group.dataset.qb;
@@ -93,6 +103,7 @@ const render = () => {
 // On a phone the bar docks to the bottom of the screen (styles.css), above the on-screen
 // keyboard; it's placed here only where it floats over the label.
 const phone = matchMedia("(max-width: 600px)");
+const touch = matchMedia("(pointer: coarse)");
 
 /** Above the label, centred on what it's for, kept inside the stage. */
 const place = (box) => {

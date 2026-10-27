@@ -299,8 +299,7 @@ const renderPrintBar = () => {
 
 /**
  * The print button says what a click will do: how many labels a batch makes, and for a real
- * printer, whether it connects first or which one it prints on. That saves a look at the
- * status line before each print.
+ * printer, whether it connects first. Which printer it is, the chip beside it says.
  */
 const renderPrintButton = () => {
 	const batch = batchData();
@@ -311,7 +310,7 @@ const renderPrintButton = () => {
 	if (!real) button.textContent = ["Print", what].filter(Boolean).join(" ");
 	else if (!real.connected)
 		button.textContent = ["Connect & print", what].filter(Boolean).join(" ");
-	else button.textContent = ["Print", what, `on ${real.name}`].filter(Boolean).join(" ");
+	else button.textContent = ["Print", what].filter(Boolean).join(" ");
 };
 
 // The preview shows the batch row being looked at and the next counter value.

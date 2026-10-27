@@ -49,7 +49,8 @@ test("connect: picker filters for the D30, status arrives over notifications", a
 			document.querySelector("#printerStatus").textContent,
 		),
 	);
-	assert.equal(await printButton(), "Print on D30-FAKE");
+	assert.equal(await printButton(), "Print");
+	assert.equal(await page.$eval("#printerChipLabel", (l) => l.textContent), "D30-FAKE · 64%");
 	// …but the printer that connects names itself D30, which only takes 12 mm labels.
 	assert.equal(await page.$eval("#setPrinter", (s) => s.value), "d30");
 	assert.ok(

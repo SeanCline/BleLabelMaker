@@ -1302,6 +1302,14 @@ button.link {
 	border-radius: var(--radius);
 	box-shadow: var(--shadow);
 }
+/* Nothing selected: a line of help in the bar's place, without the bar. */
+.quickbar.empty {
+	background: none;
+	border-color: transparent;
+	box-shadow: none;
+	color: var(--muted);
+	font-size: 13px;
+}
 .quickbar .qb-group {
 	display: flex;
 	flex-wrap: wrap;
@@ -1381,6 +1389,10 @@ button.link {
 	}
 	.quickbar .qb-data {
 		width: 9em;
+	}
+	.quickbar.empty {
+		background: var(--surface);
+		border-color: var(--border);
 	}
 	.rail {
 		top: auto;
