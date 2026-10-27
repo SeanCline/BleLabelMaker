@@ -16,7 +16,11 @@ const fake = (page, expr) =>
 	page.evaluate(`(() => { const f = window.fakeD30; return ${expr}; })()`);
 
 test("a first visit starts on the Bluetooth printer, or the virtual one without Web Bluetooth", async () => {
-	const page = await env.open({ printer: null });
+	// The fake, because Chrome on Linux (CI) has no Web Bluetooth of its own.
+	const page = await env.open({
+		printer: null,
+		beforeLoad: (p) => p.evaluateOnNewDocument(installFakeBluetooth),
+	});
 	assert.equal(await page.$eval("#target", (s) => s.value), "bluetooth");
 	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Connect & print");
 	assert.equal(await page.$eval("#noBluetooth", (b) => b.hidden), true);
