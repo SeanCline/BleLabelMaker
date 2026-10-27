@@ -1,6 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { setup, typeInto, appState, clickInMenu, openBatchList } from "./harness.js";
+import { installFakeBluetooth } from "./fake-bluetooth.js";
 
 let env;
 before(async () => (env = await setup()));
@@ -224,7 +225,8 @@ test("auto length: a continuous label grows with its text, per batch row when pr
 });
 
 test("the header's printer chip names the printer and shows its problems", async () => {
-	const page = await env.open();
+	// The fake, because Chrome on Linux (CI) has no Web Bluetooth, and the chip would say so.
+	const page = await env.open({ beforeLoad: (p) => p.evaluateOnNewDocument(installFakeBluetooth) });
 	const chip = () =>
 		page.$eval("#printerChip", (c) => ({
 			text: c.textContent.trim(),
