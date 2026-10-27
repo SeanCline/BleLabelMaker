@@ -1,13 +1,6 @@
 // Starting points for a new label. Each lays itself out on the label that's loaded rather
 // than carrying a size, so it fits every printer and roll, from 25 mm pre-cut to continuous.
-import {
-	createBarcode,
-	createDocument,
-	createQr,
-	createText,
-	isSimpleCompatible,
-	printableArea,
-} from "./model.js";
+import { createBarcode, createDocument, createQr, createText, printableArea } from "./model.js";
 import { round } from "./units.js";
 
 /**
@@ -119,15 +112,13 @@ export const TEMPLATES = [
 ];
 
 /**
- * A new document from a template, on `label`, and the editor mode that can show it. A blank
- * label suits either mode, so it leaves the mode as it is (null).
+ * A new document from a template, on `label`.
  * @param {Template} template
  * @param {import("./model.js").Label} label
- * @returns {{doc: import("./model.js").Doc, mode: "simple" | "design" | null}}
+ * @returns {import("./model.js").Doc}
  */
 export const fromTemplate = (template, label) => {
-	if (!template.elements) return { doc: createDocument(label), mode: null };
+	if (!template.elements) return createDocument(label);
 	const empty = { label: { ...label }, elements: [] };
-	const doc = { label: empty.label, elements: template.elements(empty, printableArea(label)) };
-	return { doc, mode: isSimpleCompatible(doc) ? "simple" : "design" };
+	return { label: empty.label, elements: template.elements(empty, printableArea(label)) };
 };

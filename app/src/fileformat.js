@@ -35,8 +35,12 @@ export const FILE_EXTENSION = ".label";
 
 export class LabelFileError extends Error {}
 
-/** @returns {string} pretty JSON, so files diff and hand-edit nicely */
-export const serialize = (doc, editor) =>
+/**
+ * @param {import("./model.js").Doc} doc
+ * @param {{selectedIds?: string[]}} [editor]
+ * @returns {string} pretty JSON, so files diff and hand-edit nicely
+ */
+export const serialize = (doc, editor = {}) =>
 	JSON.stringify(
 		{
 			format: FORMAT_ID,
@@ -45,7 +49,9 @@ export const serialize = (doc, editor) =>
 			version: versionFor(doc.elements),
 			label: doc.label,
 			elements: doc.elements,
-			editor: { mode: editor.mode, selectedIds: editor.selectedIds ?? [] },
+			// Copies of the app from when it had a simple and a design mode read `mode`; design
+			// shows any label.
+			editor: { mode: "design", selectedIds: editor.selectedIds ?? [] },
 		},
 		null,
 		"\t",
@@ -55,7 +61,7 @@ export const TOO_LARGE = `This is bigger than any label can be (over ${LIMITS.fi
 
 /**
  * Validates and normalizes a .label file.
- * @returns {{doc: import("./model.js").Doc, editor: {mode: "simple"|"design", selectedIds: string[]}}}
+ * @returns {{doc: import("./model.js").Doc, editor: {selectedIds: string[]}}}
  */
 export const parse = (text) => {
 	if (text.length > LIMITS.fileChars) throw new LabelFileError(TOO_LARGE);
@@ -82,11 +88,10 @@ export const parse = (text) => {
 	const ids = new Set(elements.map((e) => e.id));
 
 	const ed = isObject(raw.editor) ? raw.editor : {};
-	const mode = ed.mode === "simple" || ed.mode === "design" ? ed.mode : "design";
 	const selectedIds = Array.isArray(ed.selectedIds)
 		? [...new Set(ed.selectedIds.filter((id) => typeof id === "string" && ids.has(id)))]
 		: [];
-	return { doc: { label, elements }, editor: { mode, selectedIds } };
+	return { doc: { label, elements }, editor: { selectedIds } };
 };
 
 /** @returns {import("./model.js").Element[]} */

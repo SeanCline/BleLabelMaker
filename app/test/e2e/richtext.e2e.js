@@ -5,6 +5,7 @@ import {
 	appState,
 	labelPixels,
 	printedMatchesPreview,
+	openSettings,
 	redraw,
 	typeInto,
 } from "./harness.js";
@@ -105,7 +106,7 @@ test("with nothing selected, Ctrl+I and Ctrl+U style what's typed next", async (
 	assert.deepEqual(page.errors, []);
 });
 
-test("formatting survives a reload, and editing in the panel keeps it on its letters", async () => {
+test("formatting survives a reload, and editing in the settings keeps it on its letters", async () => {
 	const page = await editing();
 	await selectText(page, 0, 5);
 	await ctrl(page, "b");
@@ -118,15 +119,16 @@ test("formatting survives a reload, and editing in the panel keeps it on its let
 	assert.deepEqual(await text(page), [[BOLD, "Hello"], " world"]);
 	assert.equal((await labelPixels(page)).hash, before.hash, "it looks the same");
 
-	// The panel's text box is plain text, but typing there keeps the formatting in place.
-	assert.equal(await page.$eval("#simpleText", (t) => t.value), "Hello world");
-	await page.focus("#simpleText");
-	await page.$eval("#simpleText", (t) => t.setSelectionRange(11, 11));
+	// The settings' text box is plain text, but typing there keeps the formatting in place.
+	await openSettings(page);
+	assert.equal(await page.$eval("#designText", (t) => t.value), "Hello world");
+	await page.focus("#designText");
+	await page.$eval("#designText", (t) => t.setSelectionRange(11, 11));
 	await page.keyboard.type(", hi");
 	assert.deepEqual(await text(page), [[BOLD, "Hello"], " world, hi"]);
 
 	// Setting the weight for the whole box sets it for every word.
-	await typeInto(page, '#simplePanel [data-prop="fontWeight"]', "700");
+	await typeInto(page, '#textProps [data-prop="fontWeight"]', "700");
 	assert.equal(await text(page), "Hello world, hi");
 	assert.equal((await appState(page)).doc.elements[0].fontWeight, 700);
 	assert.deepEqual(page.errors, []);

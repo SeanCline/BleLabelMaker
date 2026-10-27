@@ -72,15 +72,17 @@ it never needs the internet.
 
 ## Use it
 
-- **Simple:** type text, pick a font, size and weight, then press Print.
-  "Fit to label" picks the largest size that fits and shows it in the size
-  box; typing a size there turns fitting off.
+- **Start:** a new label has one text, already selected. Double-click the label
+  and type, pick a font and size from the bar over it, then press Print (top
+  right). _Fit to box_ (under More) picks the largest size that fits and shows
+  it in the size box; typing a size there turns fitting off.
 - **Emoji** go in text: type them, or use the _Emoji_ button next to the text
-  field to insert one where the cursor is. They print as crisp line art, or
+  field, or the smiley on the bar while typing on the label, to insert one
+  where the cursor is. They print as crisp line art, or
   tick _Dithered emoji_ (shown once the text has one) to print them in shades
   of dots, like a photo.
 - **Fields** fill themselves in when the label prints. Type them, or pick one
-  from the _Field_ menu next to the text:
+  from the _Field_ menu (`{ }` on the bar while typing):
   - `{date}`, `{date+30d}` (also `-1w`, `+3m`, `+1y`), `{date:iso}` for
     2026-12-31, `{time}`
   - `{n}` or `{n:000}`: a number that goes up with every label printed. _Next
@@ -95,25 +97,30 @@ it never needs the internet.
   long label, then set the length, or tick _Auto_ to make it as long as the
   text (in a batch, each label gets its own length). Only the sizes the selected printer model
   takes are listed.
-- **Design:** add text, shapes, barcodes, QR codes and images (or drop a
-  picture on the page), then drag to move and use the handles to resize.
-  Double-click text to type on the label. Text wraps inside its box. Text can
+- **Design:** add text, shapes, barcodes, QR codes and images from the rail down
+  the label's left (or drop a picture on the page), then drag to move and use
+  the handles to resize. The last button on the rail lists everything on the
+  label, for picking what's hidden under something else.
+  Double-click text to type on the label. The bar over what's selected has
+  its main settings (B, I and U work on a selection while typing); More… opens
+  the rest. Text wraps inside its box. Text can
   have a larger first line (a title), letter spacing, an underline, an outline,
   or be stacked one letter per line. Images can fit, fill (cropping) or stretch to their box.
   - Select several: Shift- or Ctrl-click, drag across empty space, or Ctrl+A.
-    Drag one to move them all; the panel lines them up or spaces them evenly.
+    Drag one to move them all; the bar lines them up or spaces them evenly.
   - Copy / cut / paste: Ctrl+C / X / V, also between labels and tabs. Pasting
     text or an image onto the label adds it. Duplicate: Ctrl+D.
-  - Zoom: the − / Fit / + buttons, Ctrl+scroll, or + − 0 on the canvas. Scroll
-    (or middle-drag) to move around a zoomed-in label.
-  - Ruler: shows millimetre rulers along the label. They mark where the
+  - Zoom: the − / Fit / + buttons in the label area's corner, Ctrl+scroll, or
+    \+ − 0 on the canvas. Scroll (or middle-drag) to move around a zoomed-in
+    label.
+  - Ruler (next to zoom): shows millimetre rulers along the label. They mark where the
     selection starts and ends (to 0.1 mm) and where the pointer is.
   - Undo/redo: Ctrl+Z / Ctrl+Y
   - Delete the selected element: Del
   - Nudge: arrow keys (hold Shift for 1 mm)
   - Rotate the selected element: R
   - Turn off snapping while dragging: hold Alt
-- **Save / Open:** Save downloads a `.label` file (JSON). Open restores the
+- **Save / Open** (in the _File_ menu, with New, Share and History): Save downloads a `.label` file (JSON). Open restores the
   label and editor exactly as they were saved. You can also drag a `.label`
   file onto the page. Your current label is autosaved in the browser too.
 - **Share:** copies a link that opens the label, design and all, in anyone's

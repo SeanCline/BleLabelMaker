@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, appState } from "./harness.js";
+import { setup, typeInto, appState, fromFileMenu } from "./harness.js";
 
 let env;
 before(async () => (env = await setup()));
@@ -8,12 +8,12 @@ after(async () => env?.teardown());
 
 test("Share copies a link that opens the label elsewhere; Undo brings back what was there", async () => {
 	const page = await env.open();
-	await typeInto(page, "#simpleText", "Shared spices 🌶");
+	await typeInto(page, "#designText", "Shared spices 🌶");
 	await page.select("#labelPreset", "continuous");
 	await page.evaluate(() => {
 		navigator.clipboard.writeText = async (t) => (window.copied = t);
 	});
-	await page.click("#btnShare");
+	await fromFileMenu(page, "#btnShare");
 	await page.waitForFunction(() => window.copied);
 	const link = await page.evaluate(() => window.copied);
 	assert.match(link, /#label=[\w-]+$/);
@@ -21,7 +21,7 @@ test("Share copies a link that opens the label elsewhere; Undo brings back what 
 
 	// Somebody else opens it, with their own label on screen.
 	const other = await env.open();
-	await typeInto(other, "#simpleText", "Mine");
+	await typeInto(other, "#designText", "Mine");
 	await other.goto(link, { waitUntil: "networkidle0" });
 	await other.evaluate(() => window.labelApp.ready);
 	let s = await appState(other);

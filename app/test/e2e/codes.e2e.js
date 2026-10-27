@@ -51,7 +51,6 @@ const scan = ({ width, height, lum }, formats) => {
 };
 
 const clearLabel = async (page) => {
-	await page.click("#modeDesign");
 	await page.click("#layers li");
 	await page.keyboard.press("Delete");
 	assert.equal((await appState(page)).doc.elements.length, 0);

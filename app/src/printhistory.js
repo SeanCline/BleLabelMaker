@@ -21,7 +21,7 @@ export const HISTORY_LIMIT = 300;
 export const designKey = (doc) =>
 	JSON.stringify({ label: doc.label, elements: doc.elements.map(({ id, ...rest }) => rest) });
 
-const toFile = (doc, editor) => JSON.parse(serialize(doc, { mode: editor.mode, selectedIds: [] }));
+const toFile = (doc) => JSON.parse(serialize(doc, { selectedIds: [] }));
 
 /**
  * Records a print. Reprinting an identical design bumps the existing entry to the top
@@ -29,7 +29,7 @@ const toFile = (doc, editor) => JSON.parse(serialize(doc, { mode: editor.mode, s
  */
 export const recordPrint = (
 	entries,
-	{ doc, editor, copies, target },
+	{ doc, copies, target },
 	{ now = new Date(), limit = HISTORY_LIMIT } = {},
 ) => {
 	const key = designKey(doc);
@@ -51,7 +51,7 @@ export const recordPrint = (
 				prints: 1,
 				copies,
 				target,
-				file: toFile(doc, editor),
+				file: toFile(doc),
 			};
 	return [entry, ...rest].slice(0, limit);
 };
@@ -98,7 +98,7 @@ export const checkEntry = (raw, where = "entry") => {
 		prints: countOr(raw.prints, 1),
 		copies: countOr(raw.copies, 1),
 		target: ["bluetooth", "serial"].includes(raw.target) ? raw.target : "virtual",
-		file: toFile(parsed.doc, parsed.editor),
+		file: toFile(parsed.doc),
 	};
 };
 

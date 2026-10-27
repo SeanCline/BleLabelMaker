@@ -1,6 +1,17 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, appState, serialized, redraw, dragBy, labelPixels } from "./harness.js";
+import {
+	setup,
+	typeInto,
+	appState,
+	serialized,
+	redraw,
+	dragBy,
+	labelPixels,
+	openElements,
+	openSettings,
+	fromFileMenu,
+} from "./harness.js";
 
 let env;
 before(async () => (env = await setup()));
@@ -33,11 +44,11 @@ const previewMatchesPrint = (page) =>
 		return diff === 0 && black > 100 ? true : `diff=${diff} black=${black}`;
 	});
 
-test("simple mode: webfont, fit, and virtual print matches the preview", async () => {
+test("a new label: webfont, fit, and virtual print matches the preview", async () => {
 	const page = await env.open();
-	await typeInto(page, '#simplePanel [data-prop="text"]', "Spices\nCumin");
-	await page.select('#simplePanel [data-prop="fontFamily"]', "Oswald");
-	await page.select('#simplePanel [data-prop="fontWeight"]', "700");
+	await typeInto(page, '#textProps [data-prop="text"]', "Spices\nCumin");
+	await page.select('#textProps [data-prop="fontFamily"]', "Oswald");
+	await page.select('#textProps [data-prop="fontWeight"]', "700");
 	await redraw(page);
 	assert.ok(await page.evaluate(() => document.fonts.check('700 20px "Oswald"')), "Oswald loaded");
 	await printVirtual(page);
@@ -50,10 +61,9 @@ test("simple mode: webfont, fit, and virtual print matches the preview", async (
 	assert.deepEqual(page.errors, []);
 });
 
-test("design mode: carry-over, add an element, drag, resize, undo as one step", async () => {
+test("add an element, drag, resize, undo as one step", async () => {
 	const page = await env.open();
-	await page.click("#modeDesign");
-	assert.equal((await appState(page)).doc.elements.length, 1, "simple text became the first box");
+	assert.equal((await appState(page)).doc.elements.length, 1, "a new label has one text");
 
 	await page.click("#addQr");
 	let s = await appState(page);
@@ -78,29 +88,13 @@ test("design mode: carry-over, add an element, drag, resize, undo as one step", 
 	assert.deepEqual(page.errors, []);
 });
 
-test("switching back to simple asks first and can be declined", async () => {
-	const page = await env.open();
-	await page.click("#modeDesign");
-	await page.click("#addText");
-	let answer = false;
-	page.on("dialog", (d) => (answer ? d.accept() : d.dismiss()));
-	await page.click("#modeSimple");
-	assert.equal((await appState(page)).mode, "design");
-	answer = true;
-	await page.click("#modeSimple");
-	const s = await appState(page);
-	assert.equal(s.mode, "simple");
-	assert.equal(s.doc.elements.length, 1);
-});
-
 test("save → load restores exactly; bad files leave the label alone; autosave survives reload", async () => {
 	const page = await env.open();
-	await page.click("#modeDesign");
 	await page.click("#addText");
 	await typeInto(page, '#textProps [data-prop="text"]', "a long line that must wrap inside");
 	const saved = await serialized(page);
 
-	await page.click("#btnNew");
+	await fromFileMenu(page, "#btnNew");
 	await page.click('#templateList [data-id="blank"]');
 	assert.notEqual(await serialized(page), saved);
 	await page.evaluate((t) => window.labelApp.loadText(t), saved);
@@ -120,7 +114,6 @@ test("save → load restores exactly; bad files leave the label alone; autosave 
 
 test("emoji in text: the picker inserts at the cursor, and emoji print as crisp outlines", async () => {
 	const page = await env.open();
-	await page.click("#modeDesign");
 	await page.click("#addText");
 	const id = (await appState(page)).selectedId;
 	const text = () => appState(page).then((s) => s.doc.elements.find((e) => e.id === id).text);
@@ -131,7 +124,9 @@ test("emoji in text: the picker inserts at the cursor, and emoji print as crisp 
 		await page.evaluate(() => new Promise((r) => setTimeout(r)));
 	};
 
-	// From the panel field: the cursor sits between "Te" and "xt".
+	// From the settings' text field: the cursor sits between "Te" and "xt".
+	await page.keyboard.press("Escape"); // a new text starts out being typed on the label
+	await openSettings(page);
 	await page.$eval("#designText", (t) => {
 		t.focus();
 		t.setSelectionRange(2, 2);
@@ -166,13 +161,14 @@ test("emoji in text: the picker inserts at the cursor, and emoji print as crisp 
 	await page.$eval("#designText", (t) => t.select());
 	await page.keyboard.press("Delete");
 	await page.keyboard.type("Te❄xt");
+	await page.keyboard.press("Escape");
 
-	// From the inline editor: it reopens with the cursor after the emoji.
+	// From the bar while typing on the label: it reopens with the cursor after the emoji.
 	const box = await (await page.$(".box.selected")).boundingBox();
 	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { clickCount: 2 });
 	await page.waitForSelector(".inline-edit");
 	await page.keyboard.press("End");
-	await page.click("#textProps .insert-emoji");
+	await page.click("#quickbar .insert-emoji");
 	await pick("⭐");
 	assert.equal(await text(), "Te❄xt⭐");
 	assert.ok(await page.$(".inline-edit"), "inline editor reopened");
@@ -183,7 +179,7 @@ test("emoji in text: the picker inserts at the cursor, and emoji print as crisp 
 		const { serialize } = await import("/src/fileformat.js");
 		const doc = createDocument();
 		doc.elements[0].text = "❄";
-		await window.labelApp.loadText(serialize(doc, { mode: "simple", selectedIds: [] }));
+		await window.labelApp.loadText(serialize(doc, { selectedIds: [] }));
 	});
 	assert.equal((await appState(page)).doc.elements[0].text, "❄", "the file loaded");
 	const { black } = await labelPixels(page);
@@ -205,7 +201,6 @@ test("test hooks exist only under automation or with ?debug", async () => {
 
 test("narrow viewport has no horizontal scroll", async () => {
 	const page = await env.open({ width: 400, height: 900 });
-	await page.click("#modeDesign");
 	await redraw(page);
 	assert.equal(
 		await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth),
@@ -216,7 +211,6 @@ test("narrow viewport has no horizontal scroll", async () => {
 
 test("smart guides: dragging near the centre snaps exactly and shows a guide; Alt disables it", async () => {
 	const page = await env.open();
-	await page.click("#modeDesign");
 	await page.click("#addQr");
 	// Park it at the left so the drag has somewhere to go.
 	await typeInto(page, '#geomProps [data-prop="x"]', "3.1");
@@ -230,8 +224,8 @@ test("smart guides: dragging near the centre snaps exactly and shows a guide; Al
 	const box = await (await page.$(".box.selected")).boundingBox();
 	const startX = box.x + box.width / 2;
 	const startY = box.y + box.height / 2;
-	// Centre is at 7.1 mm; label centre is 20 mm. Aim 0.3 mm short.
-	const aim = (20 - 7.1 - 0.3) * pxPerMm;
+	// Centre is at 7.1 mm; label centre is 20 mm. Aim a few pixels short (guides grab within 6).
+	const aim = (20 - 7.1) * pxPerMm - 3;
 
 	await page.mouse.move(startX, startY);
 	await page.mouse.down();
@@ -309,16 +303,18 @@ test("inline editing: double-click to type on the label, Escape to finish, one u
 		"rgba(0, 0, 0, 0)",
 	);
 	assert.equal(
-		await page.$eval('#simplePanel [data-prop="text"]', (t) => t.value),
+		await page.$eval('#textProps [data-prop="text"]', (t) => t.value),
 		"Pantry❤!",
-		"panel stays in sync",
+		"settings stay in sync",
 	);
 	await page.keyboard.press("Escape");
 	assert.equal(await page.$(".inline-edit"), null);
 
 	// Design mode: on a text box, with multi-line input.
-	await page.click("#modeDesign");
 	await page.click("#addText");
+	// A new text box starts out being typed on, with its placeholder selected.
+	assert.ok(await page.$(".inline-edit"));
+	await page.keyboard.press("Escape");
 	const box = await (await page.$(".box.selected")).boundingBox();
 	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { clickCount: 2 });
 	await page.waitForSelector(".inline-edit");
@@ -397,11 +393,10 @@ test("inline editing follows the label's lines: wrapping, rotation, stacking", a
 
 test("shapes, rotation and white-on-black text print exactly as previewed", async () => {
 	const page = await env.open();
-	await page.click("#modeDesign");
 	await page.click("#addShape");
 	let s = await appState(page);
 	assert.equal(s.doc.elements.at(-1).type, "shape");
-	await page.click('#shapeProps [data-radio="shape"] [data-value="ellipse"]');
+	await page.click('#quickbar [data-radio="shape"] [data-value="ellipse"]');
 	assert.equal(
 		await page.$eval('#shapeProps [data-show-for="rect"]', (n) => n.hidden),
 		true,
@@ -409,12 +404,14 @@ test("shapes, rotation and white-on-black text print exactly as previewed", asyn
 	);
 
 	// Rotate a text box with the R key: box swaps width/height around its centre.
+	await openElements(page);
 	await page.click("#layers li:last-child"); // the original text box (bottom of the stack)
 	const before = (await appState(page)).doc.elements[0];
 	await page.keyboard.press("r");
 	const after = (await appState(page)).doc.elements[0];
 	assert.equal(after.rotation, 90);
 	assert.equal(after.w, Math.min(before.h, 40));
+	await openSettings(page);
 	await page.click('#textProps [data-prop="invert"]');
 	assert.equal((await appState(page)).doc.elements[0].invert, true);
 
@@ -426,7 +423,6 @@ test("shapes, rotation and white-on-black text print exactly as previewed", asyn
 
 test("cached element drawings match a from-scratch render after moves and edits", async () => {
 	const page = await env.open();
-	await page.click("#modeDesign");
 	await page.click("#addBarcode");
 	await dragBy(page, ".box.selected", 30, 0);
 	await typeInto(page, '#barcodeProps [data-prop="data"]', "XYZ-9");
@@ -450,7 +446,6 @@ test("cached element drawings match a from-scratch render after moves and edits"
 
 test("zoom: buttons, keys and Ctrl+wheel; dragging still moves by the right amount", async () => {
 	const page = await env.open();
-	await page.click("#modeDesign");
 	const width = () => page.$eval("#labelCanvas", (c) => c.getBoundingClientRect().width);
 	const fit = await width();
 	await page.click("#zoomIn");
@@ -495,12 +490,12 @@ test("zoom: buttons, keys and Ctrl+wheel; dragging still moves by the right amou
 
 test("letter spacing, underline, outline, stacked and image fit each change the print", async () => {
 	const page = await env.open();
-	await page.click("#modeDesign");
 	const pixels = async () => {
 		const p = await labelPixels(page);
 		return { ...p, width: p.inkWidth };
 	};
 	await typeInto(page, "#designText", "Ab");
+	await openSettings(page);
 	await page.click('#textProps [data-prop="fit"]'); // fixed size, so spacing shows as width
 	await typeInto(page, '#textProps [data-prop="fontSizePt"]', "24");
 	const plain = await pixels();
@@ -521,6 +516,7 @@ test("letter spacing, underline, outline, stacked and image fit each change the 
 	// The caption font only shows when there's a caption.
 	await page.click("#addBarcode");
 	assert.equal(await page.$eval('#barcodeProps [data-show-if="showText"]', (f) => f.hidden), false);
+	await openSettings(page);
 	await page.click('#barcodeProps [data-prop="showText"]');
 	assert.equal(await page.$eval('#barcodeProps [data-show-if="showText"]', (f) => f.hidden), true);
 	assert.deepEqual(page.errors, []);
@@ -528,13 +524,14 @@ test("letter spacing, underline, outline, stacked and image fit each change the 
 
 test("a larger first line prints larger, and edits on the label", async () => {
 	const page = await env.open();
-	await page.click("#modeDesign");
 	await typeInto(page, "#designText", "Title\nsmall print");
 	const height = async () => (await labelPixels(page)).firstBandHeight;
 	const same = await height();
+	await openSettings(page);
 	await page.click('#textProps [data-radio="firstLineScale"] [data-value="2"]');
 	const larger = await height();
 	assert.ok(larger > same * 1.2, `first line ${same} → ${larger} dots tall`);
+	await page.keyboard.press("Escape"); // the settings sit over the label
 	const box = await (await page.$(".box.selected")).boundingBox();
 	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { clickCount: 2 });
 	assert.ok(await page.$(".inline-edit"));
@@ -592,9 +589,9 @@ test("the page refuses scripts that aren't its own", async () => {
 
 test("fit to label shows the fitted size in the size box; typing a size stops fitting", async () => {
 	const page = await env.open();
-	const size = '#simplePanel [data-prop="fontSizePt"]';
-	await typeInto(page, "#simpleText", "Hi");
-	await typeInto(page, '#simplePanel [data-prop="fit"]', true);
+	const size = '#textProps [data-prop="fontSizePt"]';
+	await typeInto(page, "#designText", "Hi");
+	await typeInto(page, '#textProps [data-prop="fit"]', true);
 	await redraw(page);
 	const stored = (await appState(page)).doc.elements[0].fontSizePt;
 	const shown = Number(await page.$eval(size, (i) => i.value));
@@ -605,7 +602,7 @@ test("fit to label shows the fitted size in the size box; typing a size stops fi
 	await typeInto(page, size, "10");
 	const text = (await appState(page)).doc.elements[0];
 	assert.deepEqual([text.fit, text.fontSizePt], [false, 10]);
-	assert.equal(await page.$eval('#simplePanel [data-prop="fit"]', (c) => c.checked), false);
+	assert.equal(await page.$eval('#textProps [data-prop="fit"]', (c) => c.checked), false);
 	assert.deepEqual(page.errors, []);
 });
 
@@ -652,21 +649,22 @@ test("the ruler toggles, spans the label, still fits the window, and is remember
 
 test("dithered emoji: offered only with an emoji in the text, and printed as previewed", async () => {
 	const page = await env.open();
-	const option = "#simplePanel [data-show-if-emoji]";
-	await typeInto(page, "#simpleText", "Pantry");
+	const option = "#textProps [data-show-if-emoji]";
+	await typeInto(page, "#designText", "Pantry");
 	assert.equal(await page.$eval(option, (l) => l.hidden), true);
-	await typeInto(page, "#simpleText", "Hot 🔥");
+	await typeInto(page, "#designText", "Hot 🔥");
 	assert.equal(await page.$eval(option, (l) => l.hidden), false);
-	await page.click('#simplePanel [data-prop="ditherEmoji"]');
+	await openSettings(page);
+	await page.click('#textProps [data-prop="ditherEmoji"]');
 	assert.equal((await appState(page)).doc.elements[0].ditherEmoji, true);
 	await printVirtual(page);
 	assert.equal(await previewMatchesPrint(page), true);
 	assert.deepEqual(page.errors, []);
 });
 
-test("New offers templates drawn on the loaded label; picking one opens it in the right mode", async () => {
+test("New offers templates drawn on the loaded label; picking one opens it, first element selected", async () => {
 	const page = await env.open();
-	await page.click("#btnNew");
+	await fromFileMenu(page, "#btnNew");
 	await page.waitForFunction(() => document.querySelector("#newDialog").open);
 	assert.match(await page.$eval("#newLabelSize", (s) => s.textContent), /× 12 mm labels/);
 	const names = await page.$$eval("#templateList strong", (n) => n.map((x) => x.textContent));
@@ -683,8 +681,8 @@ test("New offers templates drawn on the loaded label; picking one opens it in th
 
 	await page.click('#templateList [data-id="bin"]');
 	assert.equal(await page.$eval("#newDialog", (d) => d.open), false);
-	const { mode, doc } = await appState(page);
-	assert.equal(mode, "design");
+	const { selectedIds, doc } = await appState(page);
+	assert.deepEqual(selectedIds, [doc.elements[0].id]);
 	assert.deepEqual(
 		doc.elements.map((e) => e.type),
 		["qr", "text"],
@@ -696,7 +694,14 @@ test("New offers templates drawn on the loaded label; picking one opens it in th
 	assert.deepEqual(page.errors, []);
 });
 
-test("the first-run tip goes when dismissed or after a print, and stays gone", async () => {
+test("the first-run tip goes once the label is typed on, or after a print, and stays gone", async () => {
+	const typed = await env.open();
+	assert.equal(await typed.$eval("#welcome", (w) => w.hidden), false);
+	const o = await (await typed.$("#overlay")).boundingBox();
+	await typed.mouse.click(o.x + o.width / 2, o.y + o.height / 2, { clickCount: 2 });
+	await typed.waitForSelector(".inline-edit");
+	assert.equal(await typed.$eval("#welcome", (w) => w.hidden), true);
+
 	const page = await env.open();
 	assert.equal(await page.$eval("#welcome", (w) => w.hidden), false);
 	// Ctrl+P prints here, rather than opening the browser's print dialog.

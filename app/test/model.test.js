@@ -3,8 +3,6 @@ import assert from "node:assert/strict";
 import {
 	createDocument,
 	createText,
-	isSimpleCompatible,
-	toSimple,
 	resizeLabel,
 	printableArea,
 	rotateTo,
@@ -16,26 +14,8 @@ import {
 import { History } from "../src/history.js";
 import { threshold, toOneBit } from "../src/raster.js";
 
-test("new document is simple-compatible", () => {
-	assert.ok(isSimpleCompatible(createDocument()));
-});
-
-test("extra elements make a design not simple-compatible; toSimple keeps the text style", () => {
-	const doc = createDocument();
-	doc.elements[0].fontFamily = "Oswald";
-	doc.elements.push(createText(doc));
-	assert.equal(isSimpleCompatible(doc), false);
-	const s = toSimple(doc);
-	assert.ok(isSimpleCompatible(s));
-	assert.equal(s.elements[0].fontFamily, "Oswald");
-});
-
-test("resizing a simple label re-fills the printable area", () => {
-	const doc = resizeLabel(
-		createDocument(),
-		{ widthMm: 50, heightMm: 15, continuous: false },
-		{ refitSimple: true },
-	);
+test("a text filling the label keeps filling it when the label changes size", () => {
+	const doc = resizeLabel(createDocument(), { widthMm: 50, heightMm: 15, continuous: false });
 	const { x, y, w, h } = doc.elements[0];
 	assert.deepEqual({ x, y, w, h }, printableArea({ widthMm: 50, heightMm: 15 }));
 });
@@ -90,13 +70,6 @@ test("rotating a quarter turn swaps width and height around the centre", () => {
 	const half = rotateTo(e, 180);
 	assert.deepEqual([half.x, half.y, half.w, half.h], [10, 2, 20, 6]);
 	assert.deepEqual(rotateTo(r, 0), { ...e });
-});
-
-test("rotated or inverted text isn't simple-compatible", () => {
-	const doc = createDocument();
-	doc.elements[0].invert = true;
-	assert.equal(isSimpleCompatible(doc), false);
-	assert.equal(toSimple(doc).elements[0].invert, false);
 });
 
 test("toOneBit: threshold level, brightness bias and invert", () => {

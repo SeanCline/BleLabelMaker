@@ -1,11 +1,11 @@
 // Emoji and fields go into text where the cursor was: the emoji picker and the Field menu
-// next to each text field.
+// next to each text field, and on the bar over the label.
 import { searchEmoji } from "../emoji.js";
 import { plainText } from "../layout.js";
 import { applyEdit, textOf } from "../richtext.js";
 import { $, $$, el } from "./dom.js";
 import { state, history, updateElement } from "./store.js";
-import { startInlineEdit } from "./stage.js";
+import { inlineEdit, startInlineEdit } from "./stage.js";
 import { rememberCaret, takeCaret } from "./caret.js";
 import { targetFor } from "./panels.js";
 
@@ -41,8 +41,9 @@ emojiDialog.addEventListener("close", () => {
 // takes focus from whichever editor was open, so the cursor is remembered on blur and that
 // editor is reopened afterwards with the cursor after what was inserted.
 for (const panel of $$("[data-panel]").filter((p) => $(".insert-emoji", p))) {
+	// The bar has no text field of its own: what it inserts goes in on the label.
 	const field = $('[data-prop="text"]', panel);
-	field.addEventListener("blur", () => {
+	field?.addEventListener("blur", () => {
 		const e = targetFor(panel);
 		if (e) rememberCaret(e.id, field, "panel");
 	});
@@ -58,7 +59,7 @@ for (const panel of $$("[data-panel]").filter((p) => $(".insert-emoji", p))) {
 		});
 		history.seal();
 		const at = { start: start + value.length, end: start + value.length };
-		if (caret.source === "inline") startInlineEdit(e.id, at);
+		if (caret.source === "inline" || !field) startInlineEdit(e.id, at);
 		else {
 			field.focus();
 			field.setSelectionRange(at.start, at.end);
@@ -68,7 +69,10 @@ for (const panel of $$("[data-panel]").filter((p) => $(".insert-emoji", p))) {
 		const e = targetFor(panel);
 		if (e?.type !== "text") return null;
 		const end = textOf(e.text).length;
-		const caret = takeCaret(e.id) ?? { start: end, end, source: "panel" };
+		// Still typing on the label (the menu needn't take the focus): its cursor, as it is now.
+		const typing = inlineEdit();
+		const live = typing?.id === e.id && { start: typing.from, end: typing.to, source: "inline" };
+		const caret = live || (takeCaret(e.id) ?? { start: end, end, source: "panel" });
 		return { e, caret };
 	};
 	$(".insert-emoji", panel).addEventListener("click", () => {

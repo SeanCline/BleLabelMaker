@@ -21,11 +21,7 @@ const docWith = (text) => {
 };
 const at = (s) => ({ now: new Date(`2026-10-${s}T12:00:00Z`) });
 const print = (entries, doc, opts, extra = {}) =>
-	recordPrint(
-		entries,
-		{ doc, editor: { mode: "simple" }, copies: 1, target: "bluetooth", ...extra },
-		opts,
-	);
+	recordPrint(entries, { doc, copies: 1, target: "bluetooth", ...extra }, opts);
 
 test("records prints newest first and merges reprints of the same design", () => {
 	const a = docWith("Flour");
@@ -41,31 +37,10 @@ test("records prints newest first and merges reprints of the same design", () =>
 	assert.equal(h[0].lastPrintedAt, "2026-10-03T12:00:00.000Z");
 });
 
-test("selection doesn't make an otherwise identical design a new entry", () => {
-	const a = docWith("Flour");
-	let h = recordPrint([], {
-		doc: a,
-		editor: { mode: "design", selectedIds: [a.elements[0].id] },
-		copies: 1,
-		target: "virtual",
-	});
-	h = recordPrint(h, {
-		doc: a,
-		editor: { mode: "design", selectedIds: [] },
-		copies: 1,
-		target: "virtual",
-	});
-	assert.equal(h.length, 1);
-});
-
 test("history is capped, dropping the oldest", () => {
 	let h = [];
 	for (let i = 0; i < 12; i++) h = print(h, docWith(`L${i}`), {}, {});
-	h = recordPrint(
-		h,
-		{ doc: docWith("last"), editor: { mode: "simple" }, copies: 1, target: "virtual" },
-		{ limit: 10 },
-	);
+	h = recordPrint(h, { doc: docWith("last"), copies: 1, target: "virtual" }, { limit: 10 });
 	assert.equal(h.length, 10);
 	assert.equal(entryTitle(h[0]), "last");
 });

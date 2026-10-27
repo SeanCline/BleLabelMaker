@@ -247,48 +247,16 @@ export const createDocument = (label = DEFAULT_LABEL) => {
 	return { label: empty.label, elements: [text] };
 };
 
-// Simple mode can represent a design only if it is one text box covering the printable area;
-// anything else would be lost on the way in.
-/** @param {Doc} doc */
-export const isSimpleCompatible = (doc) => {
-	if (doc.elements.length !== 1 || doc.elements[0].type !== "text") return false;
-	const e = doc.elements[0];
-	const area = printableArea(doc.label);
-	return (
-		e.x === area.x &&
-		e.y === area.y &&
-		e.w === area.w &&
-		e.h === area.h &&
-		e.align === "center" &&
-		e.rotation === 0 &&
-		!e.invert
-	);
-};
-
-/**
- * @param {Doc} doc
- * @returns {TextFirstDoc}
- */
-export const toSimple = (doc) => {
-	const source = doc.elements.find((e) => e.type === "text") ?? TEXT_DEFAULTS;
-	const empty = { label: { ...doc.label }, elements: [] };
-	const text = createText(empty, {
-		...pick(source, Object.keys(TEXT_DEFAULTS)),
-		...printableArea(doc.label),
-		align: "center",
-		vAlign: "middle",
-		invert: false,
-	});
-	return { label: empty.label, elements: [text] };
-};
-
 // Elements keep their mm position on resize; clamp so nothing is stranded off the label.
 /**
  * @param {Doc} doc
  * @param {Label} label
  * @returns {Doc}
  */
-/** One text box filling the printable area, as in simple mode: auto length sizes it to its text. */
+/**
+ * One text box filling the printable area, as a new label has: it keeps filling the label
+ * when the label changes size, and auto length sizes the label to its text.
+ */
 export const textFillsLabel = (doc) => {
 	if (doc.elements.length !== 1) return false;
 	const e = doc.elements[0];
@@ -318,8 +286,9 @@ export const withLength = (doc, widthMm) => {
 	return resizeLabel(doc, label);
 };
 
-export const resizeLabel = (doc, label, { refitSimple = false } = {}) => {
-	if (refitSimple) return toSimple({ ...doc, label });
+export const resizeLabel = (doc, label) => {
+	if (textFillsLabel(doc))
+		return { label: { ...label }, elements: [{ ...doc.elements[0], ...printableArea(label) }] };
 	return {
 		label: { ...label },
 		elements: doc.elements.map((e) => clampToLabel(e, label)),
@@ -429,6 +398,3 @@ export const placeCopies = (doc, elements, stepMm = 2) => {
 		return copy;
 	});
 };
-
-const pick = (obj, keys) =>
-	Object.fromEntries(keys.filter((k) => k in obj).map((k) => [k, obj[k]]));

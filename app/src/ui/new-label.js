@@ -28,7 +28,7 @@ const renderList = async () => {
 				el("span", { className: "hint" }, t.description),
 			),
 		);
-		return { item, thumb, doc: fromTemplate(t, label).doc };
+		return { item, thumb, doc: fromTemplate(t, label) };
 	});
 	list.replaceChildren(...jobs.map((j) => j.item));
 	// Thumbnails show fields filled in, as the preview does, so "{date}" reads as a date.
@@ -46,8 +46,8 @@ list.addEventListener("click", (ev) => {
 	const id = ev.target.closest("[data-id]")?.dataset.id;
 	const template = TEMPLATES.find((t) => t.id === id);
 	if (!template) return;
-	const { doc, mode } = fromTemplate(template, state.doc.label);
-	commit(doc, { selectedIds: [], ...(mode && { mode }) });
+	const doc = fromTemplate(template, state.doc.label);
+	commit(doc, { selectedIds: doc.elements.slice(0, 1).map((e) => e.id) });
 	history.seal();
 	dialog.close();
 	toast(

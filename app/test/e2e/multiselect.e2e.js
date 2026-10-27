@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, appState } from "./harness.js";
+import { setup, typeInto, appState, fromFileMenu } from "./harness.js";
 
 let env;
 before(async () => (env = await setup()));
@@ -9,7 +9,6 @@ after(async () => env?.teardown());
 /** A design with two 6 mm QR codes side by side and nothing else, both unselected. */
 const twoCodes = async () => {
 	const page = await env.open();
-	await page.click("#modeDesign");
 	await page.focus("#overlay");
 	await page.keyboard.down("Control");
 	await page.keyboard.press("a");
@@ -41,8 +40,13 @@ test("shift-click selects several; dragging one moves them all, and undoes in on
 	await page.mouse.click(...Object.values(await centreOf(page, 0)));
 	await shiftClick(page, await centreOf(page, 1));
 	assert.equal((await appState(page)).selectedIds.length, 2);
-	assert.equal(await page.$eval("#multiProps", (p) => p.hidden), false);
-	assert.equal(await page.$eval("#geomProps", (p) => p.hidden), true, "no single-element panel");
+	assert.equal(await page.$eval('#quickbar [data-qb="multi"]', (g) => g.hidden), false);
+	assert.equal(await page.$eval("#multiCount", (c) => c.textContent), "2 selected");
+	assert.equal(
+		await page.$eval('#quickbar [data-qb-action="more"]', (b) => b.hidden),
+		true,
+		"no single-element settings",
+	);
 	assert.equal(await page.$$eval("#layers [aria-selected=true]", (l) => l.length), 2);
 
 	const before = await elements(page);
@@ -161,9 +165,8 @@ test("copy and paste: duplicates beside the original, and between labels at the 
 	assert.deepEqual((await appState(page)).selectedIds, [list[2].id], "the paste is selected");
 
 	// Into a new label: same position, since nothing is in the way.
-	await page.click("#btnNew");
+	await fromFileMenu(page, "#btnNew");
 	await page.click('#templateList [data-id="blank"]');
-	await page.click("#modeDesign");
 	await page.focus("#overlay");
 	await clipboardEvent(page, "paste", copied);
 	list = await elements(page);

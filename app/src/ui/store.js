@@ -8,13 +8,11 @@ import { storageKey } from "../app-info.js";
 const AUTOSAVE_KEY = storageKey("autosave");
 
 /**
- * @type {{doc: import("../model.js").Doc, mode: "simple"|"design", selectedIds: string[],
- *   readonly selectedId: string|null}}
+ * @type {{doc: import("../model.js").Doc, selectedIds: string[], readonly selectedId: string|null}}
  */
 export const state = {
 	doc: createDocument(),
-	mode: "simple",
-	/** In selection order; the panel edits an element only when it's the only one selected. */
+	/** In selection order; the settings edit an element only when it's the only one selected. */
 	selectedIds: [],
 	/** The selected element's id when exactly one is selected, else null. */
 	get selectedId() {
@@ -22,21 +20,25 @@ export const state = {
 	},
 };
 
+/** What's selected, or with nothing selected the first element, so its bar shows to start with. */
+const orFirst = (selectedIds, doc) =>
+	selectedIds.length ? selectedIds : doc.elements.slice(0, 1).map((e) => e.id);
+
 const restoreAutosave = () => {
 	try {
 		const raw = loadText(AUTOSAVE_KEY);
 		if (!raw) return;
 		const { doc, editor } = parse(raw);
 		state.doc = doc;
-		state.mode = editor.mode;
 		state.selectedIds = editor.selectedIds;
 	} catch {
 		// A corrupt autosave must never block startup.
 	}
 };
 restoreAutosave();
+state.selectedIds = orFirst(state.selectedIds, state.doc);
 
-const snapshot = () => ({ doc: state.doc, mode: state.mode });
+const snapshot = () => ({ doc: state.doc });
 export const history = new History(snapshot());
 
 const listeners = new Set();
@@ -62,8 +64,7 @@ const scheduleAutosave = () => {
 addEventListener("pagehide", () => autosaveTimer && autosave());
 addEventListener("visibilitychange", () => document.hidden && autosaveTimer && autosave());
 
-export const currentFile = () =>
-	serialize(state.doc, { mode: state.mode, selectedIds: state.selectedIds });
+export const currentFile = () => serialize(state.doc, { selectedIds: state.selectedIds });
 
 /** The selected element when exactly one is selected (what the property panel edits). */
 export const selected = () => state.doc.elements.find((e) => e.id === state.selectedId) ?? null;
@@ -82,15 +83,11 @@ const dropStaleSelection = () => {
 /**
  * Every document change goes through here so undo, autosave and rendering stay in sync.
  * @param {import("../model.js").Doc} doc
- * @param {{group?: string|null, mode?: "simple"|"design", selectedIds?: string[]}} [options]
+ * @param {{group?: string|null, selectedIds?: string[]}} [options]
  *   selectedIds: what to select afterwards (default: keep what's selected, if it still exists)
  */
-export const commit = (
-	doc,
-	{ group = null, mode = state.mode, selectedIds = state.selectedIds } = {},
-) => {
+export const commit = (doc, { group = null, selectedIds = state.selectedIds } = {}) => {
 	state.doc = doc;
-	state.mode = mode;
 	state.selectedIds = selectedIds;
 	dropStaleSelection();
 	history.push(snapshot(), group);
@@ -149,7 +146,6 @@ export const toggleSelected = (id) =>
 const applySnapshot = (snap) => {
 	if (!snap) return;
 	state.doc = snap.doc;
-	state.mode = snap.mode;
 	dropStaleSelection();
 	notify();
 };
@@ -158,6 +154,6 @@ export const redo = () => applySnapshot(history.redo());
 
 /** Replaces the whole editor state (file open); undoable like any other change. */
 export const loadState = ({ doc, editor }) => {
-	commit(doc, { mode: editor.mode, selectedIds: editor.selectedIds });
+	commit(doc, { selectedIds: orFirst(editor.selectedIds, doc) });
 	history.seal();
 };

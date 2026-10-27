@@ -278,7 +278,7 @@ const renderPrintButton = () => {
 	const total = (batch?.rows.length ?? 1) * currentCopies();
 	const what = batch ? `${total} labels` : "";
 	const real = hardware();
-	const button = $("#btnPrint");
+	const button = $("#btnPrint .print-label");
 	if (!real) button.textContent = ["Print", what].filter(Boolean).join(" ");
 	else if (!real.connected)
 		button.textContent = ["Connect & print", what].filter(Boolean).join(" ");

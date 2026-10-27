@@ -197,10 +197,10 @@ test("auto length: a continuous label grows with its text, per batch row when pr
 	await page.select("#labelPreset", "continuous");
 	await page.click("#labelAutoLength");
 	assert.equal(await page.$eval("#labelLen", (i) => i.disabled), true, "nothing to type");
-	await typeInto(page, "#simpleText", "Hi");
+	await typeInto(page, "#designText", "Hi");
 	await page.waitForFunction(() => window.labelApp.state.doc.label.widthMm < 20);
 	const short = (await label()).widthMm;
-	await typeInto(page, "#simpleText", "Hi there, this is a much longer label");
+	await typeInto(page, "#designText", "Hi there, this is a much longer label");
 	await page.waitForFunction((s) => window.labelApp.state.doc.label.widthMm > s * 3, {}, short);
 	const long = await label();
 	assert.equal(long.autoLength, true);
@@ -213,7 +213,7 @@ test("auto length: a continuous label grows with its text, per batch row when pr
 	assert.equal((await appState(page)).doc.elements[0].text, "Hi");
 
 	// A batch prints each row at its own length.
-	await typeInto(page, "#simpleText", "{1}");
+	await typeInto(page, "#designText", "{1}");
 	await page.click("#batchPanel summary");
 	await typeInto(page, "#batchData", "Salt\nSmoked paprika and cumin");
 	await page.click("#btnPrint");

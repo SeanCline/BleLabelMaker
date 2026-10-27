@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { setup, typeInto, serialized, appState } from "./harness.js";
+import { setup, typeInto, serialized, appState, fromFileMenu } from "./harness.js";
 
 let env;
 let downloads;
@@ -17,7 +17,7 @@ after(async () => {
 });
 
 const printText = async (page, text) => {
-	await typeInto(page, '#simplePanel [data-prop="text"]', text);
+	await typeInto(page, '#textProps [data-prop="text"]', text);
 	const before = await page.$$eval("#tape .printed", (n) => n.length);
 	await page.click("#btnPrint");
 	await page.waitForFunction(
@@ -43,7 +43,7 @@ test("prints are recorded, reprints merge, entries reopen, export/import round-t
 	await printText(page, "Sugar");
 	await printText(page, "Flour");
 
-	await page.click("#btnHistory");
+	await fromFileMenu(page, "#btnHistory");
 	await page.waitForSelector("#historyList li");
 	const titles = await page.$$eval("#historyList li strong", (n) => n.map((x) => x.textContent));
 	assert.deepEqual(titles, ["Flour", "Sugar"]);
@@ -65,7 +65,7 @@ test("prints are recorded, reprints merge, entries reopen, export/import round-t
 	assert.equal(await page.$$eval("#historyList li", (n) => n.length), 1);
 	await page.click('#historyList li [data-action="open"]');
 	assert.equal(await page.$eval("#historyDialog", (d) => d.open), false);
-	assert.equal(await page.$eval('#simplePanel [data-prop="text"]', (t) => t.value), "Sugar");
+	assert.equal(await page.$eval('#textProps [data-prop="text"]', (t) => t.value), "Sugar");
 
 	// Export through the real download path.
 	// Each test page lives in its own browser context, so downloads are allowed per context.
@@ -75,7 +75,7 @@ test("prints are recorded, reprints merge, entries reopen, export/import round-t
 		downloadPath: downloads,
 		browserContextId: page.browserContext().id,
 	});
-	await page.click("#btnHistory");
+	await fromFileMenu(page, "#btnHistory");
 	await page.click("#btnHistoryExport");
 	const exported = await waitForDownload(downloads);
 	const json = JSON.parse(await readFile(exported, "utf8"));
@@ -84,7 +84,7 @@ test("prints are recorded, reprints merge, entries reopen, export/import round-t
 
 	// A fresh browser profile imports it and gets the same labels.
 	const other = await env.open();
-	await other.click("#btnHistory");
+	await fromFileMenu(other, "#btnHistory");
 	const input = await other.$("#historyFile");
 	await input.uploadFile(exported);
 	await other.waitForFunction(() => document.querySelectorAll("#historyList li").length === 2);
@@ -111,7 +111,7 @@ test("history survives a reload; delete and clear work", async () => {
 	await page.evaluate(() => window.labelApp.historySaved());
 	await page.reload({ waitUntil: "networkidle0" });
 	await page.evaluate(() => window.labelApp.ready);
-	await page.click("#btnHistory");
+	await fromFileMenu(page, "#btnHistory");
 	await page.waitForSelector("#historyList li");
 	await page.click('#historyList li [data-action="delete"]');
 	assert.deepEqual(

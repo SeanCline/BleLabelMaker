@@ -2,7 +2,7 @@ import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { setup } from "./harness.js";
+import { openSettings, setup, fromFileMenu } from "./harness.js";
 
 const axeSource = await readFile(
 	createRequire(import.meta.url).resolve("axe-core/axe.min.js"),
@@ -31,14 +31,16 @@ const audit = async (page, include) => {
 		);
 };
 
-test("simple mode has no serious accessibility violations", async () => {
+test("a new label has no serious accessibility violations, menus open or not", async () => {
 	const page = await env.open();
 	assert.deepEqual(await audit(page), []);
+	await page.click("#fileMenu > summary");
+	await page.click("#layersMenu > summary");
+	assert.deepEqual(await audit(page), [], "with File and the list of elements open");
 });
 
-test("design mode with every element type selected has no serious violations", async () => {
+test("every element type selected has no serious violations", async () => {
 	const page = await env.open();
-	await page.click("#modeDesign");
 	for (const add of ["#addText", "#addShape", "#addBarcode", "#addQr"]) {
 		await page.click(add);
 		assert.deepEqual(await audit(page), [], `after ${add}`);
@@ -47,23 +49,27 @@ test("design mode with every element type selected has no serious violations", a
 
 test("dialogs have no serious violations", async () => {
 	const page = await env.open();
-	await page.click("#btnHistory");
+	await fromFileMenu(page, "#btnHistory");
 	assert.deepEqual(await audit(page, "#historyDialog"), []);
 	await page.keyboard.press("Escape");
-	await page.click("#modeDesign");
 	await page.click("#addText");
-	await page.click("#textProps .insert-emoji");
+	assert.deepEqual(await audit(page, "#quickbar"), []);
+	await page.click("#quickbar .insert-emoji");
 	assert.deepEqual(await audit(page, "#emojiDialog"), []);
+	await page.keyboard.press("Escape");
+	await openSettings(page);
+	assert.deepEqual(await audit(page, "#settings"), []);
 });
 
 test("keyboard only: pick elements in the list, rotate, nudge on the canvas, delete; with announcements", async () => {
 	const page = await env.open();
-	await page.click("#modeDesign");
 	await page.click("#addQr");
 	await page.click("#addShape");
 	const state = () => page.evaluate(() => JSON.parse(JSON.stringify(window.labelApp.state)));
 
-	// Focus the list (Tab order lands on the selected option), then arrow down to the QR code.
+	// Open the list, focus it (Tab order lands on the selected option), then arrow down to the QR code.
+	await page.focus("#layersMenu > summary");
+	await page.keyboard.press("Enter");
 	await page.focus("#layers li[tabindex='0']");
 	await page.keyboard.press("ArrowDown");
 	let s = await state();

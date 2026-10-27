@@ -5,7 +5,9 @@
 A static, build-free web app: plain ES modules, no framework and no bundler.
 That makes it easy to host on GitHub Pages or serve with any local static
 server. Nothing is loaded from the network at runtime. Fonts are self-hosted in
-`fonts/` (regenerate with `node tools/fetch-fonts.mjs`), and a network-first
+`fonts/` (regenerate with `node tools/fetch-fonts.mjs`), the interface's icons are
+one sprite, `icons/ui.svg`, of Lucide's (regenerate with `npm run ui-icons`,
+which lists the ones used), and a network-first
 service worker (`sw.js`) caches the app so it works offline and can be
 installed. Its file list and cache name are generated into `precache.js` by
 `npm run precache`. The cache name changes whenever the list does, which clears
@@ -45,7 +47,8 @@ src/
     viewport.js  fit, zoom and pan
     ruler.js     millimetre rulers with the selection's extent and the pointer
     errors.js    a toast for errors nothing else caught
-    panels.js    property panels, Elements list, modes, add/delete/arrange
+    panels.js    settings sections, Elements list, add/delete/arrange
+    quickbar.js  the bar over the label (the selection's essentials) and the settings sheet
     labelbar.js  label size: the printer's presets, continuous, custom, remembered per printer
     text-insert.js  emoji picker and Field menu, inserting at the cursor
     printing.js  printer choice and settings, status line, print
@@ -67,18 +70,22 @@ fileformat, fields, batch, layout, raster, printjob, history and more) is tested
 in Node. The rendering and UI
 are checked in a real Chromium browser against the virtual printer.
 
-## One document, two editors
+## One document, one editor
 
-There's one document: `{ label, elements[] }`. Simple mode is a restricted
-editor over that document. It owns exactly one text element that fills the
-printable area and is centered. Design mode edits the same document freely.
+There's one document: `{ label, elements[] }`, and one editor over it. A new
+label is one text box filling the printable area, selected, so its bar shows
+and typing on it is the obvious first step. (There used to be a Simple mode
+that owned just that one text, and a Design mode; the bar over the label made
+the difference between them small enough to drop.)
 
-- Going from Simple to Design mode costs nothing: the simple text becomes the
-  first text box.
-- Going from Design to Simple mode is lossless when the design is a single
-  text box. Otherwise the app asks before it replaces the design.
+- A text box that fills the printable area keeps filling it when the label
+  changes size (`textFillsLabel`); anything else keeps its place.
+- Whenever nothing is selected on load, the first element is, for the same
+  reason.
 - Save and Load deal with a single structure, so "restore the same state"
-  just means restoring the document plus `editor`.
+  just means restoring the document plus `editor`. Files still say
+  `"mode": "design"`, which copies of the app from before read; this one
+  ignores it.
 
 Positions and sizes are stored in **millimetres** and font sizes in
 **points**. That way files don't depend on the printer, and a label keeps its
@@ -391,15 +398,19 @@ printer can buffer, to adjust on hardware.
 
 ## Accessibility
 
-- The Elements list is a listbox: Tab reaches it, arrow keys / Home / End
-  change the selection. The canvas overlay is focusable; there, arrow keys
+- The bar over the label is a `role="toolbar"`; its More… opens the settings
+  as a non-modal dialog under it, which takes the focus and closes on Esc
+  (before Esc deselects). While typing on the label, the bar's buttons don't
+  take the focus, and its menus hand it back.
+- The Elements list (the menu above the label) is a listbox: Tab reaches it,
+  arrow keys / Home / End change the selection. The canvas overlay is focusable; there, arrow keys
   nudge, R rotates and Delete removes. Clicking an element focuses the canvas
   so shortcuts apply to it.
 - The preview canvas carries a text description of every element; adding,
   deleting, rotating and keyboard selection are announced through a polite
   live region; errors use `role="alert"`.
-- `test/e2e/a11y.e2e.js` runs axe-core over both modes, every element
-  panel and the dialogs (currently zero findings at any severity), and drives
+- `test/e2e/a11y.e2e.js` runs axe-core over a new label, the open menus,
+  the bar, the settings and the dialogs (currently zero findings at any severity), and drives
   the editor keyboard-only.
 
 ## Browser support

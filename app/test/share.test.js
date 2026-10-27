@@ -8,7 +8,7 @@ import { createDocument } from "../src/model.js";
 test("a label survives the trip through a link, and the link is URL-safe and compact", async () => {
 	const doc = createDocument();
 	doc.elements[0].text = "Pantry ❄ {date+30d}\n".repeat(20);
-	const text = serialize(doc, { mode: "simple", selectedIds: [] });
+	const text = serialize(doc, { selectedIds: [] });
 	const hash = await encodeShare(text);
 	assert.ok(hash.startsWith(SHARE_PREFIX));
 	assert.match(hash.slice(SHARE_PREFIX.length), /^[A-Za-z0-9_-]+$/);
@@ -19,7 +19,7 @@ test("a label survives the trip through a link, and the link is URL-safe and com
 test("other hashes are ignored; damaged links fail with a readable message", async () => {
 	assert.equal(await decodeShare(""), null);
 	assert.equal(await decodeShare("#section"), null);
-	const hash = await encodeShare(serialize(createDocument(), { mode: "simple" }));
+	const hash = await encodeShare(serialize(createDocument()));
 	await assert.rejects(decodeShare(hash.slice(0, hash.length / 2)), /damaged or incomplete/);
 });
 

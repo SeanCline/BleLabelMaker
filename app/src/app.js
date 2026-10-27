@@ -5,7 +5,6 @@ import { installFontStylesheet } from "./fonts.js";
 import { clearRenderCache } from "./render.js";
 import { state, notify, currentFile, undo, redo } from "./ui/store.js";
 import { drawCanvas, scheduleCanvas } from "./ui/stage.js";
-import { setMode } from "./ui/panels.js";
 import { loadFile, sharedReady } from "./ui/files.js";
 import { print, simulateVirtual } from "./ui/printing.js";
 import "./ui/keyboard.js";
@@ -14,6 +13,7 @@ import "./ui/labelbar.js";
 import "./ui/new-label.js";
 import "./ui/welcome.js";
 import "./ui/text-insert.js";
+import "./ui/quickbar.js";
 import "./ui/ruler.js";
 import "./ui/report.js";
 import { historyEntries, historyReady, historySaved } from "./ui/history-panel.js";
@@ -49,7 +49,6 @@ if (navigator.webdriver || new URLSearchParams(location.search).has("debug")) {
 		state,
 		print,
 		drawCanvas,
-		setMode,
 		undo,
 		redo,
 		serialize: currentFile,

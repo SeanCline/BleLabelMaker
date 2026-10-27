@@ -6,9 +6,7 @@ import {
 	createShape,
 	createText,
 	rotateTo,
-	isSimpleCompatible,
 	printableArea,
-	toSimple,
 	clampToLabel,
 	alignPatches,
 	distributePatches,
@@ -34,10 +32,8 @@ import {
 	undo,
 	redo,
 } from "./store.js";
-import { fittedSizes, onDrawn, renderWarnings } from "./stage.js";
+import { fittedSizes, onDrawn, renderWarnings, startInlineEdit } from "./stage.js";
 import { STYLE_PROPS, clearStyle, mapStyles, retext, textOf } from "../richtext.js";
-
-const simpleElement = () => state.doc.elements[0];
 
 // ---------------------------------------------------------------------------
 // Property binding: inputs carry data-prop / data-type, panels carry data-panel.
@@ -52,7 +48,7 @@ const weightOptions = (sel, family, current) => {
 	sel.value = String(current);
 };
 
-const syncProps = (root, element) => {
+export const syncProps = (root, element) => {
 	for (const input of $$("[data-prop]", root)) {
 		const prop = input.dataset.prop;
 		if (prop === "fontWeight") weightOptions(input, element.fontFamily, element[prop]);
@@ -98,7 +94,6 @@ const updateFittedSizes = () => {
 		if (!input || !e?.fit || document.activeElement === input) return;
 		input.value = String(shownSize(e));
 	};
-	show($("#simplePanel"), simpleElement());
 	if (selected()?.type === "text") show($("#textProps"), selected());
 	const warning = selected() && renderWarnings().get(selected().id);
 	$("#elementWarning").hidden = !warning;
@@ -114,8 +109,8 @@ const coerce = (input) => {
 	return input.value;
 };
 
-/** The element a panel edits: simple mode's one text, or the selected element. */
-export const targetFor = (root) => (root.dataset.panel === "simple" ? simpleElement() : selected());
+/** The element a settings section (or the bar) edits: the one selected. */
+export const targetFor = (_root) => selected();
 
 const onPropInput = (ev) => {
 	const input = ev.target.closest("[data-prop]");
@@ -241,28 +236,14 @@ const renderLayers = () => {
 };
 
 const renderPanels = () => {
-	const design = state.mode === "design";
-	$("#modeSimple").setAttribute("aria-selected", String(!design));
-	$("#modeDesign").setAttribute("aria-selected", String(design));
-	$("#simplePanel").hidden = design;
-	$("#designPanel").hidden = !design;
 	$("#btnUndo").disabled = !history.canUndo;
 	$("#btnRedo").disabled = !history.canRedo;
-
-	if (!design) {
-		syncProps($("#simplePanel"), simpleElement());
-		return;
-	}
-
 	renderLayers();
 
 	const e = selected();
 	const count = state.selectedIds.length;
-	$("#noSelection").hidden = count > 0;
-	$("#multiProps").hidden = count < 2;
 	if (count > 1) {
-		$("#multiCount").textContent =
-			`${count} elements selected. Drag any of them to move them together.`;
+		$("#multiCount").textContent = `${count} selected`;
 		for (const b of $$("[data-distribute]")) b.disabled = count < 3;
 	}
 	for (const panel of $$("#designPanel [data-panel][data-types]")) {
@@ -295,27 +276,6 @@ $("#layers").addEventListener("keydown", (ev) => {
 });
 
 // ---------------------------------------------------------------------------
-// Modes
-
-export const setMode = (mode) => {
-	if (mode === state.mode) return;
-	if (mode === "design") {
-		const first = state.doc.elements[0];
-		commit(state.doc, { mode: "design", selectedIds: first ? [first.id] : [] });
-		return;
-	}
-	if (!isSimpleCompatible(state.doc)) {
-		const ok = confirm(
-			"Simple mode shows a single block of text. Switch and replace this design with its first text box?\n\n(You can undo this.)",
-		);
-		if (!ok) return;
-	}
-	commit(toSimple(state.doc), { mode: "simple", selectedIds: [] });
-};
-$("#modeSimple").addEventListener("click", () => setMode("simple"));
-$("#modeDesign").addEventListener("click", () => setMode("design"));
-
-// ---------------------------------------------------------------------------
 // Design actions
 
 export const addElement = (element) => {
@@ -337,8 +297,10 @@ export const centred = (w, h) => {
 
 $("#addText").addEventListener("click", () => {
 	const a = printableArea(state.doc.label);
-	addElement(createText(state.doc, { ...centred(a.w / 2, a.h / 2), text: "Text", fit: true }));
-	$('#textProps [data-prop="text"]').select();
+	const e = createText(state.doc, { ...centred(a.w / 2, a.h / 2), text: "Text", fit: true });
+	addElement(e);
+	// Straight to typing on it, with the placeholder selected to type over.
+	startInlineEdit(e.id);
 });
 
 $("#addShape").addEventListener("click", () => {
@@ -353,22 +315,20 @@ $("#addBarcode").addEventListener("click", () => {
 	const modules = encodeBarcode(e.symbology, e.data).modules.length;
 	const width = Math.min(a.w, Math.ceil(dotsToMm(modules * 2) + 0.5));
 	addElement({ ...e, ...centred(width, a.h) });
-	$('#barcodeProps [data-prop="data"]').select();
+	$('#quickbar [data-qb="barcode"] [data-prop="data"]').select();
 });
 
 $("#addQr").addEventListener("click", () => {
 	const a = printableArea(state.doc.label);
 	const side = Math.min(a.h, a.w);
 	addElement(createQr(state.doc, centred(side, side)));
-	$('#qrProps [data-prop="data"]').select();
+	$('#quickbar [data-qb="qr"] [data-prop="data"]').select();
 });
 
 /** Adds an image file as a new element, sized to fit the printable area. Switches to design mode. */
 export const addImageFile = async (file) => {
 	try {
 		const img = await importImageFile(file);
-		if (state.mode !== "design") setMode("design");
-		if (state.mode !== "design") return; // user declined leaving simple mode
 		const { w, h } = fitBox(img, printableArea(state.doc.label));
 		addElement(createImage(state.doc, { ...centred(w, h), src: img.src }));
 	} catch (err) {
@@ -413,8 +373,6 @@ export const deleteSelected = () => {
 /** Adds copies of elements (from the clipboard or a duplicate) and selects them. */
 export const addCopies = (elements) => {
 	if (!elements.length) return;
-	if (state.mode !== "design") setMode("design");
-	if (state.mode !== "design") return; // user declined leaving simple mode
 	const copies = placeCopies(state.doc, elements);
 	commit(
 		{ ...state.doc, elements: [...state.doc.elements, ...copies] },
@@ -450,9 +408,7 @@ const moveLayer = (delta) => {
 };
 
 $("#btnDelete").addEventListener("click", deleteSelected);
-$("#btnDeleteMulti").addEventListener("click", deleteSelected);
 $("#btnDuplicate").addEventListener("click", duplicateSelected);
-$("#btnDuplicateMulti").addEventListener("click", duplicateSelected);
 $("#btnForward").addEventListener("click", () => moveLayer(1));
 $("#btnBackward").addEventListener("click", () => moveLayer(-1));
 $("#btnUndo").addEventListener("click", undo);

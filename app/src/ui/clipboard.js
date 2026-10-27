@@ -18,7 +18,7 @@ const pageTextSelected = () => {
 };
 
 const copySelection = (ev) => {
-	if (!forElements(ev) || state.mode !== "design" || pageTextSelected()) return false;
+	if (!forElements(ev) || pageTextSelected()) return false;
 	const els = selectedElements();
 	if (!els.length) return false;
 	ev.clipboardData.setData("text/plain", serializeElements(els));
@@ -55,7 +55,6 @@ document.addEventListener("paste", (ev) => {
 		return;
 	}
 	// Anything else pasted onto the label becomes a new text box.
-	if (state.mode !== "design") return;
 	ev.preventDefault();
 	const a = printableArea(state.doc.label);
 	addElement(createText(state.doc, { ...centred(a.w / 2, a.h / 2), text: text.trim(), fit: true }));

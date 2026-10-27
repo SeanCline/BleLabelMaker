@@ -49,7 +49,6 @@ document.addEventListener("keydown", (ev) => {
 	if (!mod && (key === "+" || key === "=")) return zoomStep(1);
 	if (!mod && (key === "-" || key === "_")) return zoomStep(-1);
 	if (!mod && key === "0") return setZoom(1);
-	if (state.mode !== "design") return;
 	if (mod && key === "a") {
 		ev.preventDefault();
 		setSelection(state.doc.elements.map((e) => e.id));

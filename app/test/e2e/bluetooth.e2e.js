@@ -18,7 +18,7 @@ const fake = (page, expr) =>
 test("a first visit starts on the Bluetooth printer, or the virtual one without Web Bluetooth", async () => {
 	const page = await env.open({ printer: null });
 	assert.equal(await page.$eval("#target", (s) => s.value), "bluetooth");
-	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent), "Connect & print");
+	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Connect & print");
 	assert.equal(await page.$eval("#noBluetooth", (b) => b.hidden), true);
 
 	const without = await env.open({
@@ -41,7 +41,7 @@ test("connect: picker filters for the D30, status arrives over notifications", a
 		"A30 sizes",
 	);
 	assert.match(await page.$eval("#setPrinter option[value=a30]", (o) => o.textContent), /untested/);
-	const printButton = () => page.$eval("#btnPrint", (b) => b.textContent);
+	const printButton = () => page.$eval("#btnPrint", (b) => b.textContent.trim());
 	assert.equal(await printButton(), "Connect & print");
 	await page.click("#btnConnect");
 	await page.waitForFunction(() =>
@@ -132,7 +132,7 @@ test("disconnect and reconnect without re-picking; Forget asks again", async () 
 
 test("a connection lost mid-print says how far it got, and keeps the serials it used", async () => {
 	const page = await openWithFakeD30();
-	await typeInto(page, "#simpleText", "BIN-{n}");
+	await typeInto(page, "#designText", "BIN-{n}");
 	await typeInto(page, "#copies", "3");
 	await page.click("#btnConnect");
 	await page.waitForFunction(() =>

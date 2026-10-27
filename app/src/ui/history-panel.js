@@ -71,7 +71,7 @@ const setEntries = (next) => {
 
 onPrinted(async ({ copies, target }) => {
 	// Captured now: by the time the stored history has loaded, the design may have changed.
-	const print = { doc: state.doc, editor: { mode: state.mode }, copies, target };
+	const print = { doc: state.doc, copies, target };
 	await historyReady;
 	setEntries(recordPrint(entries, print));
 	keepStorage();

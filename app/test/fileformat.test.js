@@ -20,7 +20,7 @@ const sampleDoc = () => {
 
 test("round trip restores document and editor state exactly", () => {
 	const doc = sampleDoc();
-	const editor = { mode: "design", selectedIds: [doc.elements[2].id, doc.elements[0].id] };
+	const editor = { selectedIds: [doc.elements[2].id, doc.elements[0].id] };
 	const back = parse(serialize(doc, editor));
 	assert.deepEqual(back.doc, doc);
 	assert.deepEqual(back.editor, editor);
@@ -29,7 +29,7 @@ test("round trip restores document and editor state exactly", () => {
 
 test("file carries format id, the app's repository and version", () => {
 	const doc = sampleDoc();
-	const raw = JSON.parse(serialize(doc, { mode: "simple" }));
+	const raw = JSON.parse(serialize(doc));
 	assert.equal(raw.format, "labelmaker-label");
 	assert.equal(raw.app, REPO_URL);
 	// Nothing in it is formatted, so copies of the app from before formatting can open it.
@@ -43,7 +43,7 @@ test("file carries format id, the app's repository and version", () => {
 });
 
 test("unknown fields are dropped, dangling selection is cleared", () => {
-	const raw = JSON.parse(serialize(sampleDoc(), { mode: "design", selectedIds: ["nope"] }));
+	const raw = JSON.parse(serialize(sampleDoc(), { selectedIds: ["nope"] }));
 	raw.elements[0].sparkle = true;
 	raw.extra = 1;
 	const back = parse(JSON.stringify(raw));
@@ -52,7 +52,7 @@ test("unknown fields are dropped, dangling selection is cleared", () => {
 });
 
 const rejects = (mutate, pattern) => {
-	const raw = JSON.parse(serialize(sampleDoc(), { mode: "design" }));
+	const raw = JSON.parse(serialize(sampleDoc()));
 	mutate(raw);
 	assert.throws(
 		() => parse(JSON.stringify(raw)),
@@ -77,7 +77,7 @@ test("rejects malformed files with readable messages", () => {
 });
 
 test("auto length is kept only on continuous rolls, and only when on", () => {
-	const raw = JSON.parse(serialize(sampleDoc(), { mode: "simple" }));
+	const raw = JSON.parse(serialize(sampleDoc()));
 	const label = (l) => parse(JSON.stringify({ ...raw, label: { ...raw.label, ...l } })).doc.label;
 	assert.equal(label({ continuous: true, autoLength: true }).autoLength, true);
 	assert.equal("autoLength" in label({ continuous: true, autoLength: false }), false);
@@ -102,7 +102,7 @@ test("a file may leave out what a new element would have anyway", () => {
 	assert.equal(t.fontSizePt, createText(doc).fontSizePt);
 	assert.equal(t.rotation, 0);
 	assert.equal(b.symbology, "CODE128");
-	assert.equal(editor.mode, "design");
+	assert.deepEqual(editor, { selectedIds: [] });
 	// But not where an element is, or what it shows.
 	rejects((r) => delete r.elements[0].x, /x must be a number/);
 	rejects((r) => delete r.elements[0].text, /text must be text/);
@@ -112,16 +112,16 @@ test("a file may leave out what a new element would have anyway", () => {
 test("continuous labels round-trip", () => {
 	const doc = createDocument({ widthMm: 85, heightMm: 12, continuous: true });
 	doc.elements.push(createQr(doc));
-	assert.deepEqual(parse(serialize(doc, { mode: "design" })).doc, doc);
+	assert.deepEqual(parse(serialize(doc)).doc, doc);
 });
 
 test("shapes validate and round-trip", () => {
 	const doc = sampleDoc();
 	doc.elements.push(createShape(doc, { shape: "ellipse", fill: true, rotation: 90 }));
-	const back = parse(serialize(doc, { mode: "design" }));
+	const back = parse(serialize(doc));
 	assert.deepEqual(back.doc, doc);
 	rejects((r) => (r.elements[0].rotation = 45), /rotation/);
-	const raw = JSON.parse(serialize(doc, { mode: "design" }));
+	const raw = JSON.parse(serialize(doc));
 	raw.elements[3].strokeMm = 0;
 	assert.throws(() => parse(JSON.stringify(raw)), /line thickness/);
 	raw.elements[3].strokeMm = 1;
@@ -134,14 +134,14 @@ test("images must be embedded data, never URLs", () => {
 	const png =
 		"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
 	doc.elements.push(createImage(doc, { src: png, mode: "threshold", level: 90, invert: true }));
-	assert.deepEqual(parse(serialize(doc, { mode: "design" })).doc, doc);
+	assert.deepEqual(parse(serialize(doc)).doc, doc);
 	for (const src of [
 		"https://example.com/a.png",
 		"javascript:alert(1)",
 		"data:text/html;base64,PGI+",
 		"data:image/svg+xml;base64,PHN2Zz4=",
 	]) {
-		const raw = JSON.parse(serialize(doc, { mode: "design" }));
+		const raw = JSON.parse(serialize(doc));
 		raw.elements[3].src = src;
 		assert.throws(() => parse(JSON.stringify(raw)), /embedded PNG/, src);
 	}
@@ -162,7 +162,7 @@ test("copied elements round-trip through the clipboard format; other text is lef
 test("text elements never keep emoji presentation selectors", () => {
 	const doc = createDocument();
 	doc.elements[0].text = "Hot 🌶\uFE0F ❄\uFE0F";
-	const loaded = parse(serialize(doc, { mode: "simple", selectedIds: [] })).doc;
+	const loaded = parse(serialize(doc, { selectedIds: [] })).doc;
 	assert.equal(/** @type {any} */ (loaded.elements[0]).text, "Hot 🌶 ❄");
 	assert.equal(createText(doc, { text: "⚠\uFE0F" }).text, "⚠");
 });
@@ -170,7 +170,7 @@ test("text elements never keep emoji presentation selectors", () => {
 test("formatted text saves as runs, says it needs version 2, and round-trips exactly", () => {
 	const doc = sampleDoc();
 	doc.elements.push(createText(doc, { text: ["Use ", [{ fontWeight: 700 }, "by"], " Friday"] }));
-	const file = serialize(doc, { mode: "design" });
+	const file = serialize(doc);
 	const raw = JSON.parse(file);
 	assert.equal(raw.version, CURRENT_VERSION);
 	assert.equal(CURRENT_VERSION, 2);
@@ -183,7 +183,7 @@ test("formatted text saves as runs, says it needs version 2, and round-trips exa
 });
 
 test("hand-written runs are tidied; bad ones are refused", () => {
-	const raw = JSON.parse(serialize(sampleDoc(), { mode: "design" }));
+	const raw = JSON.parse(serialize(sampleDoc()));
 	raw.version = 2;
 	// The second element is bold already, so a bold run in it is nothing special.
 	raw.elements[1].text = ["Line ", [{ fontWeight: 700 }, "one"], "", [{}, "\nline two"]];

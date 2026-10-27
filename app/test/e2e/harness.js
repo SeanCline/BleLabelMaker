@@ -124,6 +124,20 @@ export const typeInto = (page, selector, value) =>
 		value,
 	);
 
+/** Opens the settings for what's selected (the bar's More…), for the fields not on the bar. */
+export const openSettings = async (page) => {
+	if (await page.$eval("#settings", (s) => s.hidden))
+		await page.click('#quickbar [data-qb-action="more"]');
+};
+/** Picks an item from the File menu (New, Open, Save, Share, History). */
+export const fromFileMenu = async (page, selector) => {
+	await page.$eval("#fileMenu", (d) => d.setAttribute("open", ""));
+	await page.click(selector);
+};
+/** Opens the list of elements beside the label. */
+export const openElements = (page) =>
+	page.$eval("#layersMenu", (d) => /** @type {HTMLDetailsElement} */ (d).setAttribute("open", ""));
+
 export const appState = (page) =>
 	page.evaluate(() => JSON.parse(JSON.stringify(window.labelApp.state)));
 export const serialized = (page) => page.evaluate(() => window.labelApp.serialize());

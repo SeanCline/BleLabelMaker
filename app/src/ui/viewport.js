@@ -17,7 +17,10 @@ export const sizeStage = () => {
 	// The border box, not clientWidth: scrollbars appearing at high zoom mustn't change the fit.
 	// With rulers, the left one and its gap take room beside the label too.
 	const ruler = paper.parentElement.classList.contains("with-ruler") ? 24 : 0;
-	const avail = stage.getBoundingClientRect().width - 2 - 48 - ruler;
+	// The stage's padding leaves room for the rail, which moves on narrow screens (styles.css).
+	const style = getComputedStyle(stage);
+	const padding = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+	const avail = stage.getBoundingClientRect().width - 2 - padding - 16 - ruler;
 	const fit = avail / width;
 	const want = fit * zoom;
 	// Half-step zoom keeps each printer dot a crisp block on screen; below 1:1 (phones) any

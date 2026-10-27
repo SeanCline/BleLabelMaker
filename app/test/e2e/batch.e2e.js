@@ -1,12 +1,12 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, appState, labelPixels } from "./harness.js";
+import { setup, typeInto, appState, labelPixels, openSettings } from "./harness.js";
 
 let env;
 before(async () => (env = await setup()));
 after(async () => env?.teardown());
 
-const setText = (page, text) => typeInto(page, "#simpleText", text);
+const setText = (page, text) => typeInto(page, "#designText", text);
 const printAndWait = async (page, count) => {
 	await page.click("#btnPrint");
 	await page.waitForFunction(
@@ -46,7 +46,7 @@ test("a batch list prints one label per line, with a preview of each", async () 
 	assert.equal(await page.$eval("#batchUnused", (w) => w.hidden), false, "warns: list unused");
 	await setText(page, "{1}");
 	assert.equal(await page.$eval("#batchUnused", (w) => w.hidden), true);
-	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent), "Print 3 labels");
+	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Print 3 labels");
 	assert.equal(await page.$eval("#batchPos", (p) => p.textContent), "1 of 3");
 
 	const first = await canvasHash(page);
@@ -65,9 +65,9 @@ test("a batch list prints one label per line, with a preview of each", async () 
 	await page.reload({ waitUntil: "networkidle0" });
 	await page.evaluate(() => window.labelApp.ready);
 	assert.equal(await page.$eval("#batchPanel", (d) => d.open), true);
-	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent), "Print 3 labels");
+	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Print 3 labels");
 	await page.click("#batchClear");
-	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent), "Print");
+	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Print");
 	assert.deepEqual(page.errors, []);
 });
 
@@ -79,14 +79,15 @@ test("spreadsheet columns by heading, and the field menu inserts at the cursor",
 	assert.match(await page.$eval("#batchHint", (h) => h.textContent), /\{Spice\} \{Jar\}/);
 
 	await setText(page, "Jar ");
-	await page.$eval("#simpleText", (t) => {
+	await openSettings(page);
+	await page.$eval("#designText", (t) => {
 		t.focus();
 		t.setSelectionRange(4, 4);
 	});
-	await page.select("#simplePanel .insert-field", "{2}");
+	await page.select("#textProps .insert-field", "{2}");
 	assert.equal((await appState(page)).doc.elements[0].text, "Jar {2}");
-	assert.equal(await page.evaluate(() => document.activeElement.id), "simpleText");
-	assert.equal(await page.$eval("#simplePanel .insert-field", (s) => s.value), "", "menu resets");
-	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent), "Print 2 labels");
+	assert.equal(await page.evaluate(() => document.activeElement.id), "designText");
+	assert.equal(await page.$eval("#textProps .insert-field", (s) => s.value), "", "menu resets");
+	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Print 2 labels");
 	assert.deepEqual(page.errors, []);
 });

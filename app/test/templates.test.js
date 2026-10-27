@@ -18,7 +18,7 @@ const labels = [
 test("every template fits in the printable area of every label, and saves as a valid file", () => {
 	for (const template of TEMPLATES) {
 		for (const label of labels) {
-			const { doc, mode } = fromTemplate(template, label);
+			const doc = fromTemplate(template, label);
 			const where = `${template.id} on ${label.widthMm}×${label.heightMm}`;
 			const area = printableArea(label);
 			assert.ok(doc.elements.length > 0, where);
@@ -29,22 +29,8 @@ test("every template fits in the printable area of every label, and saves as a v
 				assert.ok(e.x + e.w <= area.x + area.w + 1e-9, `${where}: ${e.id} right edge`);
 				assert.ok(e.y + e.h <= area.y + area.h + 1e-9, `${where}: ${e.id} bottom edge`);
 			}
-			const reloaded = parse(serialize(doc, { mode: mode ?? "simple" }));
+			const reloaded = parse(serialize(doc));
 			assert.deepEqual(reloaded.doc, doc, where);
 		}
 	}
-});
-
-test("one-text templates open in simple mode, the rest in design; blank keeps the mode", () => {
-	const label = labels[0];
-	const modes = Object.fromEntries(TEMPLATES.map((t) => [t.id, fromTemplate(t, label).mode]));
-	assert.deepEqual(modes, {
-		blank: null,
-		name: "simple",
-		food: "simple",
-		bin: "design",
-		price: "design",
-		cable: "design",
-		asset: "design",
-	});
 });

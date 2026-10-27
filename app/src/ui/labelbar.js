@@ -119,9 +119,7 @@ const setLabel = (wanted) => {
 	remember(label);
 	const l = state.doc.label;
 	if (JSON.stringify(labelOf(l)) === JSON.stringify(label)) return;
-	commit(resizeLabel(state.doc, label, { refitSimple: state.mode === "simple" }), {
-		group: "label-size",
-	});
+	commit(resizeLabel(state.doc, label), { group: "label-size" });
 };
 
 $("#labelPreset").addEventListener("change", (ev) => {

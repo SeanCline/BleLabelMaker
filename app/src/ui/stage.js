@@ -150,7 +150,7 @@ const renderOverlay = () => {
 		),
 	);
 
-	const elements = state.mode === "design" ? state.doc.elements : [];
+	const elements = state.doc.elements;
 	const live = new Set(elements.map((e) => e.id));
 	for (const [id, box] of boxEls) {
 		if (!live.has(id)) {
@@ -169,11 +169,6 @@ const renderOverlay = () => {
 		if (e) positionInline(e);
 		if (!inline.frame.isConnected) overlay.append(inline.frame);
 	}
-
-	$("#stageHint").textContent =
-		state.mode === "simple"
-			? "Double-click the label to type on it. Dashed line = printable area. What you see is exactly what prints."
-			: "Click to select (Shift-click or drag a box for several) · drag to move · drag handles to resize · double-click text to type on the label.";
 };
 
 // ---------------------------------------------------------------------------
@@ -192,7 +187,7 @@ const overlayMm = (ev) => {
 };
 
 overlay.addEventListener("pointerdown", (ev) => {
-	if (state.mode !== "design" || ev.button !== 0) return;
+	if (ev.button !== 0) return;
 	// So arrow keys, R and Delete act on what was just clicked, not on a panel field.
 	overlay.focus({ preventScroll: true });
 	// The preventDefault below keeps the browser from clearing a text selection elsewhere on
@@ -353,6 +348,23 @@ overlay.addEventListener("pointercancel", endDrag);
 
 let inline = null;
 
+const inlineListeners = new Set();
+/** Runs when typing on the label starts, stops, or its selection moves (the quick bar). */
+export const onInlineChange = (fn) => inlineListeners.add(fn);
+const inlineChanged = () => {
+	for (const fn of inlineListeners) fn();
+};
+/** What's being typed on the label, if anything. */
+export const inlineEdit = () =>
+	inline && {
+		id: inline.id,
+		from: inline.textarea.selectionStart,
+		to: inline.textarea.selectionEnd,
+		pending: inline.pending,
+	};
+/** Back to typing, after a quick bar control took the focus. */
+export const refocusInline = () => inline?.textarea.focus({ preventScroll: true });
+
 const measureCtx = document.createElement("canvas").getContext("2d");
 
 // The element's local frame inside its box, as the renderer turns it (QUARTER in render.js).
@@ -414,6 +426,7 @@ const drawCaret = () => {
 			}),
 		),
 	);
+	inlineChanged();
 };
 
 /** The end of the selection that moves: where the caret is. */
@@ -466,7 +479,7 @@ const lineKey = (key) => {
 const STYLE_KEYS = { b: "fontWeight", i: "italic", u: "underline" };
 const BOLD = 600;
 
-const toggleStyle = (prop) => {
+export const toggleStyle = (prop) => {
 	const e = /** @type {import("../model.js").TextElement} */ (elementById(inline.id));
 	if (prop === "italic" && !(fontInfo(e.fontFamily)?.italic ?? true)) return;
 	const { selectionStart: a, selectionEnd: b } = inline.textarea;
@@ -483,6 +496,7 @@ const toggleStyle = (prop) => {
 			: on;
 	if (a === b) {
 		inline.pending = { at: a, style: { ...typingStyle(e.text, a), ...pending, [prop]: value } };
+		inlineChanged();
 		return;
 	}
 	// Its own undo step, apart from the typing around it.
@@ -526,8 +540,10 @@ export const startInlineEdit = (id, caret) => {
 		inline.pending = null;
 		updateElement(id, { text: applyEdit(current.text, edit, style) }, inline.group);
 	});
-	textarea.addEventListener("blur", () => {
+	textarea.addEventListener("blur", (ev) => {
 		rememberCaret(id, textarea, "inline");
+		// The bar's fields set the font or insert a field while typing; the bar hands back.
+		if (/** @type {Element} */ (ev.relatedTarget)?.closest?.("#quickbar")) return;
 		stopInlineEdit();
 	});
 	textarea.addEventListener("keydown", (ev) => {
@@ -607,24 +623,22 @@ export const stopInlineEdit = () => {
 	inline = null;
 	frame.remove();
 	history.seal();
+	inlineChanged();
 	renderOverlay();
 	// Fields in the text it was showing as typed get filled in again.
 	scheduleCanvas();
 };
 
 overlay.addEventListener("dblclick", (ev) => {
-	// Simple mode has no boxes; the whole label is its one text. In design mode the drag code
-	// captures the pointer, so the dblclick targets the overlay; the first click selected the box.
-	const id =
-		state.mode === "simple"
-			? state.doc.elements[0]?.id
-			: (ev.target.closest(".box")?.dataset.id ?? state.selectedId);
+	// The drag code captures the pointer, so the dblclick targets the overlay; the first click
+	// selected the box.
+	const id = ev.target.closest(".box")?.dataset.id ?? state.selectedId;
 	const e = id && elementById(id);
 	if (!e) return;
 	if (e.type === "text") {
 		startInlineEdit(id);
 	} else {
-		const field = $(`#designPanel [data-types~="${e.type}"] [data-prop]`);
+		const field = $(`#quickbar [data-qb="${e.type}"] [data-prop]`);
 		field?.focus();
 		field?.select?.();
 	}
