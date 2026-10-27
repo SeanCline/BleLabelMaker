@@ -14,6 +14,10 @@ const ICONS = [
 	"undo-2",
 	"redo-2",
 	"printer",
+	"chevron-down",
+	// The label size, and the batch list
+	"tag",
+	"table",
 	// Adding elements, and the list of them
 	"type",
 	"square",

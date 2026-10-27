@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, appState } from "./harness.js";
+import { setup, typeInto, appState, clickInMenu, openBatchList } from "./harness.js";
 
 let env;
 before(async () => (env = await setup()));
@@ -195,7 +195,7 @@ test("auto length: a continuous label grows with its text, per batch row when pr
 	const page = await env.open();
 	const label = () => appState(page).then((s) => s.doc.label);
 	await page.select("#labelPreset", "continuous");
-	await page.click("#labelAutoLength");
+	await clickInMenu(page, "#labelAutoLength");
 	assert.equal(await page.$eval("#labelLen", (i) => i.disabled), true, "nothing to type");
 	await typeInto(page, "#designText", "Hi");
 	await page.waitForFunction(() => window.labelApp.state.doc.label.widthMm < 20);
@@ -214,11 +214,46 @@ test("auto length: a continuous label grows with its text, per batch row when pr
 
 	// A batch prints each row at its own length.
 	await typeInto(page, "#designText", "{1}");
-	await page.click("#batchPanel summary");
+	await openBatchList(page);
 	await typeInto(page, "#batchData", "Salt\nSmoked paprika and cumin");
 	await page.click("#btnPrint");
 	await page.waitForFunction(() => document.querySelectorAll("#tape .printed canvas").length >= 2);
 	const lengths = await page.$$eval("#tape .printed canvas", (c) => c.map((x) => x.width));
 	assert.ok(lengths[0] !== lengths[1], `printed lengths ${lengths}`);
+	assert.deepEqual(page.errors, []);
+});
+
+test("the header's printer chip names the printer and shows its problems", async () => {
+	const page = await env.open();
+	const chip = () =>
+		page.$eval("#printerChip", (c) => ({
+			text: c.textContent.trim(),
+			problem: c.matches(".problem"),
+		}));
+	assert.deepEqual(await chip(), { text: "Virtual printer", problem: false });
+	await page.evaluate(() => window.labelApp.simulateVirtual({ coverOpen: true }));
+	await page.waitForFunction(() =>
+		/cover open/.test(document.querySelector("#printerChip").textContent),
+	);
+	assert.deepEqual(await chip(), { text: "Virtual printer · cover open", problem: true });
+	// Its settings are in the menu it opens.
+	await page.click("#printerChip");
+	assert.equal(await page.$eval("#density", (d) => d.checkVisibility()), true);
+	assert.deepEqual(page.errors, []);
+});
+
+test("the label size chip says what's loaded; the field menu opens the batch list", async () => {
+	const page = await env.open();
+	const chip = () => page.$eval("#labelChipText", (c) => c.textContent);
+	assert.equal(await chip(), "40 × 12 mm");
+	await page.select("#labelPreset", "continuous");
+	assert.match(await chip(), /^12 mm roll, \d+ mm long$/);
+
+	await page.select("#quickbar .insert-field", "@batch");
+	assert.equal(await page.$eval("#batchSheet", (s) => s.hidden), false);
+	assert.equal(await page.evaluate(() => document.activeElement.id), "batchData");
+	assert.equal((await appState(page)).doc.elements[0].text, "Hello world", "nothing inserted");
+	await page.keyboard.press("Escape");
+	assert.equal(await page.$eval("#batchSheet", (s) => s.hidden), true);
 	assert.deepEqual(page.errors, []);
 });

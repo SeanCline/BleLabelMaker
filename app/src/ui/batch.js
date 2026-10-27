@@ -32,8 +32,9 @@ const render = () => {
 	if ($("#batchData").value !== saved.text) $("#batchData").value = saved.text;
 	$("#batchHeadings").checked = saved.headings;
 	$("#batchSummary").textContent = n ? `· ${n} label${n === 1 ? "" : "s"}` : "";
-	$("#batchNav").hidden = n < 2;
-	$("#batchPos").textContent = n ? `${previewRow() + 1} of ${n}` : "";
+	// On the label area while there's a list: which row it shows, and the way back to the list.
+	$("#batchNav").hidden = n === 0;
+	$("#batchPos").textContent = n ? `Row ${previewRow() + 1} of ${n}` : "";
 	$("#batchPrev").disabled = previewRow() === 0;
 	$("#batchNext").disabled = previewRow() >= n - 1;
 	const cols = parsed.columns ?? parsed.rows[0]?.map((_, i) => String(i + 1)) ?? [];
@@ -77,6 +78,27 @@ const step = (d) => {
 $("#batchPrev").addEventListener("click", () => step(-1));
 $("#batchNext").addEventListener("click", () => step(1));
 
-// Open the panel if there's a list from last time, so a batch print is never a surprise.
-$("#batchPanel").open = parsed.rows.length > 0;
+const sheet = $("#batchSheet");
+/** Opens the batch list, with the cursor in it. */
+export const openBatch = () => {
+	sheet.hidden = false;
+	$("#batchData").focus();
+};
+const closeBatch = () => {
+	sheet.hidden = true;
+};
+$("#batchEdit").addEventListener("click", openBatch);
+$("#batchClose").addEventListener("click", closeBatch);
+sheet.addEventListener("keydown", (ev) => {
+	if (ev.key !== "Escape") return;
+	ev.stopPropagation();
+	closeBatch();
+});
+$("#btnBatch").addEventListener("click", () => {
+	$("#printMenu").removeAttribute("open");
+	openBatch();
+});
+
+// A list from last time shows on the label area (and in the Print button's count), so a
+// batch print is never a surprise.
 render();

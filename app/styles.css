@@ -267,18 +267,174 @@ summary:has(> .icon) {
 	min-width: 0;
 }
 
-.labelbar,
-.printbar {
+/* A popover under a menu's button, for settings rather than commands: the printer, Print's
+   options, the label size. */
+.menu-panel {
+	position: absolute;
+	z-index: 30;
+	top: calc(100% + 6px);
+	right: 0;
+	width: max-content;
+	max-width: min(360px, calc(100vw - 24px));
 	display: flex;
-	align-items: center;
+	flex-direction: column;
+	align-items: flex-start;
 	gap: 10px;
-	flex-wrap: wrap;
+	padding: 12px;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow);
+	font-weight: normal;
 }
-.labelbar label,
-.printbar label {
+.menu-panel label {
 	display: inline-flex;
 	align-items: center;
 	gap: 6px;
+}
+.menu-panel input[type="number"] {
+	width: 4.5em;
+}
+
+/* The printer in the header: its name and state, with a dot that's green when it's ready. */
+.menu > .printer-chip {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	max-width: 260px;
+	padding: 6px 12px;
+	border-color: var(--border);
+	border-radius: 999px;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	font-size: 13px;
+}
+.chip-dot {
+	flex: none;
+	width: 8px;
+	height: 8px;
+	border-radius: 50%;
+	background: var(--muted);
+}
+.printer-chip.ok .chip-dot {
+	background: #2a9d4b;
+}
+.printer-chip.problem {
+	color: var(--danger);
+	border-color: var(--danger);
+}
+.printer-chip.problem .chip-dot {
+	background: var(--danger);
+}
+
+/* Print, with its options on a narrow button of its own. */
+.split-button {
+	position: relative;
+	display: inline-flex;
+}
+.split-button > #btnPrint {
+	border-top-right-radius: 0;
+	border-bottom-right-radius: 0;
+}
+.print-menu > summary {
+	height: 100%;
+	padding: 0 8px;
+	border-radius: 0 7px 7px 0;
+	border-left: 1px solid rgb(255 255 255 / 0.35);
+	background: var(--accent);
+	color: var(--accent-text);
+}
+.print-menu > summary:hover,
+.print-menu[open] > summary {
+	background: var(--accent);
+	filter: brightness(1.1);
+}
+.split-button progress {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: -6px;
+	width: auto;
+	height: 4px;
+}
+
+/* The label size, in the label area's bottom-left corner. */
+.label-menu {
+	position: absolute;
+	z-index: 5;
+	left: 8px;
+	bottom: 10px;
+}
+.label-menu > summary {
+	background: var(--surface);
+	border-color: var(--border);
+	gap: 8px;
+}
+.label-menu > .menu-panel {
+	top: auto;
+	bottom: calc(100% + 6px);
+	left: 0;
+	right: auto;
+}
+
+/* Which batch row the label shows, while there's a list. */
+.batch-nav {
+	position: absolute;
+	z-index: 5;
+	left: 50%;
+	bottom: 10px;
+	transform: translateX(-50%);
+	display: flex;
+	align-items: center;
+	gap: 2px;
+	padding: 2px;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 999px;
+	box-shadow: var(--shadow);
+}
+/* The first-visit hint moves up out of its way. */
+.batch-nav:not([hidden]) ~ .coach {
+	bottom: 56px;
+}
+.batch-nav button {
+	border: 0;
+	background: none;
+	border-radius: 999px;
+	padding: 4px 10px;
+}
+.batch-nav #batchEdit {
+	display: inline-flex;
+	gap: 6px;
+	color: inherit;
+	text-decoration: none;
+}
+
+/* A sheet for a longer job beside the label: the batch list. */
+.sheet {
+	position: fixed;
+	z-index: 26;
+	right: 16px;
+	bottom: 16px;
+	width: min(420px, calc(100vw - 32px));
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	padding: 12px 14px 14px;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow);
+}
+.sheet-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+}
+.sheet-head .icon-button {
+	border: 0;
+	background: none;
 }
 .custom-size input[type="number"] {
 	width: 4.5em;
@@ -467,15 +623,6 @@ summary:has(> .icon) {
 }
 .batch {
 	font-size: 13px;
-	color: var(--muted);
-}
-.batch[open] {
-	display: flex;
-	flex-direction: column;
-	gap: 6px;
-}
-.batch summary {
-	cursor: pointer;
 }
 .batch textarea {
 	width: 100%;
@@ -644,14 +791,8 @@ summary:has(> .icon) {
 	cursor: ns-resize;
 }
 
-.printbar {
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: var(--radius);
-	padding: 10px 12px;
-}
-.printbar input[type="number"] {
-	width: 4em;
+.status:empty {
+	display: none;
 }
 .status {
 	font-size: 12.5px;
@@ -675,6 +816,7 @@ progress {
 .advanced {
 	font-size: 13px;
 	color: var(--muted);
+	align-self: stretch;
 }
 /* On a wrapper: Chromium lays out a <details> element's contents itself, ignoring flex. */
 .advanced-body {
@@ -1235,8 +1377,34 @@ button.link {
 	#btnRuler {
 		display: none;
 	}
+	.label-menu {
+		position: relative;
+		left: auto;
+		bottom: auto;
+		margin-bottom: 8px;
+	}
+	.label-menu > .menu-panel {
+		top: calc(100% + 6px);
+		bottom: auto;
+	}
+	/* Just the dot; the menu it opens says the rest. */
+	.menu > .printer-chip {
+		padding: 10px;
+	}
+	#printerChipLabel {
+		display: none;
+	}
+	.topbar {
+		gap: 8px;
+	}
+	.batch-nav {
+		bottom: 56px;
+	}
 	.coach {
 		bottom: 56px;
+	}
+	.batch-nav:not([hidden]) ~ .coach {
+		bottom: 100px;
 	}
 }
 @media (max-width: 500px) {

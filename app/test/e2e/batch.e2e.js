@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, appState, labelPixels, openSettings } from "./harness.js";
+import { setup, typeInto, appState, labelPixels, openSettings, openBatchList } from "./harness.js";
 
 let env;
 before(async () => (env = await setup()));
@@ -41,19 +41,19 @@ test("a counter makes every copy different and carries on from the last print", 
 
 test("a batch list prints one label per line, with a preview of each", async () => {
 	const page = await env.open();
-	await page.click("#batchPanel summary");
+	await openBatchList(page);
 	await typeInto(page, "#batchData", "Paprika\nCumin\n\nOregano\n");
 	assert.equal(await page.$eval("#batchUnused", (w) => w.hidden), false, "warns: list unused");
 	await setText(page, "{1}");
 	assert.equal(await page.$eval("#batchUnused", (w) => w.hidden), true);
 	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Print 3 labels");
-	assert.equal(await page.$eval("#batchPos", (p) => p.textContent), "1 of 3");
+	assert.equal(await page.$eval("#batchPos", (p) => p.textContent), "Row 1 of 3");
 
 	const first = await canvasHash(page);
 	await page.click("#batchNext");
 	await page.evaluate(() => window.labelApp.drawCanvas());
 	assert.notEqual(await canvasHash(page), first, "previewing the second line");
-	assert.equal(await page.$eval("#batchPos", (p) => p.textContent), "2 of 3");
+	assert.equal(await page.$eval("#batchPos", (p) => p.textContent), "Row 2 of 3");
 
 	await printAndWait(page, 1);
 	assert.equal(await pictures(page), 3);
@@ -61,19 +61,22 @@ test("a batch list prints one label per line, with a preview of each", async () 
 	assert.equal(history.length, 1, "one history entry for the batch");
 	assert.equal(history[0].copies, 3);
 
-	// The list survives a reload, and the panel opens so a batch is never a surprise.
+	// The list survives a reload, and shows on the label area so a batch is never a surprise.
 	await page.reload({ waitUntil: "networkidle0" });
 	await page.evaluate(() => window.labelApp.ready);
-	assert.equal(await page.$eval("#batchPanel", (d) => d.open), true);
+	assert.equal(await page.$eval("#batchNav", (n) => n.hidden), false);
+	assert.equal(await page.$eval("#batchPos", (p) => p.textContent), "Row 1 of 3");
 	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Print 3 labels");
+	await page.click("#batchEdit");
 	await page.click("#batchClear");
+	assert.equal(await page.$eval("#batchNav", (n) => n.hidden), true);
 	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Print");
 	assert.deepEqual(page.errors, []);
 });
 
 test("spreadsheet columns by heading, and the field menu inserts at the cursor", async () => {
 	const page = await env.open();
-	await page.click("#batchPanel summary");
+	await openBatchList(page);
 	await typeInto(page, "#batchData", "Spice\tJar\nCumin\tA3\nSage\tB1");
 	await page.click("#batchHeadings");
 	assert.match(await page.$eval("#batchHint", (h) => h.textContent), /\{Spice\} \{Jar\}/);

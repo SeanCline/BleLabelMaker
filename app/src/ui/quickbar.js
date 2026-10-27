@@ -31,8 +31,8 @@ const overlay = $("#overlay");
 const settings = $("#settings");
 const more = $('[data-qb-action="more"]', bar);
 const layersMenu = /** @type {HTMLDetailsElement} */ ($("#layersMenu"));
-/** @type {HTMLDetailsElement[]} */
-const menus = [$("#fileMenu"), layersMenu];
+/** Menus that drop down from a button: File, the printer, Print's options, the label size. */
+const menus = /** @type {HTMLDetailsElement[]} */ ([...$$("details.menu"), layersMenu]);
 const BOLD = 600;
 
 /**

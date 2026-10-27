@@ -53,10 +53,108 @@
 				</button>
 			</span>
 			<div class="spacer"></div>
-			<button id="btnPrint" class="primary" title="Print (Ctrl+P)">
-				<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#printer" /></svg
-				><span class="print-label">Print</span>
-			</button>
+			<!-- The printer: which one, its state, and its settings. -->
+			<details class="menu printer-menu" id="printerMenu">
+				<summary class="printer-chip" id="printerChip" title="The printer">
+					<span class="chip-dot" aria-hidden="true"></span
+					><span id="printerChipLabel">Printer</span>
+				</summary>
+				<div class="menu-panel">
+					<label>
+						Printer
+						<select id="target">
+							<option value="virtual">Virtual printer (no hardware)</option>
+							<option value="bluetooth">Bluetooth</option>
+							<option value="serial">Serial port (experimental)</option>
+						</select>
+					</label>
+					<span id="printerStatus" class="status"></span>
+					<button id="btnConnect" hidden>Connect</button>
+					<label id="virtualModelRow" title="Which printer the virtual printer pretends to be"
+						>Model
+						<select id="virtualModel"></select
+					></label>
+					<label>
+						Darkness
+						<select id="density" title="How dark the print is">
+							<option value="light">Light</option>
+							<option value="normal">Normal</option>
+							<option value="dark">Dark</option>
+						</select>
+					</label>
+					<details class="advanced">
+						<summary>More printer settings</summary>
+
+						<div class="advanced-body">
+							<label
+								><input type="checkbox" id="setFlip" /> Flip 180° (use if labels print upside
+								down)</label
+							>
+							<label id="setPrinterRow" title="Picked up from the printer's name when one connects"
+								>Printer model
+								<select id="setPrinter"></select
+							></label>
+							<label
+								>Feed after continuous label
+								<input type="number" id="setFeed" min="0" max="255" step="1" /> dot lines
+								<span class="hint" id="setFeedDefault"></span>
+								<button type="button" id="setFeedReset" hidden>Reset</button></label
+							>
+							<label id="setAutoPowerRow"
+								>Turn the printer off after
+								<select id="setAutoPower">
+									<option value="">(as set on the printer)</option>
+								</select>
+								<span class="hint">experimental</span></label
+							>
+							<label
+								><input type="checkbox" id="setAllDevices" /> Show all Bluetooth devices in
+								picker</label
+							>
+							<button id="btnForget">Forget connected printer</button>
+							<button
+								type="button"
+								id="btnCopyDiagnostics"
+								title="App version, browser, printer and settings, for a bug report"
+							>
+								Copy diagnostics
+							</button>
+						</div>
+					</details>
+				</div>
+			</details>
+			<!-- Print, and what this print makes: copies, numbering, a batch. -->
+			<div class="split-button">
+				<button id="btnPrint" class="primary" title="Print (Ctrl+P)">
+					<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#printer" /></svg
+					><span class="print-label">Print</span>
+				</button>
+				<details class="menu print-menu" id="printMenu">
+					<summary class="primary" title="Copies, numbering and batch lists">
+						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#chevron-down" /></svg
+						><span class="sr-only">Print options</span>
+					</summary>
+					<div class="menu-panel">
+						<label>
+							Copies
+							<input type="number" id="copies" min="1" max="99" value="1" />
+						</label>
+						<label
+							id="counterRow"
+							title="The number {n} prints next. It moves on after every print."
+							hidden
+						>
+							Next number
+							<input type="number" id="counterStart" min="0" step="1" />
+						</label>
+						<button id="btnBatch">
+							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#table" /></svg> Batch
+							list…
+						</button>
+					</div>
+				</details>
+				<progress id="progress" max="1" value="0" hidden></progress>
+			</div>
 		</header>
 
 		<div id="noBluetooth" class="banner" hidden>
@@ -67,50 +165,55 @@
 
 		<main class="layout">
 			<section class="workspace">
-				<div class="labelbar">
-					<label>
-						Label
-						<select id="labelPreset"></select>
-					</label>
-					<span id="continuousSize" class="custom-size" hidden>
-						Length
-						<input
-							type="number"
-							id="labelLen"
-							min="10"
-							max="200"
-							step="1"
-							aria-label="Label length (mm)"
-						/>
-						mm
-						<label class="check" title="Make the label as long as what's on it"
-							><input type="checkbox" id="labelAutoLength" /> Auto</label
-						>
-					</span>
-					<span id="customSize" class="custom-size" hidden>
-						<input
-							type="number"
-							id="labelW"
-							min="10"
-							max="200"
-							step="1"
-							aria-label="Label width (mm)"
-						/>
-						×
-						<input
-							type="number"
-							id="labelH"
-							min="6"
-							max="15"
-							step="0.5"
-							aria-label="Label height (mm)"
-						/>
-						mm
-					</span>
-					<span class="hint" id="labelInfo"></span>
-				</div>
-
 				<div class="canvas-area">
+					<details class="menu label-menu" id="labelMenu">
+						<summary id="labelChip" title="Label size">
+							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#tag" /></svg
+							><span id="labelChipText"></span>
+						</summary>
+						<div class="menu-panel">
+							<label>
+								Label
+								<select id="labelPreset"></select>
+							</label>
+							<span id="continuousSize" class="custom-size" hidden>
+								Length
+								<input
+									type="number"
+									id="labelLen"
+									min="10"
+									max="200"
+									step="1"
+									aria-label="Label length (mm)"
+								/>
+								mm
+								<label class="check" title="Make the label as long as what's on it"
+									><input type="checkbox" id="labelAutoLength" /> Auto</label
+								>
+							</span>
+							<span id="customSize" class="custom-size" hidden>
+								<input
+									type="number"
+									id="labelW"
+									min="10"
+									max="200"
+									step="1"
+									aria-label="Label width (mm)"
+								/>
+								×
+								<input
+									type="number"
+									id="labelH"
+									min="6"
+									max="15"
+									step="0.5"
+									aria-label="Label height (mm)"
+								/>
+								mm
+							</span>
+							<span class="hint" id="labelInfo"></span>
+						</div>
+					</details>
 					<nav class="rail" aria-label="Add to the label">
 						<button id="addText" class="icon-button" title="Add text" aria-label="Add text">
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#type" /></svg>
@@ -200,6 +303,16 @@
 							</button>
 						</span>
 					</div>
+					<div class="batch-nav" id="batchNav" hidden>
+						<button id="batchEdit" class="link" title="Edit the batch list">
+							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#table" /></svg
+							><span id="batchPos" aria-live="polite"></span>
+						</button>
+						<button id="batchPrev" class="icon-button" aria-label="Preview the previous line">
+							‹
+						</button>
+						<button id="batchNext" class="icon-button" aria-label="Preview the next line">›</button>
+					</div>
 					<!-- A first-visit hint, where the first thing to do is. -->
 					<p class="coach" id="welcome" hidden>
 						Double-click the label to type on it
@@ -269,6 +382,7 @@
 							<option value="{n:000}">Counter (001, 002…)</option>
 							<option value="{1}">Batch column 1</option>
 							<option value="{2}">Batch column 2</option>
+							<option value="@batch">Batch list…</option>
 						</select>
 						<button data-qb-action="edit" title="Type on the label (double-click)">
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#pencil" /></svg> Edit
@@ -435,43 +549,6 @@
 						</button>
 					</span>
 				</div>
-				<section class="printbar" aria-label="Print">
-					<label>
-						Printer
-						<select id="target">
-							<option value="virtual">Virtual printer (no hardware)</option>
-							<option value="bluetooth">Bluetooth</option>
-							<option value="serial">Serial port (experimental)</option>
-						</select>
-					</label>
-					<span id="printerStatus" class="status"></span>
-					<button id="btnConnect" hidden>Connect</button>
-					<label id="virtualModelRow" title="Which printer the virtual printer pretends to be"
-						>Model
-						<select id="virtualModel"></select
-					></label>
-					<label>
-						Copies
-						<input type="number" id="copies" min="1" max="99" value="1" />
-					</label>
-					<label
-						id="counterRow"
-						title="The number {n} prints next. It moves on after every print."
-						hidden
-					>
-						Next number
-						<input type="number" id="counterStart" min="0" step="1" />
-					</label>
-					<label>
-						Darkness
-						<select id="density" title="How dark the print is">
-							<option value="light">Light</option>
-							<option value="normal">Normal</option>
-							<option value="dark">Dark</option>
-						</select>
-					</label>
-					<progress id="progress" max="1" value="0" hidden></progress>
-				</section>
 
 				<details class="hint keys" id="keysHelp">
 					<summary>Hints</summary>
@@ -501,81 +578,6 @@
 					</ul>
 				</details>
 
-				<details class="batch" id="batchPanel">
-					<summary>Batch: one label per line <span class="hint" id="batchSummary"></span></summary>
-					<p class="hint">
-						Paste a list, or cells from a spreadsheet, and put {1}, {2}… in your text where each
-						value goes. Every line prints as its own label.
-					</p>
-					<textarea
-						id="batchData"
-						rows="4"
-						spellcheck="false"
-						aria-label="Batch list, one label per line"
-						placeholder="Paprika&#10;Cumin&#10;Oregano"
-					></textarea>
-					<div class="row">
-						<label class="check"
-							><input type="checkbox" id="batchHeadings" /> First line is column names</label
-						>
-						<button id="batchOpen" title="Open a .csv or text file">Open CSV…</button>
-						<input type="file" id="batchFile" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden />
-						<button id="batchClear">Clear</button>
-						<span class="spacer"></span>
-						<span id="batchNav" class="row" hidden>
-							Preview
-							<button id="batchPrev" aria-label="Preview the previous line">‹</button>
-							<span id="batchPos" aria-live="polite"></span>
-							<button id="batchNext" aria-label="Preview the next line">›</button>
-						</span>
-					</div>
-					<p class="hint" id="batchHint"></p>
-					<p class="warning" id="batchUnused" hidden>
-						The label doesn't use the list yet, so every label would come out the same. Put {1} in a
-						text box (or use the Field menu).
-					</p>
-				</details>
-
-				<details class="advanced">
-					<summary>Advanced</summary>
-					<div class="advanced-body">
-						<label
-							><input type="checkbox" id="setFlip" /> Flip 180° (use if labels print upside
-							down)</label
-						>
-						<label id="setPrinterRow" title="Picked up from the printer's name when one connects"
-							>Printer model
-							<select id="setPrinter"></select
-						></label>
-						<label
-							>Feed after continuous label
-							<input type="number" id="setFeed" min="0" max="255" step="1" /> dot lines
-							<span class="hint" id="setFeedDefault"></span>
-							<button type="button" id="setFeedReset" hidden>Reset</button></label
-						>
-						<label id="setAutoPowerRow"
-							>Turn the printer off after
-							<select id="setAutoPower">
-								<option value="">(as set on the printer)</option>
-							</select>
-							<span class="hint">experimental</span></label
-						>
-						<label
-							><input type="checkbox" id="setAllDevices" /> Show all Bluetooth devices in
-							picker</label
-						>
-						<button id="btnForget">Forget connected printer</button>
-						<button
-							type="button"
-							id="btnCopyDiagnostics"
-							title="App version, browser, printer and settings, for a bug report"
-						>
-							Copy diagnostics
-						</button>
-						<p class="hint" id="appVersion"></p>
-					</div>
-				</details>
-
 				<section class="virtual" id="virtualOut" hidden>
 					<div class="virtual-head">
 						<h2>Virtual printer output</h2>
@@ -585,6 +587,41 @@
 					<div class="tape" id="tape"></div>
 				</section>
 			</section>
+
+			<!-- The batch list, opened from Print's options or the field menu. -->
+			<aside class="sheet batch" id="batchSheet" role="dialog" aria-labelledby="batchTitle" hidden>
+				<div class="sheet-head">
+					<h2 id="batchTitle">Batch list <span class="hint" id="batchSummary"></span></h2>
+					<button id="batchClose" class="icon-button" aria-label="Close" title="Close">
+						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#x" /></svg>
+					</button>
+				</div>
+
+				<p class="hint">
+					Paste a list, or cells from a spreadsheet, and put {1}, {2}… in your text where each value
+					goes. Every line prints as its own label.
+				</p>
+				<textarea
+					id="batchData"
+					rows="4"
+					spellcheck="false"
+					aria-label="Batch list, one label per line"
+					placeholder="Paprika&#10;Cumin&#10;Oregano"
+				></textarea>
+				<div class="row">
+					<label class="check"
+						><input type="checkbox" id="batchHeadings" /> First line is column names</label
+					>
+					<button id="batchOpen" title="Open a .csv or text file">Open CSV…</button>
+					<input type="file" id="batchFile" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden />
+					<button id="batchClear">Clear</button>
+				</div>
+				<p class="hint" id="batchHint"></p>
+				<p class="warning" id="batchUnused" hidden>
+					The label doesn't use the list yet, so every label would come out the same. Put {1} in a
+					text box (or use the Field menu).
+				</p>
+			</aside>
 
 			<!-- Everything about the selected element, opened from the bar's "More…". -->
 			<aside
@@ -617,6 +654,7 @@
 									<option value="{n:000}">Counter (001, 002…)</option>
 									<option value="{1}">Batch column 1</option>
 									<option value="{2}">Batch column 2</option>
+									<option value="@batch">Batch list…</option>
 								</select></span
 							>
 							<textarea id="designText" data-prop="text" rows="3"></textarea>
@@ -928,6 +966,7 @@
 				<a href="src/vendor/LICENSE.txt">QR code library</a> ·
 				<a href="icons/LICENSE-lucide.txt">icons</a>
 			</p>
+			<p class="hint" id="appVersion"></p>
 		</footer>
 
 		<dialog id="printedDialog" aria-labelledby="printedTitle">

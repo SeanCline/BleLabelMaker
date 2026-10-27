@@ -8,6 +8,7 @@ import { state, history, updateElement } from "./store.js";
 import { inlineEdit, startInlineEdit } from "./stage.js";
 import { rememberCaret, takeCaret } from "./caret.js";
 import { targetFor } from "./panels.js";
+import { openBatch } from "./batch.js";
 
 const emojiDialog = $("#emojiDialog");
 let emojiCallback = null;
@@ -83,6 +84,7 @@ for (const panel of $$("[data-panel]").filter((p) => $(".insert-emoji", p))) {
 	menu.addEventListener("change", () => {
 		const value = menu.value;
 		menu.value = "";
+		if (value === "@batch") return openBatch();
 		const t = target();
 		if (t && value) insert(t.e, t.caret, value);
 	});

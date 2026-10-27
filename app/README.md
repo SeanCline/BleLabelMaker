@@ -86,14 +86,16 @@ it never needs the internet.
   - `{date}`, `{date+30d}` (also `-1w`, `+3m`, `+1y`), `{date:iso}` for
     2026-12-31, `{time}`
   - `{n}` or `{n:000}`: a number that goes up with every label printed. _Next
-    number_ in the print bar sets where it continues.
+    number_, under the arrow beside Print, sets where it continues.
   - `{{` and `}}` print a literal brace.
     Fields work in text, barcodes and QR codes.
-- **Batch:** open _Batch_ under the print bar and paste a list (one label per
-  line) or cells from a spreadsheet, or open a CSV. Put `{1}`, `{2}`… (or
+- **Batch:** open _Batch list…_ (under the arrow beside Print, or in the
+  Field menu) and paste a list (one label per line) or cells from a
+  spreadsheet, or open a CSV. Put `{1}`, `{2}`… (or
   `{Column name}` with _First line is column names_) in the design. Print then
-  makes one label per row; the arrows preview each one.
-- **Labels:** pick a pre-cut size, or _Continuous roll_ for rolls that are one
+  makes one label per row. While there's a list, the label area shows which
+  row it previews, with arrows to step through them.
+- **Labels:** the size chip at the label area's bottom left; pick a pre-cut size, or _Continuous roll_ for rolls that are one
   long label, then set the length, or tick _Auto_ to make it as long as the
   text (in a batch, each label gets its own length). Only the sizes the selected printer model
   takes are listed.
@@ -130,12 +132,14 @@ it never needs the internet.
   reopen a label, or print it again in one click. Reprinting the same design
   updates its entry instead of adding a duplicate. Export saves the history as
   a backup file. Import merges a backup in, for example on another computer.
-- **Print:** choose _Virtual printer_ or _Bluetooth_, set the
-  number of copies and darkness, then press Print or Ctrl+Enter. Battery, paper
-  and cover status show next to the printer. If prints come out upside
-  down, turn on _Flip 180°_ under _Advanced_.
+- **Print:** the printer chip at the top right says which printer is in use,
+  its battery, and any problem (cover open, out of labels). Click it to choose
+  _Virtual printer_, _Bluetooth_ or _Serial port_ and set the darkness. The
+  arrow beside Print sets the number of copies. Press Print or Ctrl+Enter. If
+  prints come out upside down, turn on _Flip 180°_ under _More printer
+  settings_ in the printer chip.
 - **Printer model:** picked up from the printer's name when it connects, or
-  set under _Advanced_, which also has the feed after a continuous label
+  set under _More printer settings_, which also has the feed after a continuous label
   (each model has its own default).
 - **Serial port (experimental):** if Bluetooth LE won't connect, pair the
   printer in Windows' Bluetooth settings and choose _Serial port_. It

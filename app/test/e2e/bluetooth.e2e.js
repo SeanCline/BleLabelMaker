@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, printedMatchesPreview } from "./harness.js";
+import { setup, typeInto, printedMatchesPreview, clickInMenu } from "./harness.js";
 import { installFakeBluetooth } from "./fake-bluetooth.js";
 
 let env;
@@ -43,7 +43,7 @@ test("connect: picker filters for the D30, status arrives over notifications", a
 	assert.match(await page.$eval("#setPrinter option[value=a30]", (o) => o.textContent), /untested/);
 	const printButton = () => page.$eval("#btnPrint", (b) => b.textContent.trim());
 	assert.equal(await printButton(), "Connect & print");
-	await page.click("#btnConnect");
+	await clickInMenu(page, "#btnConnect");
 	await page.waitForFunction(() =>
 		/^Connected to D30-FAKE · battery 64%$/.test(
 			document.querySelector("#printerStatus").textContent,
@@ -110,7 +110,7 @@ test("print over Bluetooth: chunked writes decode to the previewed label, one pi
 
 test("disconnect and reconnect without re-picking; Forget asks again", async () => {
 	const page = await openWithFakeD30();
-	await page.click("#btnConnect");
+	await clickInMenu(page, "#btnConnect");
 	await page.waitForFunction(() =>
 		/Connected/.test(document.querySelector("#printerStatus").textContent),
 	);
@@ -124,7 +124,7 @@ test("disconnect and reconnect without re-picking; Forget asks again", async () 
 	assert.equal(await fake(page, "f.pickerCount"), 1, "reconnected to the remembered device");
 
 	await page.click(".advanced summary");
-	await page.click("#btnForget");
+	await clickInMenu(page, "#btnForget");
 	await page.click("#btnPrint");
 	await page.waitForFunction(() => window.fakeD30.labels.length === 2);
 	assert.equal(await fake(page, "f.pickerCount"), 2);
@@ -134,7 +134,7 @@ test("a connection lost mid-print says how far it got, and keeps the serials it 
 	const page = await openWithFakeD30();
 	await typeInto(page, "#designText", "BIN-{n}");
 	await typeInto(page, "#copies", "3");
-	await page.click("#btnConnect");
+	await clickInMenu(page, "#btnConnect");
 	await page.waitForFunction(() =>
 		/Connected/.test(document.querySelector("#printerStatus").textContent),
 	);
@@ -169,7 +169,7 @@ test("cancelling the device picker is silent; out-of-paper notification warns", 
 	);
 
 	await page.evaluate(() => (window.fakeD30.pickerCancels = false));
-	await page.click("#btnConnect");
+	await clickInMenu(page, "#btnConnect");
 	await page.waitForFunction(() =>
 		/Connected/.test(document.querySelector("#printerStatus").textContent),
 	);
@@ -218,7 +218,7 @@ test("reports: after an untested model prints, a pop-up asks; diagnostics copy",
 
 	await page.click(".advanced summary");
 	assert.match(await page.$eval("#appVersion", (p) => p.textContent), /^Version \d+\.\d+\.\d+$/);
-	await page.click("#btnCopyDiagnostics");
+	await clickInMenu(page, "#btnCopyDiagnostics");
 	await page.waitForFunction(() => window.copied.length === 1);
 	const copied = await page.evaluate(() => window.copied[0]);
 	assert.match(copied, /Device: Q30-FAKE/);

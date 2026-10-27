@@ -130,12 +130,41 @@ const renderPrinterStatus = () => {
 	s.title = t.status.firmware ? `Firmware ${t.status.firmware}` : "";
 	s.classList.toggle("ok", !!real && t.connected && !hasProblem(t.status));
 	s.classList.toggle("problem", t.connected && hasProblem(t.status));
+	renderChip(real, t);
 	$("#btnPrint").disabled = busy;
 	renderPrintButton();
 	// Show what the printer reports; until it says, the choice reads "as set on the printer".
 	renderAutoPower(t);
 	$("#virtualOut").hidden = !$("#tape").children.length;
 	for (const fn of printerListeners) fn();
+};
+
+/**
+ * The printer chip in the header: which printer, and the one thing worth knowing about it
+ * (a problem, or a real one's battery), so the menu only needs opening to change something.
+ */
+const renderChip = (real, t) => {
+	const chip = $("#printerChip");
+	const problem = t.connected && hasProblem(t.status);
+	const battery = typeof t.status.battery === "number" ? `${t.status.battery}%` : "";
+	const name = !real
+		? "Virtual printer"
+		: real.connected
+			? real.name
+			: { bluetooth: "Bluetooth printer", serial: "Serial printer" }[settings.target];
+	const detail = problem
+		? describeStatus(t.status, { battery: false })
+		: real?.connected
+			? battery
+			: real
+				? "not connected"
+				: "";
+	const text = [name, detail].filter(Boolean).join(" · ");
+	$("#printerChipLabel").textContent = text;
+	// On a phone the chip is just its dot, so its name says the rest.
+	chip.setAttribute("aria-label", `Printer: ${text}`);
+	chip.classList.toggle("ok", !!real?.connected && !problem);
+	chip.classList.toggle("problem", problem);
 };
 
 const reportPrintError = (err) => {

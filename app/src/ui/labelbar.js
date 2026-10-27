@@ -1,4 +1,5 @@
-// The label bar: pre-cut sizes for the printer in use, a continuous roll, or a custom size.
+// The label size (the chip in the label area): pre-cut sizes for the printer in use, a
+// continuous roll, or a custom size.
 import { LIMITS, CONTINUOUS_LENGTH_MM, resizeLabel, withLength } from "../model.js";
 import { labelDots, contentLengthMm } from "../render.js";
 import { storageKey } from "../app-info.js";
@@ -73,6 +74,9 @@ const renderLabelBar = () => {
 	sel.title = KIND_TITLES[l.continuous ? "continuous" : "precut"];
 	const { width, height } = labelDots(l);
 	$("#labelInfo").textContent = `${width} × ${height} dots`;
+	$("#labelChipText").textContent = l.continuous
+		? `${l.heightMm} mm roll, ${l.autoLength ? "auto length" : `${l.widthMm} mm long`}`
+		: `${l.widthMm} × ${l.heightMm} mm`;
 };
 
 // The last label chosen for each printer model, so switching printers (or connecting one)

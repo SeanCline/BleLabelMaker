@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, printedMatchesPreview } from "./harness.js";
+import { setup, printedMatchesPreview, clickInMenu } from "./harness.js";
 import { installFakeSerial } from "./fake-serial.js";
 
 let env;
@@ -18,7 +18,7 @@ const statusText = (page) => page.$eval("#printerStatus", (s) => s.textContent);
 
 test("serial port: connect, status, and a print that decodes to the preview", async () => {
 	const page = await openWithFakeSerial();
-	await page.click("#btnConnect");
+	await clickInMenu(page, "#btnConnect");
 	await page.waitForFunction(() =>
 		/^Connected to D30 \(serial\) · battery 72%$/.test(
 			document.querySelector("#printerStatus").textContent,
@@ -52,7 +52,7 @@ test("serial port: connect, status, and a print that decodes to the preview", as
 
 test("serial port: problems reported by the printer show up; Forget asks for the port again", async () => {
 	const page = await openWithFakeSerial();
-	await page.click("#btnConnect");
+	await clickInMenu(page, "#btnConnect");
 	await page.waitForFunction(() =>
 		/Connected/.test(document.querySelector("#printerStatus").textContent),
 	);
@@ -67,7 +67,7 @@ test("serial port: problems reported by the printer show up; Forget asks for the
 	);
 
 	await page.click(".advanced summary");
-	await page.click("#btnForget");
+	await clickInMenu(page, "#btnForget");
 	await page.waitForFunction(() =>
 		/Not connected/.test(document.querySelector("#printerStatus").textContent),
 	);

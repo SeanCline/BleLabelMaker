@@ -129,6 +129,18 @@ export const openSettings = async (page) => {
 	if (await page.$eval("#settings", (s) => s.hidden))
 		await page.click('#quickbar [data-qb-action="more"]');
 };
+/** Clicks something inside menus (the printer's, the label size…), opening them first. */
+export const clickInMenu = async (page, selector) => {
+	await page.$eval(selector, (el) => {
+		for (let d = el.closest("details"); d; d = d.parentElement.closest("details")) d.open = true;
+	});
+	await page.click(selector);
+};
+/** Opens the batch list, from Print's options. */
+export const openBatchList = async (page) => {
+	await page.click("#printMenu > summary");
+	await page.click("#btnBatch");
+};
 /** Picks an item from the File menu (New, Open, Save, Share, History). */
 export const fromFileMenu = async (page, selector) => {
 	await page.$eval("#fileMenu", (d) => d.setAttribute("open", ""));
