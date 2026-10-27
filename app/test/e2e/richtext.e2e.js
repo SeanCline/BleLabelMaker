@@ -112,7 +112,6 @@ test("formatting survives a reload, and editing in the settings keeps it on its 
 	await ctrl(page, "b");
 	await page.keyboard.press("Escape");
 	const before = await labelPixels(page);
-	assert.equal(JSON.parse(await page.evaluate(() => window.labelApp.serialize())).version, 2);
 
 	await page.reload({ waitUntil: "networkidle0" });
 	await page.evaluate(() => window.labelApp.ready);
@@ -148,5 +147,99 @@ test("formatted text prints exactly as the preview shows it", async () => {
 	await page.waitForFunction(() => window.fakeD30.labels.length === 1);
 	await redraw(page);
 	assert.equal(await printedMatchesPreview(page, "fakeD30"), true);
+	assert.deepEqual(page.errors, []);
+});
+
+/** Fires a clipboard event on the text being typed, as Ctrl+C/X/V do, and returns its data. */
+const clip = (page, type, data = {}) =>
+	page.$eval(
+		".inline-edit",
+		(t, type, data) => {
+			const clipboardData = new DataTransfer();
+			for (const [kind, value] of Object.entries(data)) clipboardData.setData(kind, value);
+			const handled = !t.dispatchEvent(
+				new ClipboardEvent(type, { clipboardData, bubbles: true, cancelable: true }),
+			);
+			return {
+				handled,
+				plain: clipboardData.getData("text/plain"),
+				html: clipboardData.getData("text/html"),
+			};
+		},
+		type,
+		data,
+	);
+
+test("copy and paste keep bold, italic and underline, from the label and from other apps", async () => {
+	const page = await editing();
+	await selectText(page, 6, 11);
+	await ctrl(page, "b");
+	await selectText(page, 4, 11);
+	const copied = await clip(page, "copy");
+	assert.equal(copied.plain, "o world");
+	assert.equal(copied.html, 'o <span style="font-weight:700">world</span>');
+
+	// Pasted at the start, the bold comes along; typing undoes it as one step.
+	await selectText(page, 0, 0);
+	await clip(page, "paste", { "text/plain": copied.plain, "text/html": copied.html });
+	assert.deepEqual(await text(page), ["o ", [BOLD, "world"], "Hello ", [BOLD, "world"]]);
+	assert.equal(await page.$eval(".inline-edit", (t) => t.selectionStart), 7, "after the paste");
+	await ctrl(page, "z");
+	assert.deepEqual(await text(page), ["Hello ", [BOLD, "world"]]);
+
+	// Cut takes it out, and leaves it on the clipboard formatted.
+	await selectText(page, 5, 11);
+	const cut = await clip(page, "cut");
+	assert.equal(cut.html, ' <span style="font-weight:700">world</span>');
+	assert.equal(await text(page), "Hello");
+
+	// Google Docs: a <b> that isn't bold around it all, spans saying how each part looks.
+	await selectText(page, 5, 5);
+	const docs =
+		'<meta charset="utf-8"><b style="font-weight:normal;" id="docs-internal-guid-1">' +
+		'<span style="font-weight:400;">, </span><span style="font-weight:700;font-style:italic;">big</span>' +
+		'<span style="font-weight:400;text-decoration:underline;"> deal</span></b><br class="Apple-interchange-newline">';
+	await clip(page, "paste", { "text/plain": ", big deal", "text/html": docs });
+	assert.deepEqual(await text(page), [
+		"Hello, ",
+		[{ fontWeight: 700, italic: true }, "big"],
+		[{ underline: true }, " deal"],
+	]);
+
+	// Word: paragraphs, <b> and <i>, comments and its own markup.
+	await page.keyboard.down("Control");
+	await page.keyboard.press("a");
+	await page.keyboard.up("Control");
+	const word =
+		"<html><head><style>p{margin:0}</style></head><body><!--StartFragment-->" +
+		"<p class=MsoNormal><b>Best</b> before<o:p></o:p></p>\r\n<p class=MsoNormal><i>June</i>&nbsp;2027</p>" +
+		"<!--EndFragment--></body></html>";
+	await clip(page, "paste", { "text/plain": "Best before\r\nJune 2027", "text/html": word });
+	assert.deepEqual(await text(page), [
+		[BOLD, "Best"],
+		" before\n",
+		[{ italic: true }, "June"],
+		" 2027",
+	]);
+
+	// HTML with nothing formatted is pasted as the plain text beside it.
+	const plain = await clip(page, "paste", { "text/plain": "plain", "text/html": "<p>other</p>" });
+	assert.equal(plain.handled, false, "left to the browser");
+	assert.deepEqual(page.errors, []);
+});
+
+test("formatted text pasted onto the label becomes a box formatted the same", async () => {
+	const page = await env.open();
+	await page.focus("#overlay");
+	await page.evaluate(() => {
+		const clipboardData = new DataTransfer();
+		clipboardData.setData("text/plain", "Fragile glass");
+		clipboardData.setData("text/html", "<strong>Fragile</strong> <u>glass</u>");
+		document.activeElement.dispatchEvent(
+			new ClipboardEvent("paste", { clipboardData, bubbles: true, cancelable: true }),
+		);
+	});
+	const added = (await appState(page)).doc.elements.at(-1);
+	assert.deepEqual(added.text, [[BOLD, "Fragile"], " ", [{ underline: true }, "glass"]]);
 	assert.deepEqual(page.errors, []);
 });

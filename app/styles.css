@@ -50,6 +50,10 @@ body {
 		-apple-system,
 		"Segoe UI",
 		sans-serif;
+	/* The footer at the foot of the window, however little the page holds. */
+	display: flex;
+	flex-direction: column;
+	min-height: 100dvh;
 }
 
 h1 {
@@ -240,21 +244,9 @@ summary:has(> .icon) {
 	padding: 3px 10px;
 }
 
-.banner {
-	background: #fff4d6;
-	color: #5a4200;
-	border-bottom: 1px solid #ecd48f;
-	padding: 8px 16px;
-}
-@media (prefers-color-scheme: dark) {
-	.banner {
-		background: #3a2f10;
-		color: #f3dc9a;
-		border-color: #5d4c1a;
-	}
-}
-
 .layout {
+	flex: 1;
+	width: 100%;
 	padding: 16px;
 	max-width: 1280px;
 	margin: 0 auto;
@@ -326,6 +318,9 @@ summary:has(> .icon) {
 }
 .printer-chip.problem .chip-dot {
 	background: var(--danger);
+}
+.printer-chip.unsupported .chip-dot {
+	background: #d99a00;
 }
 
 /* Print, with its options on a narrow button of its own. */
@@ -458,7 +453,8 @@ summary:has(> .icon) {
 	background: repeating-conic-gradient(var(--surface-2) 0 25%, var(--bg) 0 50%) 0 0 / 16px 16px;
 	border: 1px solid var(--border);
 	border-radius: var(--radius);
-	min-height: 220px;
+	/* The rail and, under it, the label size in the corner, with a short label between them. */
+	min-height: 296px;
 	/* Flex with auto margins, not grid centring: a zoomed-in label wider than the stage must
 	   scroll to both edges, and centring would push its left side out of reach. */
 	display: flex;
@@ -591,7 +587,17 @@ summary:has(> .icon) {
 	background: var(--accent);
 	color: var(--accent-text);
 	box-shadow: var(--shadow);
-	white-space: nowrap;
+	/* One line where there's room; a longer hint wraps rather than running off a phone. */
+	width: max-content;
+	max-width: calc(100% - 24px);
+	text-align: center;
+}
+.coach:not(:has(button)) {
+	padding-right: 14px;
+}
+/* An empty label's hint says what to do first; the one about typing on text can wait. */
+#emptyHint:not([hidden]) ~ #welcome {
+	display: none;
 }
 .coach button {
 	border: 0;
@@ -676,6 +682,36 @@ summary:has(> .icon) {
 	position: absolute;
 	background: rgb(47 123 255 / 0.3);
 	pointer-events: none;
+}
+/* A handle hangs below its line: a teardrop pointing up at the caret, in a finger-sized box,
+   over the label area's controls but under the bar. */
+.inline-handle {
+	position: fixed;
+	z-index: 15;
+	width: 44px;
+	height: 40px;
+	margin-left: -22px;
+	touch-action: none;
+}
+.inline-marker {
+	position: absolute;
+	width: 0;
+	height: 0;
+	pointer-events: none;
+}
+.inline-handle[hidden] {
+	display: none;
+}
+.inline-handle::before {
+	content: "";
+	position: absolute;
+	left: 13px;
+	top: 6px;
+	width: 18px;
+	height: 18px;
+	border-radius: 0 50% 50% 50%;
+	background: var(--select);
+	transform: rotate(45deg);
 }
 /* Takes the typing but shows nothing; it sits at the caret for input methods' windows. */
 .inline-edit {
@@ -1268,14 +1304,68 @@ dialog form {
 	margin: 0;
 }
 
+/* Quiet until it's wanted: one row of links in the page's muted grey, set off by a hairline
+   the width of the content, with the small print under it. */
 .site-footer {
-	padding: 12px 16px 20px;
+	width: calc(100% - 32px);
+	max-width: 1248px;
+	margin: 24px auto 0;
+	padding: 12px 16px 24px;
+	border-top: 1px solid var(--border);
 	color: var(--muted);
 	font-size: 12px;
 	text-align: center;
 }
+.footer-links {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	align-items: center;
+	gap: 4px 18px;
+}
+.site-footer a,
+.site-footer button.link,
+.footer-menu > summary {
+	color: inherit;
+	text-decoration: none;
+}
+.site-footer a:hover,
+.site-footer button.link:hover,
+.footer-menu > summary:hover {
+	color: var(--text);
+	text-decoration: underline;
+}
+.menu.footer-menu > summary,
+.menu.footer-menu > summary:hover,
+.menu.footer-menu[open] > summary {
+	padding: 0;
+	border: 0;
+	background: none;
+}
+.footer-menu > summary::after {
+	content: " ▴";
+}
+.footer-menu .menu-list {
+	top: auto;
+	bottom: calc(100% + 6px);
+	left: 50%;
+	min-width: 160px;
+	transform: translateX(-50%);
+	text-align: left;
+	font-size: 13px;
+}
+.menu-list a {
+	padding: 7px 10px;
+	border-radius: 6px;
+	color: var(--text);
+}
+.menu-list a:hover {
+	background: var(--surface-2);
+	color: var(--text);
+}
 .site-footer p {
-	margin: 4px 0;
+	margin: 10px 0 0;
+	font-size: 11px;
 }
 /* An action that sits in running text, like the links around it. */
 button.link {
@@ -1292,6 +1382,8 @@ button.link {
 .quickbar {
 	position: fixed;
 	z-index: 20;
+	/* As wide as its controls (up to the max-width quickbar.js sets), wherever it's placed. */
+	width: max-content;
 	display: flex;
 	flex-wrap: wrap;
 	align-items: center;
@@ -1317,6 +1409,7 @@ button.link {
 	gap: 6px;
 }
 .quickbar .qb-common {
+	flex-wrap: nowrap;
 	border-left: 1px solid var(--border);
 	padding-left: 6px;
 }
@@ -1325,6 +1418,8 @@ button.link {
 }
 .quickbar input[type="range"] {
 	width: 8em;
+	/* On a phone the bar scrolls sideways; a drag on the slider is for the slider. */
+	touch-action: none;
 }
 .quickbar .qb-count {
 	color: var(--muted);
@@ -1344,6 +1439,39 @@ button.link {
 }
 .quickbar .qb-fill {
 	white-space: nowrap;
+}
+/* Its button shows "{ }"; the list it opens is as wide as its choices. */
+.quickbar .insert-field {
+	width: 4.5em;
+}
+/* A text's controls wrap one by one, when the bar must, so Edit isn't left alone on a row of
+   its own and the bar takes two rows, not three. Duplicate, Delete and More stay together. */
+@media (min-width: 601px) {
+	.quickbar [data-qb="text"] {
+		display: contents;
+	}
+}
+/* Too wide for its room (quickbar.js), it tightens before it wraps: less space, a narrower
+   font list, and its buttons' words left to their titles and screen readers. */
+@media (min-width: 601px) {
+	.quickbar.compact,
+	.quickbar.compact .qb-group {
+		gap: 3px;
+	}
+	.quickbar.compact button {
+		padding: 5px;
+	}
+	.quickbar.compact .font-select {
+		max-width: 7.5em;
+	}
+	.quickbar.compact .qb-label {
+		position: absolute;
+		width: 1px;
+		height: 1px;
+		overflow: hidden;
+		clip-path: inset(50%);
+		white-space: nowrap;
+	}
 }
 
 /* The list of elements opens beside the rail. */
@@ -1373,10 +1501,13 @@ button.link {
 	}
 	.stage {
 		padding: 60px 12px 64px;
+		/* The rail lies along the bottom here, beside the label size. */
+		min-height: 220px;
 	}
 	.quickbar {
 		left: 0;
 		right: 0;
+		width: auto;
 		bottom: var(--keyboard, 0px);
 		flex-wrap: nowrap;
 		overflow-x: auto;
@@ -1455,7 +1586,11 @@ button.link {
 		display: none;
 	}
 	.topbar {
-		gap: 8px;
+		gap: 4px;
+		padding: 8px 10px;
+	}
+	.topbar .toolbar-group {
+		gap: 2px;
 	}
 	.batch-nav {
 		bottom: 60px;
@@ -1472,22 +1607,46 @@ button.link {
 }
 
 /* Fingers: bigger buttons where they're small, and handles that can be caught. */
+/* Finger-sized: 44px, the size phones' own guidelines ask for. */
 @media (pointer: coarse) {
 	.rail .icon-button,
 	.rail summary,
 	.canvas-tools button,
-	.quickbar button {
-		min-width: 40px;
-		min-height: 40px;
+	.quickbar button,
+	.topbar button,
+	.topbar summary {
+		min-width: 44px;
+		min-height: 44px;
 	}
 	.quickbar select,
-	.quickbar input {
-		min-height: 40px;
+	.quickbar input,
+	.menu-list button {
+		min-height: 44px;
+	}
+	/* Its word in the middle of the taller button, as the buttons' icons are. */
+	.topbar summary {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+	}
+	.icon {
+		width: 20px;
+		height: 20px;
+	}
+	/* While typing, the text's selection handles are under the finger, not the box's. */
+	#overlay:has(.inline-editor) .handle {
+		display: none;
 	}
 	.handle {
 		width: 18px;
 		height: 18px;
 		margin: -9px 0 0 -9px;
+	}
+}
+/* The narrowest phones need the room for the controls. */
+@media (max-width: 400px) {
+	.logo {
+		display: none;
 	}
 }
 @media (max-width: 500px) {

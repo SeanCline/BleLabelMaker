@@ -2,7 +2,9 @@
 // keydown: the events can read and write the system clipboard without a permission prompt,
 // which is what lets elements travel to another label, tab or window.
 import { serializeElements, parseElements } from "../fileformat.js";
-import { createText, printableArea } from "../model.js";
+import { isFormatted, parseHtml, spansForBox, spansFromHtml } from "../htmltext.js";
+import { createText, normalizeText, printableArea } from "../model.js";
+import { fromSpans } from "../richtext.js";
 import { isTyping, toast } from "./dom.js";
 import { state, selectedElements } from "./store.js";
 import { addCopies, addElement, addImageFile, centred, deleteSelected } from "./panels.js";
@@ -54,8 +56,13 @@ document.addEventListener("paste", (ev) => {
 		addCopies(elements);
 		return;
 	}
-	// Anything else pasted onto the label becomes a new text box.
+	// Anything else pasted onto the label becomes a new text box, formatted as it was.
 	ev.preventDefault();
 	const a = printableArea(state.doc.label);
-	addElement(createText(state.doc, { ...centred(a.w / 2, a.h / 2), text: text.trim(), fit: true }));
+	const box = createText(state.doc, { ...centred(a.w / 2, a.h / 2), text: text.trim(), fit: true });
+	const html = ev.clipboardData.getData("text/html");
+	const spans = html ? spansFromHtml(parseHtml(html)) : [];
+	if (isFormatted(spans))
+		box.text = normalizeText({ ...box, text: fromSpans(spansForBox(spans, box)) });
+	addElement(box);
 });

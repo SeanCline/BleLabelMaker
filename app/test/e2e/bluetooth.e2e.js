@@ -22,7 +22,7 @@ test("a first visit starts on the Bluetooth printer, or the virtual one without 
 		beforeLoad: (p) => p.evaluateOnNewDocument(installFakeBluetooth),
 	});
 	assert.equal(await page.$eval("#target", (s) => s.value), "bluetooth");
-	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Connect & print");
+	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Connect & Print");
 	assert.equal(await page.$eval("#noBluetooth", (b) => b.hidden), true);
 
 	const without = await env.open({
@@ -30,7 +30,13 @@ test("a first visit starts on the Bluetooth printer, or the virtual one without 
 		beforeLoad: (p) => p.evaluateOnNewDocument(() => delete Navigator.prototype.bluetooth),
 	});
 	assert.equal(await without.$eval("#target", (s) => s.value), "virtual");
+	// The chip says so, and its menu says what to do; nothing across the page.
+	assert.equal(
+		await without.$eval("#printerChipLabel", (l) => l.textContent),
+		"Virtual printer · browser can't use Bluetooth",
+	);
 	assert.equal(await without.$eval("#noBluetooth", (b) => b.hidden), false);
+	assert.ok(await without.$eval("#noBluetooth", (b) => !!b.closest("#printerMenu")));
 	assert.deepEqual([...page.errors, ...without.errors], []);
 });
 
@@ -46,7 +52,7 @@ test("connect: picker filters for the D30, status arrives over notifications", a
 	);
 	assert.match(await page.$eval("#setPrinter option[value=a30]", (o) => o.textContent), /untested/);
 	const printButton = () => page.$eval("#btnPrint", (b) => b.textContent.trim());
-	assert.equal(await printButton(), "Connect & print");
+	assert.equal(await printButton(), "Connect & Print");
 	await clickInMenu(page, "#btnConnect");
 	await page.waitForFunction(() =>
 		/^Connected to D30-FAKE · battery 64%$/.test(

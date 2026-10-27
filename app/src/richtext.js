@@ -28,8 +28,9 @@ export const spansOf = (text) =>
 				typeof r === "string" ? { style: {}, text: r } : { style: r[0], text: r[1] },
 			);
 
-/** @param {Span[]} spans @returns {RichText} */
-const fromSpans = (spans) => spans.map((s) => (isPlain(s.style) ? s.text : [s.style, s.text]));
+/** @param {Span[]} spans @returns {RichText} not normalized */
+export const fromSpans = (spans) =>
+	spans.map((s) => (isPlain(s.style) ? s.text : [s.style, s.text]));
 
 const isPlain = (style) => STYLE_PROPS.every((p) => style[p] === undefined);
 const sameStyle = (a, b) => STYLE_PROPS.every((p) => a[p] === b[p]);
@@ -109,7 +110,10 @@ const own = (style, base) =>
 		]),
 	);
 
-/** The spans between two positions. @param {Span[]} spans */
+/** The spans between two positions, for copying part of a text. @param {RichText} text */
+export const spansBetween = (text, from, to) => slice(spansOf(text), from, to);
+
+/** @param {Span[]} spans */
 const slice = (spans, from, to) => {
 	const out = [];
 	let at = 0;
@@ -154,12 +158,23 @@ export const typingStyle = (text, at, removed = 0) => {
 export const applyEdit = (text, { at, removed, inserted }, style) => {
 	if (typeof text === "string" && !style)
 		return text.slice(0, at) + inserted + text.slice(at + removed);
+	return spliceSpans(text, at, removed, [
+		{ style: style ?? typingStyle(text, at, removed), text: inserted },
+	]);
+};
+
+/**
+ * The text with `removed` units at `at` replaced by formatted text, as pasted.
+ * @param {RichText} text
+ * @param {Span[]} inserted
+ * @returns {RichText} not normalized
+ */
+export const spliceSpans = (text, at, removed, inserted) => {
 	const spans = spansOf(text);
-	const length = textOf(text).length;
 	return fromSpans([
 		...slice(spans, 0, at),
-		{ style: style ?? typingStyle(text, at, removed), text: inserted },
-		...slice(spans, at + removed, length),
+		...inserted,
+		...slice(spans, at + removed, textOf(text).length),
 	]);
 };
 

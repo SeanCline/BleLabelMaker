@@ -68,6 +68,10 @@
 							<option value="serial">Serial port (experimental)</option>
 						</select>
 					</label>
+					<p id="noBluetooth" class="hint" hidden>
+						This browser can't reach Bluetooth printers. You can still design, save and try prints
+						on the virtual printer; to print for real, open this page in Chrome or Edge.
+					</p>
 					<span id="printerStatus" class="status"></span>
 					<button id="btnConnect" hidden>Connect</button>
 					<label id="virtualModelRow" title="Which printer the virtual printer pretends to be"
@@ -156,12 +160,6 @@
 				<progress id="progress" max="1" value="0" hidden></progress>
 			</div>
 		</header>
-
-		<div id="noBluetooth" class="banner" hidden>
-			This browser can't connect to Bluetooth printers (Web Bluetooth isn't available). You can
-			still design, save, load and test-print with the virtual printer. To print for real, open this
-			page in Chrome or Edge.
-		</div>
 
 		<main class="layout">
 			<section class="workspace">
@@ -314,6 +312,9 @@
 						<button id="batchNext" class="icon-button" aria-label="Preview the next line">›</button>
 					</div>
 					<!-- A first-visit hint, where the first thing to do is. -->
+					<p class="coach" id="emptyHint" hidden>
+						The canvas is empty. Add an element like text or a shape to continue editing.
+					</p>
 					<p class="coach" id="welcome" hidden>
 						<span id="welcomeText">Double-click the label to type on it</span>
 						<button id="welcomeClose" class="icon-button" aria-label="Dismiss" title="Dismiss">
@@ -388,10 +389,12 @@
 							<option value="@batch">Batch list…</option>
 						</select>
 						<button data-qb-action="edit" title="Type on the label (double-click)">
-							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#pencil" /></svg> Edit
+							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#pencil" /></svg>
+							<span class="qb-label">Edit</span>
 						</button>
 						<button data-qb-action="done" title="Stop typing (Esc)">
-							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#check" /></svg> Done
+							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#check" /></svg>
+							<span class="qb-label">Done</span>
 						</button>
 					</span>
 					<span class="qb-group" data-qb="shape">
@@ -552,7 +555,7 @@
 							<svg class="icon" aria-hidden="true">
 								<use href="icons/ui.svg#sliders-horizontal" />
 							</svg>
-							More
+							<span class="qb-label">More</span>
 						</button>
 					</span>
 				</div>
@@ -876,18 +879,24 @@
 		</main>
 
 		<footer class="site-footer">
+			<nav class="footer-links" aria-label="About this app">
+				<span id="appVersion"></span>
+				<a href="https://github.com/SeanCline/BleLabelMaker" data-app="repo">Source code</a>
+				<button type="button" class="link" id="btnReportProblem">Report a problem</button>
+				<details class="menu footer-menu">
+					<summary>Licenses</summary>
+					<div class="menu-list">
+						<a href="LICENSE.txt">This app</a>
+						<a href="fonts/LICENSE.txt">Fonts</a>
+						<a href="src/vendor/LICENSE.txt">QR code library</a>
+						<a href="icons/LICENSE-lucide.txt">Icons</a>
+					</div>
+				</details>
+			</nav>
 			<p data-app="disclaimer">
 				BLE Label Maker is not affiliated with any label maker manufacturer. Label maker models are
 				trademarks of their respective owners.
 			</p>
-			<p>
-				<a href="https://github.com/SeanCline/BleLabelMaker" data-app="repo">Source code</a> ·
-				<button type="button" class="link" id="btnReportProblem">Report a problem</button> ·
-				Licenses: <a href="LICENSE.txt">this app</a> · <a href="fonts/LICENSE.txt">fonts</a> ·
-				<a href="src/vendor/LICENSE.txt">QR code library</a> ·
-				<a href="icons/LICENSE-lucide.txt">icons</a>
-			</p>
-			<p class="hint" id="appVersion"></p>
 		</footer>
 
 		<dialog id="printedDialog" aria-labelledby="printedTitle">

@@ -32,18 +32,38 @@ import {
 	undo,
 	redo,
 } from "./store.js";
-import { fittedSizes, onDrawn, renderWarnings, startInlineEdit } from "./stage.js";
-import { STYLE_PROPS, clearStyle, mapStyles, retext, stylesBetween, textOf } from "../richtext.js";
+import {
+	fittedSizes,
+	inlineEdit,
+	onDrawn,
+	onInlineChange,
+	renderWarnings,
+	startInlineEdit,
+} from "./stage.js";
+import {
+	STYLE_PROPS,
+	clearStyle,
+	mapStyles,
+	retext,
+	setStyle,
+	stylesBetween,
+	textOf,
+} from "../richtext.js";
 
 // ---------------------------------------------------------------------------
 // Property binding: inputs carry data-prop / data-type, panels carry data-panel.
 
-/** The weights the face has, and "Mixed" while words in the text differ from the box's. */
+/** The words selected while typing on this text, if any: what a weight picked is for. */
+const typedSelection = (element) => {
+	const typing = inlineEdit();
+	return typing?.id === element.id && typing.from !== typing.to ? typing : null;
+};
+
+/** The weights the face has, and "Mixed" while the words (those selected, or all) differ. */
 const weightOptions = (sel, element) => {
 	const weights = weightsFor(element.fontFamily);
-	const used = new Set(
-		stylesBetween(element.text, 0, textOf(element.text).length, element).map((s) => s.fontWeight),
-	);
+	const { from, to } = typedSelection(element) ?? { from: 0, to: textOf(element.text).length };
+	const used = new Set(stylesBetween(element.text, from, to, element).map((s) => s.fontWeight));
 	const mixed = used.size > 1;
 	const key = weights.join(",") + (mixed ? ",mixed" : "");
 	if (sel.dataset.key !== key) {
@@ -54,13 +74,14 @@ const weightOptions = (sel, element) => {
 		sel.dataset.key = key;
 	}
 	// Picking a weight while it's mixed sets it for every word (see onPropInput).
-	sel.value = mixed ? "" : String(element.fontWeight);
+	sel.value = mixed ? "" : String([...used][0] ?? element.fontWeight);
 };
 
 export const syncProps = (root, element) => {
 	for (const input of $$("[data-prop]", root)) {
 		const prop = input.dataset.prop;
-		if (document.activeElement === input) continue; // don't fight the user's cursor
+		// Don't fight the user's cursor, or a slider a finger is dragging (it doesn't take focus).
+		if (document.activeElement === input || input.matches(":active")) continue;
 		if (prop === "fontWeight") {
 			weightOptions(input, element);
 			continue;
@@ -154,6 +175,13 @@ const onPropInput = (ev) => {
 	}
 	// Setting it for the whole box sets it for every word in it.
 	if (STYLE_PROPS.includes(prop) && e.type === "text") patch.text = clearStyle(e.text, prop);
+	// …but while typing, the words selected get it, as with the bar's B.
+	const words = prop === "fontWeight" && e.type === "text" && typedSelection(e);
+	if (words) {
+		updateElement(e.id, { text: setStyle(e.text, words.from, words.to, prop, value) });
+		history.seal();
+		return;
+	}
 	// Turning fit off should keep what the user was looking at, not jump back to an old size.
 	if (prop === "fit" && !value && fittedSizes().has(e.id))
 		patch.fontSizePt = round(fittedSizes().get(e.id), 1);
@@ -425,3 +453,5 @@ $("#btnUndo").addEventListener("click", undo);
 $("#btnRedo").addEventListener("click", redo);
 
 subscribe(renderPanels);
+// The weight shown is the selected words' while typing, so it follows the selection.
+onInlineChange(renderPanels);

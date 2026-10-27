@@ -44,6 +44,51 @@ test("tapping the selected text types on it, with the cursor at the end", async 
 	assert.deepEqual(page.errors, []);
 });
 
+test("typing by touch: double tap or hold for a word, handles to drag the ends", async () => {
+	const page = await phone();
+	const box = await (await page.$(".box.selected")).boundingBox();
+	await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
+	await page.waitForSelector(".inline-edit");
+	const selection = () => page.$eval(".inline-edit", (t) => [t.selectionStart, t.selectionEnd]);
+	const shown = () => page.$$eval(".inline-handle", (h) => h.map((x) => !x.hidden));
+	assert.deepEqual(await shown(), [false, true], "one handle, under the caret");
+
+	const f = await (await page.$(".inline-editor")).boundingBox();
+	const hello = [f.x + f.width * 0.25, f.y + f.height / 2];
+	await page.touchscreen.tap(...hello);
+	await page.touchscreen.tap(...hello);
+	assert.deepEqual(await selection(), [0, 5], "a double tap selects the word");
+	assert.deepEqual(await shown(), [true, true], "a handle at each end");
+
+	// The end handle, dragged right, takes in the next word; it aims at the line, not the finger.
+	const end = await (await page.$(".inline-handle.end")).boundingBox();
+	const at = [end.x + end.width / 2, end.y + end.height / 2];
+	const cdp = await page.createCDPSession();
+	const touch = (type, x = 0, y = 0) =>
+		cdp.send("Input.dispatchTouchEvent", {
+			type,
+			touchPoints: type === "touchEnd" ? [] : [{ x, y }],
+		});
+	await touch("touchStart", ...at);
+	await touch("touchMove", at[0] + 60, at[1]);
+	await touch("touchMove", at[0] + 120, at[1]);
+	await touch("touchEnd");
+	const [from, to] = await selection();
+	assert.equal(from, 0);
+	assert.ok(to > 6, `past the space (to ${to})`);
+
+	// Holding still on a word selects it.
+	await page.touchscreen.tap(f.x + 4, f.y + f.height / 2);
+	await new Promise((r) => setTimeout(r, 450));
+	await touch("touchStart", f.x + f.width * 0.75, f.y + f.height / 2);
+	await page.waitForFunction(() => document.querySelector(".inline-edit").selectionStart === 6, {
+		timeout: 2000,
+	});
+	await touch("touchEnd");
+	assert.deepEqual(await selection(), [6, 11]);
+	assert.deepEqual(page.errors, []);
+});
+
 test("a tap selects; only a second tap on the same text types", async () => {
 	const page = await phone();
 	await page.click("#addQr");

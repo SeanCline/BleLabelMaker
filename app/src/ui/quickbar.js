@@ -66,14 +66,16 @@ const render = () => {
 	const els = targets();
 	const e = els.length === 1 ? els[0] : null;
 	if (!e) closeSettings();
-	// With nothing selected the bar's room says what to do, rather than sitting empty.
-	bar.hidden = false;
+	// An empty label says so where the eye is, as the first-visit hint does; the bar has
+	// nothing to change then. With nothing selected, the bar's room says what to do.
+	const blank = !state.doc.elements.length;
+	$("#emptyHint").hidden = !blank;
+	bar.hidden = blank;
 	bar.classList.toggle("empty", !els.length);
 	if (!els.length) {
 		for (const group of $$("[data-qb]", bar)) group.hidden = group.dataset.qb !== "empty";
-		$("#barHint").textContent = state.doc.elements.length
-			? `${touch.matches ? "Tap" : "Click"} something on the label to change it`
-			: "Add text, a shape or a code from the rail";
+		$("#barHint").textContent =
+			`${touch.matches ? "Tap" : "Click"} something on the label to change it`;
 		barKeys();
 		place({ x: 0, y: 0, w: state.doc.label.widthMm, h: 0 });
 		return;
@@ -105,6 +107,42 @@ const render = () => {
 const phone = matchMedia("(max-width: 600px)");
 const touch = matchMedia("(pointer: coarse)");
 
+/** The bar's width on one row, from its controls' own widths, which wrapping doesn't change. */
+const oneRowWidth = () => {
+	const css = getComputedStyle(bar);
+	// A text's controls are the bar's own items (display: contents in styles.css).
+	const items = [...bar.children]
+		.filter((c) => !(/** @type {HTMLElement} */ (c).hidden))
+		.flatMap((c) => (getComputedStyle(c).display === "contents" ? [...c.children] : [c]))
+		.filter((c) => c.getClientRects().length);
+	const sum = items.reduce((w, c) => w + /** @type {HTMLElement} */ (c).offsetWidth, 0);
+	const frame = bar.offsetWidth - bar.clientWidth + parseFloat(css.paddingLeft) * 2;
+	return sum + parseFloat(css.columnGap) * (items.length - 1) + frame;
+};
+/** Each set of controls' full width, measured while the bar last showed it untightened. */
+const fullWidths = new Map();
+/**
+ * Tightens the bar when its full width won't fit on one row, and loosens it once it would.
+ * Measured as it is, never by trying the other way: changing the bar to measure it made a
+ * slider being dragged in it jump.
+ */
+const tighten = (room) => {
+	// Which controls are showing: a kind of element, and typing or not, has its own width.
+	const shown = [...bar.querySelectorAll("[data-qb], button, select, input")]
+		.map((c) => (c.getClientRects().length || getComputedStyle(c).display === "contents" ? 1 : 0))
+		.join("");
+	const compact = bar.classList.contains("compact");
+	if (compact && fullWidths.has(shown)) {
+		if (fullWidths.get(shown) <= room) bar.classList.remove("compact");
+		return;
+	}
+	// Controls not seen untightened yet (another kind selected) are measured untightened.
+	if (compact) bar.classList.remove("compact");
+	const full = oneRowWidth();
+	fullWidths.set(shown, full);
+	if (full > room) bar.classList.add("compact");
+};
+
 /** Above the label, centred on what it's for, kept inside the stage. */
 const place = (box) => {
 	if (phone.matches) {
@@ -115,9 +153,15 @@ const place = (box) => {
 	const o = overlay.getBoundingClientRect();
 	const s = stage.getBoundingClientRect();
 	const k = o.width / state.doc.label.widthMm;
-	// From the left edge, so its width is its own and not what was left of the window.
-	bar.style.left = "0px";
-	bar.style.maxWidth = `${s.width - 16}px`;
+	// Clear of the rail, whose room is the stage's left padding: a bar too wide for the rest
+	// wraps, rather than covering the rail's buttons.
+	const railEdge = s.left + parseFloat(getComputedStyle(stage).paddingLeft) - 8;
+	// Its width is its content's (styles.css), not what's left of the window right of it, so
+	// it's measured where it is. Moving it away to measure, even for a moment, made a slider
+	// being dragged in it jump to its end in some browsers.
+	const roomRight = s.right - 8 - railEdge;
+	bar.style.maxWidth = `${roomRight}px`;
+	tighten(roomRight);
 	// On a narrow screen the bar wraps; the label moves down rather than going under it.
 	const room = `${Math.max(56, bar.offsetHeight + 20)}px`;
 	if (stage.style.paddingTop !== room) {
@@ -125,13 +169,9 @@ const place = (box) => {
 		return place(box);
 	}
 	const centre = o.left + (box.x + box.w / 2) * k;
-	const x = Math.min(
-		// Clear of the rail, whose room is the stage's left padding.
-		Math.max(
-			centre - bar.offsetWidth / 2,
-			s.left + parseFloat(getComputedStyle(stage).paddingLeft) - 8,
-		),
-		s.right - bar.offsetWidth - 8,
+	const x = Math.max(
+		Math.min(centre - bar.offsetWidth / 2, s.right - bar.offsetWidth - 8),
+		railEdge,
 	);
 	// Over the label only when it's scrolled so far there's no room above it.
 	const y = Math.max(o.top - bar.offsetHeight - 10, s.top + 4);
@@ -166,10 +206,8 @@ bar.addEventListener("click", (ev) => {
 	if (action === "done") stopInlineEdit();
 	if (action === "duplicate") duplicateSelected();
 	if (action === "delete") deleteSelected();
-	if (action === "more") {
-		stopInlineEdit();
-		settings.hidden ? openSettings() : closeSettings();
-	}
+	// Typing carries on behind the settings, so a weight picked there is for the words selected.
+	if (action === "more") settings.hidden ? openSettings() : closeSettings();
 });
 
 // A field picked while typing hands the focus back, so typing carries on where it was.
@@ -182,11 +220,19 @@ bar.addEventListener("keydown", (ev) => {
 	ev.stopPropagation();
 	refocusInline();
 });
-// Leaving the bar for anywhere but the text ends the typing, as leaving the text does.
-bar.addEventListener("focusout", (ev) => {
+// Leaving the bar or the settings for anywhere but the text ends the typing, as leaving the
+// text does.
+const keepTyping = (ev) => {
 	const to = /** @type {Element} */ (ev.relatedTarget);
-	if (!inlineEdit() || bar.contains(to) || to?.matches(".inline-edit")) return;
+	if (!inlineEdit() || bar.contains(to) || settings.contains(to) || to?.matches(".inline-edit"))
+		return;
 	stopInlineEdit();
+};
+bar.addEventListener("focusout", keepTyping);
+settings.addEventListener("focusout", keepTyping);
+// The settings' own copy of the text and the label can't both be typed on at once.
+settings.addEventListener("focusin", (ev) => {
+	if (/** @type {Element} */ (ev.target).matches('[data-prop="text"]')) stopInlineEdit();
 });
 
 // ---------------------------------------------------------------------------

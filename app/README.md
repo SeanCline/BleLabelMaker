@@ -99,9 +99,9 @@ it never needs the internet.
   long label, then set the length, or tick _Auto_ to make it as long as the
   text (in a batch, each label gets its own length). Only the sizes the selected printer model
   takes are listed.
-- **Design:** add text, shapes, barcodes, QR codes and images from the rail down
-  the label's left (or drop a picture on the page), then drag to move and use
-  the handles to resize. The last button on the rail lists everything on the
+- **Design:** add text, shapes, barcodes, QR codes and images from the toolbar
+  down the label's left (or drop a picture on the page), then drag to move and
+  use the handles to resize. The toolbar's last button lists everything on the
   label, for picking what's hidden under something else.
   Double-click text to type on the label (on a phone, tap text that's
   already selected). The bar over what's selected has
@@ -112,7 +112,8 @@ it never needs the internet.
   - Select several: Shift- or Ctrl-click, drag across empty space, or Ctrl+A.
     Drag one to move them all; the bar lines them up or spaces them evenly.
   - Copy / cut / paste: Ctrl+C / X / V, also between labels and tabs. Pasting
-    text or an image onto the label adds it. Duplicate: Ctrl+D.
+    text or an image onto the label adds it. Text copied from Word, Google Docs or a web
+    page keeps its bold, italic and underline, as does text copied from the label. Duplicate: Ctrl+D.
   - Zoom: the − / Fit / + buttons in the label area's corner, Ctrl+scroll, or
     \+ − 0 on the canvas. Scroll (or middle-drag) to move around a zoomed-in
     label.

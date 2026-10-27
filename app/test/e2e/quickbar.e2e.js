@@ -37,14 +37,13 @@ test("the bar sits over the label, and its B sets the whole text, or just what's
 	await (await bar(page, '[data-style="fontWeight"]')).click();
 	assert.deepEqual((await first(page)).text, ["Hello ", [BOLD, "world"]]);
 	assert.ok(await page.$(".inline-edit"), "still typing");
-	assert.equal(
-		await page.$eval('#textProps [data-prop="fontWeight"]', (s) => s.selectedOptions[0].text),
-		"Mixed",
-		"the settings' weight says the words differ",
-	);
+	const weight = () =>
+		page.$eval('#textProps [data-prop="fontWeight"]', (s) => s.selectedOptions[0].text);
+	assert.equal(await weight(), "Bold (700)", "the settings' weight is the selection's");
 	await page.$eval(".inline-edit", (t) => t.setSelectionRange(0, 11));
 	await page.$eval(".inline-edit", (t) => t.dispatchEvent(new Event("select")));
 	assert.equal(await pressed(page, "fontWeight"), "mixed");
+	assert.equal(await weight(), "Mixed", "the words selected differ");
 
 	// Picking a font hands the focus back to the text, so typing carries on.
 	await page.select("#quickbar .font-select", "Oswald");
@@ -59,6 +58,21 @@ test("the bar sits over the label, and its B sets the whole text, or just what's
 	await (await bar(page, '[data-style="fontWeight"]')).click();
 	assert.equal((await first(page)).fontWeight, 400, "the box itself stays as it was");
 	assert.deepEqual((await first(page)).text, [[BOLD, "Hello world!"]]);
+	assert.deepEqual(page.errors, []);
+});
+
+test("a weight picked in the settings while typing is for the words selected", async () => {
+	const page = await env.open();
+	await typeOnLabel(page);
+	await page.$eval(".inline-edit", (t) => t.setSelectionRange(6, 11));
+	await (await bar(page, '[data-qb-action="more"]')).click();
+	assert.ok(await page.$(".inline-edit"), "typing carries on behind the settings");
+	await page.select('#textProps [data-prop="fontWeight"]', "700");
+	assert.deepEqual((await first(page)).text, ["Hello ", [BOLD, "world"]]);
+	assert.equal((await first(page)).fontWeight, 400, "not the whole box");
+	// The settings' own copy of the text ends the typing on the label.
+	await page.focus('#textProps [data-prop="text"]');
+	assert.equal(await page.$(".inline-edit"), null);
 	assert.deepEqual(page.errors, []);
 });
 
@@ -161,9 +175,43 @@ test("with nothing selected, the bar's place says what to do", async () => {
 	await page.keyboard.press("a");
 	await page.keyboard.up("Control");
 	await page.keyboard.press("Delete");
+	// An empty label: the bar goes, and a hint like the first-visit one says what to do.
+	assert.equal(await visible(page, "#quickbar"), false);
+	assert.equal(await visible(page, "#welcome"), false);
+	assert.equal(await visible(page, "#emptyHint"), true);
 	assert.equal(
-		await page.$eval("#barHint", (h) => h.textContent),
-		"Add text, a shape or a code from the rail",
+		await page.$eval("#emptyHint", (h) => h.textContent.trim()),
+		"The canvas is empty. Add an element like text or a shape to continue editing.",
 	);
+	await page.click("#addShape");
+	assert.equal(await visible(page, "#emptyHint"), false);
+	assert.equal(await visible(page, "#quickbar"), true);
+	assert.deepEqual(page.errors, []);
+});
+
+test("a narrow window tightens the bar to one row, then wraps it to two, never over the rail", async () => {
+	const page = await env.open({ width: 700, height: 700 });
+	const bar = () => page.$eval("#quickbar", (b) => b.getBoundingClientRect().toJSON());
+	const rail = await page.$eval(".rail", (r) => r.getBoundingClientRect().toJSON());
+	const rowHeight = (await bar()).height;
+	assert.equal(await page.$eval("#quickbar", (b) => b.classList.contains("compact")), true);
+	assert.ok(rowHeight < 50, `one row (${rowHeight}px)`);
+	assert.equal(
+		await page.$eval('[data-qb-action="more"]', (b) => b.textContent.trim()),
+		"More",
+		"the word is still there for screen readers",
+	);
+
+	await page.setViewport({ width: 640, height: 700 });
+	await page.waitForFunction(() => document.querySelector("#quickbar").offsetHeight > 50);
+	const wrapped = await bar();
+	assert.ok(wrapped.height < 2.2 * rowHeight, "two rows, not three");
+	assert.ok(wrapped.left >= rail.right, "clear of the rail");
+
+	await page.setViewport({ width: 1280, height: 700 });
+	await page.waitForFunction(
+		() => !document.querySelector("#quickbar").classList.contains("compact"),
+	);
+	assert.ok((await bar()).height < 50);
 	assert.deepEqual(page.errors, []);
 });

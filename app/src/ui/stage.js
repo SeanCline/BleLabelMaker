@@ -5,7 +5,17 @@ import { ensureFontsFor } from "../fonts.js";
 import { clamp, round, mmToDots } from "../units.js";
 import { caretMap, caretAt, indexAt, lineOf, nearestStop, selectionRects } from "../caretmap.js";
 import { cssFont, fontInfo, nearestWeight } from "../fonts.js";
-import { applyEdit, diffText, setStyle, stylesBetween, textOf, typingStyle } from "../richtext.js";
+import {
+	applyEdit,
+	diffText,
+	setStyle,
+	spansBetween,
+	spliceSpans,
+	stylesBetween,
+	textOf,
+	typingStyle,
+} from "../richtext.js";
+import { isFormatted, parseHtml, spansForBox, spansFromHtml, toHtml } from "../htmltext.js";
 import { snapTargets, snapMove, snapResize } from "../snap.js";
 import { $, el } from "./dom.js";
 import { describeLabel } from "./describe.js";
@@ -446,8 +456,53 @@ const drawCaret = () => {
 			}),
 		),
 	);
+	// Markers in the text's own frame, which turns with it, say where the handles go.
+	for (const [end, index] of [
+		["start", a],
+		["end", b],
+	]) {
+		const p = caretAt(map, index);
+		const { foot, aim } = inline.handles[end];
+		Object.assign(foot.style, { left: px(p.x), top: px(p.top + p.height) });
+		Object.assign(aim.style, { left: px(p.x), top: px(p.top + p.height / 2) });
+	}
+	placeHandles();
 	inlineChanged();
 };
+
+/**
+ * A finger covers the caret, so it gets handles to drag, as phones give their own text: one
+ * under the caret, or one at each end of a selection. They're over the page rather than in
+ * the label, which would cut them off below its edge.
+ */
+const placeHandles = () => {
+	if (!inline) return;
+	const { selectionStart: a, selectionEnd: b } = inline.textarea;
+	const touch = lastPointer !== "mouse";
+	const shownFor = { start: touch && a !== b, end: touch };
+	for (const [end, shown] of Object.entries(shownFor)) {
+		const { handle, foot } = inline.handles[end];
+		handle.hidden = !shown;
+		if (!shown) continue;
+		const r = foot.getBoundingClientRect();
+		Object.assign(handle.style, { left: `${r.left}px`, top: `${r.top}px` });
+	}
+};
+
+// Whether the last press was a mouse, a finger or a pen: only fingers and pens get handles.
+let lastPointer = matchMedia("(pointer: coarse)").matches ? "touch" : "mouse";
+document.addEventListener("pointerdown", (ev) => (lastPointer = ev.pointerType), true);
+
+/** Taps in a row on the same spot, for double- and triple-tap; a mouse counts its own. */
+let tapRun = { count: 0, time: 0, x: 0, y: 0 };
+const tapCount = (ev) => {
+	if (ev.pointerType === "mouse") return ev.detail;
+	const near = Math.hypot(ev.clientX - tapRun.x, ev.clientY - tapRun.y) < 24;
+	const count = near && ev.timeStamp - tapRun.time < 400 ? tapRun.count + 1 : 1;
+	tapRun = { count, time: ev.timeStamp, x: ev.clientX, y: ev.clientY };
+	return count;
+};
+const LONG_PRESS_MS = 500;
 
 /** The end of the selection that moves: where the caret is. */
 const focusOf = (t) => (t.selectionDirection === "backward" ? t.selectionStart : t.selectionEnd);
@@ -538,7 +593,23 @@ export const startInlineEdit = (id, caret) => {
 	});
 	const caretEl = el("div", { className: "inline-caret blink" });
 	const selection = el("div", { className: "inline-selection" });
-	const local = el("div", { className: "inline-local" }, selection, caretEl, textarea);
+	// Each handle hangs from its line's foot, and moves the caret to wherever its aim, in the
+	// middle of the line, is: so the finger can be below the text it's moving through.
+	const handleFor = (end) => ({
+		handle: el("div", { className: `inline-handle ${end}`, hidden: true, "aria-hidden": "true" }),
+		foot: el("div", { className: "inline-marker" }),
+		aim: el("div", { className: "inline-marker" }),
+	});
+	const handles = { start: handleFor("start"), end: handleFor("end") };
+	const local = el(
+		"div",
+		{ className: "inline-local" },
+		selection,
+		caretEl,
+		textarea,
+		...Object.values(handles).flatMap((h) => [h.foot, h.aim]),
+	);
+	document.body.append(handles.start.handle, handles.end.handle);
 	const frame = el("div", { className: "inline-editor" }, local);
 	inline = {
 		id,
@@ -547,23 +618,68 @@ export const startInlineEdit = (id, caret) => {
 		local,
 		caret: caretEl,
 		selection,
+		handles,
 		group: `inline-${++dragSeq}`,
 		goalX: null,
 		/** @type {{at: number, style: import("../richtext.js").Style} | null} */
 		pending: null,
+		/** @type {{at: number, removed: number, value: string, spans: import("../richtext.js").Span[]} | null} */
+		pasting: null,
 	};
 	textarea.addEventListener("input", () => {
 		inline.goalX = null;
 		const current = /** @type {import("../model.js").TextElement} */ (elementById(id));
 		const edit = diffText(textOf(current.text), textarea.value, textarea.selectionEnd);
 		const style = inline.pending?.at === edit.at ? inline.pending.style : undefined;
-		inline.pending = null;
-		updateElement(id, { text: applyEdit(current.text, edit, style) }, inline.group);
+		const { pasting } = inline;
+		inline.pending = inline.pasting = null;
+		// Checked against the whole value, as a diff can't tell where a paste that begins like
+		// what it replaced went in.
+		const text =
+			pasting?.value === textarea.value
+				? spliceSpans(current.text, pasting.at, pasting.removed, pasting.spans)
+				: applyEdit(current.text, edit, style);
+		updateElement(id, { text }, inline.group);
+	});
+	// The clipboard gets the selection's formatting as HTML, beside the plain text, and HTML
+	// pasted keeps its bold, italic and underline. The text still goes in through the textarea
+	// (execCommand), so its own undo takes a paste back like any typing.
+	const copy = (ev) => {
+		const { selectionStart: a, selectionEnd: b } = textarea;
+		if (a === b) return false;
+		const e = /** @type {import("../model.js").TextElement} */ (elementById(id));
+		const base = { fontWeight: e.fontWeight, italic: !!e.italic, underline: !!e.underline };
+		ev.clipboardData.setData("text/plain", textarea.value.slice(a, b));
+		ev.clipboardData.setData("text/html", toHtml(spansBetween(e.text, a, b), base));
+		ev.preventDefault();
+		return true;
+	};
+	textarea.addEventListener("copy", copy);
+	textarea.addEventListener("cut", (ev) => {
+		if (copy(ev)) document.execCommand("delete");
+	});
+	textarea.addEventListener("paste", (ev) => {
+		const html = ev.clipboardData.getData("text/html");
+		if (!html) return;
+		const spans = spansFromHtml(parseHtml(html));
+		// Plain from the HTML is plain from the text beside it, which the browser pastes better.
+		if (!isFormatted(spans)) return;
+		ev.preventDefault();
+		const { selectionStart: a, selectionEnd: b, value } = textarea;
+		const inserted = spans.map((p) => p.text).join("");
+		inline.pasting = {
+			at: a,
+			removed: b - a,
+			value: value.slice(0, a) + inserted + value.slice(b),
+			spans: spansForBox(spans, /** @type {import("../model.js").TextElement} */ (elementById(id))),
+		};
+		document.execCommand("insertText", false, inserted);
 	});
 	textarea.addEventListener("blur", (ev) => {
 		rememberCaret(id, textarea, "inline");
-		// The bar's fields set the font or insert a field while typing; the bar hands back.
-		if (/** @type {Element} */ (ev.relatedTarget)?.closest?.("#quickbar")) return;
+		// The bar's fields set the font or insert a field while typing, and the settings the
+		// weight; typing goes on.
+		if (/** @type {Element} */ (ev.relatedTarget)?.closest?.("#quickbar, #settings")) return;
 		stopInlineEdit();
 	});
 	textarea.addEventListener("keydown", (ev) => {
@@ -594,6 +710,12 @@ export const startInlineEdit = (id, caret) => {
 	textarea.addEventListener("select", drawCaret);
 
 	let dragging = false;
+	let longPress = 0;
+	const selectWord = (index) => {
+		const [a, b] = wordAround(textarea.value, index);
+		textarea.setSelectionRange(a, b, "forward");
+		drawCaret();
+	};
 	frame.addEventListener("pointerdown", (ev) => {
 		if (ev.button !== 0) return;
 		// Keep the focus (and the edit) in the textarea, and the press away from the drag code.
@@ -601,23 +723,69 @@ export const startInlineEdit = (id, caret) => {
 		ev.stopPropagation();
 		inline.goalX = null;
 		const index = indexFromEvent(ev);
-		if (ev.detail === 2) {
-			const [a, b] = wordAround(textarea.value, index);
-			textarea.setSelectionRange(a, b, "forward");
-		} else if (ev.detail >= 3) {
+		const taps = tapCount(ev);
+		if (taps === 2) selectWord(index);
+		else if (taps >= 3) {
 			const line = inline.map[lineOf(inline.map, index)];
 			textarea.setSelectionRange(line.start, line.end, "forward");
 		} else {
 			moveCaret(index, ev.shiftKey);
 			dragging = true;
 			frame.setPointerCapture(ev.pointerId);
+			// Holding a finger still selects the word under it, as on a phone's own text.
+			if (ev.pointerType !== "mouse") {
+				const at = [ev.clientX, ev.clientY];
+				longPress = window.setTimeout(() => {
+					dragging = false;
+					selectWord(index);
+				}, LONG_PRESS_MS);
+				inline.pressAt = at;
+			}
 		}
 		drawCaret();
 	});
 	frame.addEventListener("pointermove", (ev) => {
+		const [x, y] = inline.pressAt ?? [];
+		if (longPress && Math.hypot(ev.clientX - x, ev.clientY - y) > DRAG_SLACK_PX) {
+			clearTimeout(longPress);
+			longPress = 0;
+		}
 		if (dragging) moveCaret(indexFromEvent(ev), true);
 	});
-	const endSelect = () => (dragging = false);
+	const endSelect = () => {
+		dragging = false;
+		clearTimeout(longPress);
+		longPress = 0;
+	};
+
+	// Dragging a handle moves its end of the selection (or the caret), aiming at the line above
+	// the finger. The ends can't cross, so each handle stays the end it is.
+	for (const [end, { handle: h, aim }] of Object.entries(handles)) {
+		let grip = null;
+		h.addEventListener("pointerdown", (ev) => {
+			// Like a press on the text, it mustn't take the focus from the typing.
+			ev.preventDefault();
+			ev.stopPropagation();
+			h.setPointerCapture(ev.pointerId);
+			const at = aim.getBoundingClientRect();
+			grip = [ev.clientX - at.left, ev.clientY - at.top];
+		});
+		h.addEventListener("pointermove", (ev) => {
+			if (!grip) return;
+			const index = indexFromEvent({
+				clientX: ev.clientX - grip[0],
+				clientY: ev.clientY - grip[1],
+			});
+			const { selectionStart: a, selectionEnd: b } = textarea;
+			if (end === "start") textarea.setSelectionRange(Math.min(index, b - 1), b, "backward");
+			else if (a === b) textarea.setSelectionRange(index, index);
+			else textarea.setSelectionRange(a, Math.max(index, a + 1), "forward");
+			drawCaret();
+		});
+		const release = () => (grip = null);
+		h.addEventListener("pointerup", release);
+		h.addEventListener("pointercancel", release);
+	}
 	frame.addEventListener("pointerup", endSelect);
 	frame.addEventListener("pointercancel", endSelect);
 	// A double-click inside the editor selects a word; it isn't a request to start editing.
@@ -636,12 +804,17 @@ export const startInlineEdit = (id, caret) => {
 document.addEventListener("selectionchange", () => {
 	if (inline && document.activeElement === inline.textarea) drawCaret();
 });
+// The handles are over the page, so they follow the label when it scrolls or the window moves.
+$("#stage").addEventListener("scroll", placeHandles);
+addEventListener("resize", placeHandles);
+visualViewport?.addEventListener("scroll", placeHandles);
 
 export const stopInlineEdit = () => {
 	if (!inline) return;
-	const { frame } = inline;
+	const { frame, handles } = inline;
 	inline = null;
 	frame.remove();
+	for (const { handle } of Object.values(handles)) handle.remove();
 	history.seal();
 	inlineChanged();
 	renderOverlay();

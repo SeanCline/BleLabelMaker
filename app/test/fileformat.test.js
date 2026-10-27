@@ -32,7 +32,6 @@ test("file carries format id, the app's repository and version", () => {
 	const raw = JSON.parse(serialize(doc));
 	assert.equal(raw.format, "labelmaker-label");
 	assert.equal(raw.app, REPO_URL);
-	// Nothing in it is formatted, so copies of the app from before formatting can open it.
 	assert.equal(raw.version, 1);
 	assert.deepEqual(raw.editor.selectedIds, []);
 	// Only a note for people: a file without it, or naming somewhere else, opens the same.
@@ -167,13 +166,12 @@ test("text elements never keep emoji presentation selectors", () => {
 	assert.equal(createText(doc, { text: "⚠\uFE0F" }).text, "⚠");
 });
 
-test("formatted text saves as runs, says it needs version 2, and round-trips exactly", () => {
+test("formatted text saves as runs, and round-trips exactly", () => {
 	const doc = sampleDoc();
 	doc.elements.push(createText(doc, { text: ["Use ", [{ fontWeight: 700 }, "by"], " Friday"] }));
 	const file = serialize(doc);
 	const raw = JSON.parse(file);
 	assert.equal(raw.version, CURRENT_VERSION);
-	assert.equal(CURRENT_VERSION, 2);
 	assert.deepEqual(raw.elements[3].text, ["Use ", [{ fontWeight: 700 }, "by"], " Friday"]);
 	const back = parse(file);
 	assert.deepEqual(back.doc, doc);
@@ -184,7 +182,6 @@ test("formatted text saves as runs, says it needs version 2, and round-trips exa
 
 test("hand-written runs are tidied; bad ones are refused", () => {
 	const raw = JSON.parse(serialize(sampleDoc()));
-	raw.version = 2;
 	// The second element is bold already, so a bold run in it is nothing special.
 	raw.elements[1].text = ["Line ", [{ fontWeight: 700 }, "one"], "", [{}, "\nline two"]];
 	raw.elements[2].text = [

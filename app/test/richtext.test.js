@@ -7,11 +7,14 @@ import {
 	normalize,
 	retext,
 	setStyle,
+	spansBetween,
+	spliceSpans,
 	stylesBetween,
 	textOf,
 	typingStyle,
 } from "../src/richtext.js";
 import { createText, normalizeText } from "../src/model.js";
+import { spansForBox, toHtml } from "../src/htmltext.js";
 import { fillDocument, fieldsUsed } from "../src/fields.js";
 import { layoutText } from "../src/layout.js";
 import { monoMeasure } from "./helpers.js";
@@ -149,4 +152,34 @@ test("layout measures each run in its own width", () => {
 	// Without the bold, "abCD" would fit at 15 (4 letters of 7.5).
 	const fitted = layoutText({ text, width: 30, height: 100, fit: true, measure });
 	assert.ok(fitted.fontSize <= 10, `fit allows for the wider letters (got ${fitted.fontSize})`);
+});
+
+test("copied text says how it looks in HTML, with the box's style filled in", () => {
+	/** @type {RichText} */
+	const text = ["a<", [{ italic: true }, "b\nc"], [{ fontWeight: 400 }, "d"]];
+	const box = { fontWeight: 700, italic: false, underline: true };
+	assert.equal(
+		toHtml(spansBetween(text, 1, 6), box),
+		'<span style="font-weight:700;text-decoration:underline">&lt;</span>' +
+			'<span style="font-weight:700;font-style:italic;text-decoration:underline">b<br>c</span>' +
+			'<span style="text-decoration:underline">d</span>',
+	);
+});
+
+test("pasted formatting goes in where it was pasted, in what the box's font has", () => {
+	const spans = spansForBox(
+		[
+			{ style: { fontWeight: 660 }, text: "X" },
+			{ style: { italic: true }, text: "Y" },
+		],
+		{ fontFamily: "Oswald" },
+	);
+	assert.deepEqual(spans[0].style, { fontWeight: 700 }, "Oswald's nearest weight");
+	assert.deepEqual(spans[1].style, {}, "Oswald has no italic");
+	const pasted = spliceSpans([[BOLD, "abcd"]], 1, 2, [{ style: { italic: true }, text: "Z" }]);
+	assert.deepEqual(normalize(pasted), [
+		[BOLD, "a"],
+		[{ italic: true }, "Z"],
+		[BOLD, "d"],
+	]);
 });

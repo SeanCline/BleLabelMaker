@@ -152,19 +152,25 @@ const renderChip = (real, t) => {
 		: real.connected
 			? real.name
 			: { bluetooth: "Bluetooth printer", serial: "Serial printer" }[settings.target];
+	// Without Web Bluetooth the virtual printer is all there is, which the chip owns up to
+	// rather than a banner across the page; its menu says what to do about it.
+	const unsupported = !real && !bluetoothAvailable();
 	const detail = problem
 		? describeStatus(t.status, { battery: false })
 		: real?.connected
 			? battery
 			: real
 				? "not connected"
-				: "";
+				: unsupported
+					? "browser can't use Bluetooth"
+					: "";
 	const text = [name, detail].filter(Boolean).join(" · ");
 	$("#printerChipLabel").textContent = text;
 	// On a phone the chip is just its dot, so its name says the rest.
 	chip.setAttribute("aria-label", `Printer: ${text}`);
 	chip.classList.toggle("ok", !!real?.connected && !problem);
 	chip.classList.toggle("problem", problem);
+	chip.classList.toggle("unsupported", unsupported);
 };
 
 const reportPrintError = (err) => {
@@ -309,7 +315,7 @@ const renderPrintButton = () => {
 	const button = $("#btnPrint .print-label");
 	if (!real) button.textContent = ["Print", what].filter(Boolean).join(" ");
 	else if (!real.connected)
-		button.textContent = ["Connect & print", what].filter(Boolean).join(" ");
+		button.textContent = ["Connect & Print", what].filter(Boolean).join(" ");
 	else button.textContent = ["Print", what].filter(Boolean).join(" ");
 };
 
@@ -362,9 +368,15 @@ const renderFeed = () => {
 const initSettings = () => {
 	if (!bluetoothAvailable()) {
 		$("#noBluetooth").hidden = false;
-		$('#target option[value="bluetooth"]').disabled = true;
+		const option = $('#target option[value="bluetooth"]');
+		option.disabled = true;
+		option.textContent = "Bluetooth (not in this browser)";
 	}
-	if (!serialAvailable()) $('#target option[value="serial"]').disabled = true;
+	if (!serialAvailable()) {
+		const option = $('#target option[value="serial"]');
+		option.disabled = true;
+		option.textContent = "Serial port (not in this browser)";
+	}
 	$("#setFlip").checked = settings.flip180;
 	const vendors = [...new Set(PRINTERS.map((p) => p.vendor))];
 	for (const select of [$("#setPrinter"), $("#virtualModel")]) {

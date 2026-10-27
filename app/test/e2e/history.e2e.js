@@ -147,7 +147,7 @@ test("history holds more than localStorage could: big images survive a reload", 
 					doc.elements = [
 						createImage(doc, { x: 1, y: 1, w: 10, h: 10, src: c.toDataURL("image/png") }),
 					];
-					return serialize(doc, { mode: "design", selectedIds: [] });
+					return serialize(doc, { selectedIds: [] });
 				}),
 			);
 		});

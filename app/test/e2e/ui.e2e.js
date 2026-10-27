@@ -342,7 +342,7 @@ test("inline editing follows the label's lines: wrapping, rotation, stacking", a
 			const { serialize } = await import("/src/fileformat.js");
 			const doc = createDocument();
 			Object.assign(doc.elements[0], { fit: false, fontSizePt: 10 }, patch);
-			await window.labelApp.loadText(serialize(doc, { mode: "design", selectedIds: [] }));
+			await window.labelApp.loadText(serialize(doc, { selectedIds: [] }));
 		}, patch);
 	const edit = async () => {
 		const id = (await appState(page)).doc.elements[0].id;

@@ -21,16 +21,7 @@ import { STORAGE_ID, REPO_URL } from "./app-info.js";
 import { STYLE_PROPS } from "./richtext.js";
 
 export const FORMAT_ID = `${STORAGE_ID}-label`;
-// 2: a text's `text` can be a list of runs, for formatting part of it.
-export const CURRENT_VERSION = 2;
-
-/**
- * The oldest version that can read these elements, which is what a file says it is: one
- * without formatted text still opens in copies of the app from before there was any.
- * @param {import("./model.js").Element[]} elements
- */
-const versionFor = (elements) =>
-	elements.some((e) => e.type === "text" && typeof e.text !== "string") ? 2 : 1;
+export const CURRENT_VERSION = 1;
 export const FILE_EXTENSION = ".label";
 
 export class LabelFileError extends Error {}
@@ -46,12 +37,10 @@ export const serialize = (doc, editor = {}) =>
 			format: FORMAT_ID,
 			// Says what made the file, for anyone who finds one; never read back.
 			app: REPO_URL,
-			version: versionFor(doc.elements),
+			version: CURRENT_VERSION,
 			label: doc.label,
 			elements: doc.elements,
-			// Copies of the app from when it had a simple and a design mode read `mode`; design
-			// shows any label.
-			editor: { mode: "design", selectedIds: editor.selectedIds ?? [] },
+			editor: { selectedIds: editor.selectedIds ?? [] },
 		},
 		null,
 		"\t",
@@ -111,7 +100,7 @@ const ELEMENTS_FORMAT = `${STORAGE_ID}-elements`;
 
 /** @param {import("./model.js").Element[]} elements */
 export const serializeElements = (elements) =>
-	JSON.stringify({ format: ELEMENTS_FORMAT, version: versionFor(elements), elements });
+	JSON.stringify({ format: ELEMENTS_FORMAT, version: CURRENT_VERSION, elements });
 
 /**
  * Elements copied from this app, validated like a file's; null if the text is anything else
