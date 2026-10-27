@@ -21,6 +21,7 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@eslint/js": "10.0.1",
+		"@types/node": "24.19.2",
 		"@types/web-bluetooth": "0.0.22",
 		"@zxing/library": "0.23.0",
 		"axe-core": "4.14.0",

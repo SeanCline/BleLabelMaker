@@ -28,7 +28,7 @@ const editing = async (options) => {
 	const page = await env.open(options);
 	const overlay = await (await page.$("#overlay")).boundingBox();
 	await page.mouse.click(overlay.x + overlay.width / 2, overlay.y + overlay.height / 2, {
-		clickCount: 2,
+		count: 2,
 	});
 	await page.waitForSelector(".inline-edit");
 	return page;

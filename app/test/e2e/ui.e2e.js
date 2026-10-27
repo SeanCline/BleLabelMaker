@@ -165,7 +165,7 @@ test("emoji in text: the picker inserts at the cursor, and emoji print as crisp 
 
 	// From the bar while typing on the label: it reopens with the cursor after the emoji.
 	const box = await (await page.$(".box.selected")).boundingBox();
-	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { clickCount: 2 });
+	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { count: 2 });
 	await page.waitForSelector(".inline-edit");
 	await page.keyboard.press("End");
 	await page.click("#quickbar .insert-emoji");
@@ -254,7 +254,7 @@ test("inline editing: double-click to type on the label, Escape to finish, one u
 	// Simple mode: double-click anywhere on the label edits its text.
 	const overlay = await (await page.$("#overlay")).boundingBox();
 	await page.mouse.click(overlay.x + overlay.width / 2, overlay.y + overlay.height / 2, {
-		clickCount: 2,
+		count: 2,
 	});
 	await page.waitForSelector(".inline-edit");
 	await page.keyboard.type("Pantry");
@@ -316,7 +316,7 @@ test("inline editing: double-click to type on the label, Escape to finish, one u
 	assert.ok(await page.$(".inline-edit"));
 	await page.keyboard.press("Escape");
 	const box = await (await page.$(".box.selected")).boundingBox();
-	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { clickCount: 2 });
+	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { count: 2 });
 	await page.waitForSelector(".inline-edit");
 	await page.keyboard.type("Top");
 	await page.keyboard.press("Enter");
@@ -347,7 +347,7 @@ test("inline editing follows the label's lines: wrapping, rotation, stacking", a
 	const edit = async () => {
 		const id = (await appState(page)).doc.elements[0].id;
 		const box = await (await page.$(`.box[data-id="${id}"]`)).boundingBox();
-		await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { clickCount: 2 });
+		await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { count: 2 });
 		await page.waitForSelector(".inline-edit");
 	};
 	const press = async (...keys) => {
@@ -533,7 +533,7 @@ test("a larger first line prints larger, and edits on the label", async () => {
 	assert.ok(larger > same * 1.2, `first line ${same} → ${larger} dots tall`);
 	await page.keyboard.press("Escape"); // the settings sit over the label
 	const box = await (await page.$(".box.selected")).boundingBox();
-	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { clickCount: 2 });
+	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { count: 2 });
 	assert.ok(await page.$(".inline-edit"));
 });
 
@@ -698,7 +698,7 @@ test("the first-run tip goes once the label is typed on, or after a print, and s
 	const typed = await env.open();
 	assert.equal(await typed.$eval("#welcome", (w) => w.hidden), false);
 	const o = await (await typed.$("#overlay")).boundingBox();
-	await typed.mouse.click(o.x + o.width / 2, o.y + o.height / 2, { clickCount: 2 });
+	await typed.mouse.click(o.x + o.width / 2, o.y + o.height / 2, { count: 2 });
 	await typed.waitForSelector(".inline-edit");
 	assert.equal(await typed.$eval("#welcome", (w) => w.hidden), true);
 

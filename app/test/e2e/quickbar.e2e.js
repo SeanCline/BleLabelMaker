@@ -15,7 +15,7 @@ const visible = (page, selector) =>
 	page.$eval(selector, (n) => !n.closest("[hidden]") && n.getClientRects().length > 0);
 const typeOnLabel = async (page) => {
 	const o = await (await page.$("#overlay")).boundingBox();
-	await page.mouse.click(o.x + o.width / 2, o.y + o.height / 2, { clickCount: 2 });
+	await page.mouse.click(o.x + o.width / 2, o.y + o.height / 2, { count: 2 });
 	await page.waitForSelector(".inline-edit");
 };
 
