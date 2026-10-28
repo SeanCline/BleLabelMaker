@@ -6,7 +6,7 @@ import { storageKey } from "../app-info.js";
 import { $, el, loadJson, storeJson } from "./dom.js";
 import { state, history, commit, amend, subscribe } from "./store.js";
 import { onDrawn, previewDocument } from "./stage.js";
-import { onPrinterChange } from "./printing.js";
+import { onPrinterChange } from "./printer-menu.js";
 import { currentPrinter, currentScale } from "./settings.js";
 
 const presetKey = (l) => `${l.widthMm}x${l.heightMm}`;

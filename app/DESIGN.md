@@ -34,6 +34,7 @@ src/
   render.js      document → canvas at printer resolution, 1-bit; element cache
   raster.js      canvas pixels → printer-oriented 1bpp rows, centred on the head
   printjob.js    design → labels to print (batch, copies, counter) → job bytes
+  print.js       a whole print without UI: plan, connect, check, render, send, outcome
   transport.js   Connection base class: Bluetooth, serial port, virtual printer
   history.js     undo/redo over document snapshots
   printhistory.js  print history entries, export/import
@@ -54,7 +55,8 @@ src/
     labelbar.js  label size: the printer's presets, continuous, custom, remembered per printer
     text-insert.js  emoji picker and Field menu, inserting at the cursor
     settings.js  saved print settings; the selected model and its resolution
-    printing.js  connections, status line, print
+    printer-menu.js  connections, the printer chip and status, the printer menu
+    printing.js  the Print button, copies, counter, and how a print went
     report.js    the pop-up after an untested model prints, Report a problem, diagnostics
     virtual-output.js  the virtual printer's decoded labels
     batch.js, files.js, clipboard.js, keyboard.js, history-panel.js, idb.js, caret.js
