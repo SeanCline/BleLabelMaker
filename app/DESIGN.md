@@ -32,6 +32,7 @@ src/
   layout.js      text wrapping and fit-to-box (pure, measure fn injected)
   caretmap.js    caret positions on laid-out text, for the inline editor
   render.js      document → canvas at printer resolution, 1-bit; element cache
+  painters/      how each element type draws: text, shapes, codes, image
   raster.js      canvas pixels → printer-oriented 1bpp rows, centred on the head
   printjob.js    design → labels to print (batch, copies, counter) → job bytes
   print.js       a whole print without UI: plan, connect, check, render, send, outcome
