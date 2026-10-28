@@ -22,7 +22,7 @@ src/
     index.js     the driver interface and the registry of every model
     phomemo/     the Phomemo D-series driver: models, commands, status, decoder
   bytes.js       packetize, concat
-  units.js       mm ↔ dots, pt ↔ dots (8 dots/mm, 203 dpi)
+  units.js       mm and pt ↔ dots at a printer's resolution (dotScale)
   model.js       document model, element factories, arranging, margins
   fileformat.js  .label serialize / parse / validate; copied-elements format
   fields.js      {date}, {n}, {1}… filled in per label
@@ -53,7 +53,8 @@ src/
     toolbar.js   arrow keys between a toolbar's controls, one Tab stop for its buttons
     labelbar.js  label size: the printer's presets, continuous, custom, remembered per printer
     text-insert.js  emoji picker and Field menu, inserting at the cursor
-    printing.js  printer choice and settings, status line, print
+    settings.js  saved print settings; the selected model and its resolution
+    printing.js  connections, status line, print
     report.js    the pop-up after an untested model prints, Report a problem, diagnostics
     virtual-output.js  the virtual printer's decoded labels
     batch.js, files.js, clipboard.js, keyboard.js, history-panel.js, idb.js, caret.js
@@ -94,7 +95,8 @@ render time.
 
 ## WYSIWYG strategy
 
-The editor's canvas _is_ the print raster. It's rendered at 8 dots/mm,
+The editor's canvas _is_ the print raster. It's rendered at the selected
+model's resolution (`dotsPerMm`: 8 for 203 dpi),
 thresholded to pure black and white, and scaled up on screen with
 `image-rendering: pixelated`. Selection and drag/resize handles are DOM
 elements laid over the canvas. Editing never relies on DOM text layout, so the
@@ -210,7 +212,7 @@ different lists.
   describe the element's box _after_ rotation, so the box is always
   axis-aligned. Rotating a quarter turn swaps `w` and `h` around the centre.
 - `rotation` is 0, 90, 180 or 270 degrees clockwise. Only quarter turns are
-  supported, so one-dot lines and barcode bars stay exact on the 8 dots/mm grid.
+  supported, so one-dot lines and barcode bars stay exact on the printer's dot grid.
 - Shapes are `rect` (with optional rounded corners), `ellipse` or `line` (a
   horizontal bar through the middle of the box; rotate it for a vertical one).
   Outlines are drawn entirely inside the box, at `strokeMm` thickness rounded
@@ -287,18 +289,17 @@ label sizes. Set `tested: true` once it has printed.
 `driver.js` implementing `PrinterDriver` and a `models.js`, and add its
 models to `PRINTERS` in `src/printers/index.js`. Unit-test the job builder
 against its decoder the way `test/phomemo-protocol.test.js` does; the virtual
-printer then works for it with no further code. Things the interface doesn't
+printer then works for it with no further code. A model's `dotsPerMm` sets
+the resolution everything is drawn at, preview included. Things the interface doesn't
 cover yet, because no printer has needed them:
 
 1. **Orientation.** `toPrinterRaster` always turns the label a quarter turn,
    because a D-series head spans the label's height. Printers whose heads span
    the label's width (shipping-label printers) don't turn it, and some tape
    printers also turn it 180°. That would become a model field.
-2. **Resolution.** `units.js` fixes 8 dots/mm (203 dpi). A 300 dpi model
-   would need the dot pitch passed through rendering.
-3. **Margins.** `MARGIN` in `model.js` is shared by every model today. A
+2. **Margins.** `MARGIN` in `model.js` is shared by every model today. A
    printer with other margins would carry its own.
-4. **Label limits.** `LIMITS.labelHeightMm` (6–15 mm) and the label bar's
+3. **Label limits.** `LIMITS.labelHeightMm` (6–15 mm) and the label bar's
    inputs assume a 12 mm head. A wider printer needs its own range.
 
 ## The Phomemo D-series driver

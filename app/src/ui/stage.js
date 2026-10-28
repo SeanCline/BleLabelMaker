@@ -2,7 +2,8 @@ import { LIMITS, printableArea, boundsOf } from "../model.js";
 import { renderLabel, layoutTextBox } from "../render.js";
 import { fillDocument } from "../fields.js";
 import { ensureFontsFor } from "../fonts.js";
-import { clamp, round, mmToDots } from "../units.js";
+import { clamp, round } from "../units.js";
+import { currentScale, onModelChange } from "./settings.js";
 import { caretMap, caretAt, indexAt, lineOf, nearestStop, selectionRects } from "../caretmap.js";
 import { cssFont, fontInfo, nearestWeight } from "../fonts.js";
 import {
@@ -84,7 +85,7 @@ export const drawCanvas = async () => {
 	// Off-screen first: a render that waits on an image can overlap a newer one, and two
 	// renders sharing the visible canvas would leave pieces of the older label on it.
 	const scratch = document.createElement("canvas");
-	const result = await renderLabel(doc, scratch);
+	const result = await renderLabel(doc, scratch, { dots: currentScale() });
 	if (token !== renderToken) return;
 	({ fittedSizes: fitted, warnings } = result);
 	if (canvas.width !== scratch.width) canvas.width = scratch.width;
@@ -100,6 +101,8 @@ export const drawCanvas = async () => {
 };
 
 let queued = false;
+// Another model may print at another resolution, which the preview shows.
+onModelChange(() => scheduleCanvas());
 export const scheduleCanvas = () => {
 	if (queued) return;
 	queued = true;
@@ -414,12 +417,13 @@ const toLocal = (quarter, w, h, x, y) =>
 
 const positionInline = (e) => {
 	const dot = parseFloat(getComputedStyle(paper).getPropertyValue("--dot")) || 1;
-	const box = { w: Math.round(mmToDots(e.w)), h: Math.round(mmToDots(e.h)) };
+	const dots = currentScale();
+	const box = { w: Math.round(dots.mm(e.w)), h: Math.round(dots.mm(e.h)) };
 	const quarter = ((e.rotation ?? 0) / 90) % 4;
 	const local = quarter % 2 ? { w: box.h, h: box.w } : box;
 	// The same layout the renderer uses, computed now rather than taken from the last render,
 	// which lags a frame behind typing.
-	const layout = layoutTextBox(measureCtx, e, local);
+	const layout = layoutTextBox(measureCtx, e, local, dots);
 	Object.assign(inline, {
 		map: caretMap({ layout, width: local.w, align: e.align, measure: layout.measure }),
 		quarter,

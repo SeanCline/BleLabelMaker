@@ -827,3 +827,31 @@ test("the caret keeps to the label when the font changes or the label zooms mid-
 	await atInk("after zooming");
 	assert.deepEqual(page.errors, []);
 });
+
+test("a label renders at the printer's resolution: 300 dpi is the same label in more dots", async () => {
+	const page = await env.open();
+	const at = (dotsPerMm) =>
+		page.evaluate(async (dotsPerMm) => {
+			const render = "/src/render.js";
+			const units = "/src/units.js";
+			const { renderLabel } = await import(render);
+			const { dotScale } = await import(units);
+			const c = document.createElement("canvas");
+			const { fittedSizes } = await renderLabel(window.labelApp.state.doc, c, {
+				dots: dotScale(dotsPerMm),
+			});
+			const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;
+			let black = 0;
+			for (let i = 0; i < d.length; i += 4) if (!d[i]) black++;
+			return { width: c.width, height: c.height, black, fitted: [...fittedSizes.values()][0] };
+		}, dotsPerMm);
+	const low = await at(8);
+	const high = await at(11.8);
+	assert.deepEqual([low.width, low.height], [320, 96], "40 × 12 mm at 8 dots/mm");
+	assert.deepEqual([high.width, high.height], [472, 142]);
+	// The same text, at the same size in points, in about (11.8 / 8)² as many black dots.
+	assert.ok(Math.abs(high.fitted - low.fitted) < 0.5, `${low.fitted} pt and ${high.fitted} pt`);
+	const ratio = high.black / low.black;
+	assert.ok(ratio > 1.9 && ratio < 2.5, `ink ratio ${ratio}`);
+	assert.deepEqual(page.errors, []);
+});

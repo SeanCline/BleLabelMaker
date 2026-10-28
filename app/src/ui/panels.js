@@ -13,7 +13,8 @@ import {
 	placeCopies,
 } from "../model.js";
 import { FONTS, WEIGHT_NAMES, weightsFor, nearestWeight, fontInfo, hasEmoji } from "../fonts.js";
-import { clamp, round, dotsToMm } from "../units.js";
+import { clamp, round } from "../units.js";
+import { currentScale } from "./settings.js";
 import { encodeBarcode } from "../barcode.js";
 import { $, $$, el, toast, announce } from "./dom.js";
 import { contentOf, describeElement, typeName } from "./describe.js";
@@ -418,7 +419,7 @@ $("#addBarcode").addEventListener("click", () => {
 	const e = createBarcode(state.doc);
 	// Wide enough for 2-dot bars (the narrowest that scans reliably), if the label allows.
 	const modules = encodeBarcode(e.symbology, e.data).modules.length;
-	const width = Math.min(a.w, Math.ceil(dotsToMm(modules * 2) + 0.5));
+	const width = Math.min(a.w, Math.ceil(currentScale().toMm(modules * 2) + 0.5));
 	addElement({ ...e, ...centred(width, a.h) });
 	$('#quickbar [data-qb="barcode"] [data-prop="data"]').select();
 });

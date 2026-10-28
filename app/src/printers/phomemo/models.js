@@ -15,6 +15,7 @@ const model = (name, more = {}) => ({
 	vendor: "Phomemo",
 	driver: dSeries,
 	headDots: 96,
+	dotsPerMm: 8,
 	feedLines: 23,
 	feedAfter: "each",
 	presets: D_SERIES_12,

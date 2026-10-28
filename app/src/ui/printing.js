@@ -1,5 +1,5 @@
 import { planLabels, buildJobs, sentPart } from "../printjob.js";
-import { DEFAULT_PRINTER, printerById, PRINTERS } from "../printers/index.js";
+import { printerById, PRINTERS } from "../printers/index.js";
 import { renderLabel, withAutoLength } from "../render.js";
 import { ensureFontsFor } from "../fonts.js";
 import { fieldsUsed } from "../fields.js";
@@ -12,41 +12,20 @@ import {
 	serialAvailable,
 } from "../transport.js";
 import { clamp } from "../units.js";
-import { $, el, loadJson, storeJson, toast } from "./dom.js";
+import { $, el, toast } from "./dom.js";
 import { showVirtualOutput } from "./virtual-output.js";
 import { setFieldContext } from "./stage.js";
 import { state, subscribe } from "./store.js";
 import { batchData, previewRow, onBatchChange } from "./batch.js";
-import { storageKey } from "../app-info.js";
-
-const SETTINGS_KEY = storageKey("settings");
-
-export const settings = {
-	// A real printer is what most visitors came for; the virtual one is the fallback where the
-	// browser can't reach one, and stays a choice for trying the app out.
-	target: bluetoothAvailable() ? "bluetooth" : "virtual",
-	flip180: false,
-	// Which model to print for; picked up from the Bluetooth name when one connects.
-	printer: DEFAULT_PRINTER.id,
-	// Dot lines fed after a continuous label. Starts at the model's value and goes back to it
-	// whenever the model changes, so it is only ever a deliberate override of that model.
-	feedLines: DEFAULT_PRINTER.feedLines,
-	showAllDevices: false,
-	density: "normal",
-	// The next value {n} prints; it moves on after every print so serials don't repeat.
-	counterStart: 1,
-	...loadJson(SETTINGS_KEY),
-};
-if (settings.target === "bluetooth" && !bluetoothAvailable()) settings.target = "virtual";
-if (settings.target === "serial" && !serialAvailable()) settings.target = "virtual";
-const saveSettings = () => storeJson(SETTINGS_KEY, settings);
-/** Switches model, taking its defaults. */
-const selectPrinter = (model) => {
-	settings.printer = model.id;
-	settings.feedLines = model.feedLines;
-	saveSettings();
-	for (const c of [bt, serial, virtual]) c.model = model;
-};
+import {
+	settings,
+	saveSettings,
+	currentPrinter,
+	currentScale,
+	selectPrinter,
+	onModelChange,
+	validFeed,
+} from "./settings.js";
 
 let busy = false;
 /** Tells the user about problems the moment the printer reports them, not just on print. */
@@ -68,7 +47,10 @@ bt.onStatus = recognise(bt);
 const virtual = new VirtualPrinter({ onPrinterStatus });
 const serial = new SerialPrinter({ onPrinterStatus });
 serial.onStatus = recognise(serial);
-for (const c of [bt, serial, virtual]) c.model = printerById(settings.printer);
+for (const c of [bt, serial, virtual]) c.model = currentPrinter();
+onModelChange((model) => {
+	for (const c of [bt, serial, virtual]) c.model = model;
+});
 /** The real printer for the chosen target, or null for the virtual one. */
 const hardware = () => ({ bluetooth: bt, serial })[settings.target] ?? null;
 const transport = () => hardware() ?? virtual;
@@ -77,8 +59,6 @@ const printerListeners = new Set();
 
 /** Called whenever the connected printer (or the choice of printer) changes. */
 export const onPrinterChange = (fn) => printerListeners.add(fn);
-/** The model being printed for: its label sizes, head and commands. */
-export const currentPrinter = () => printerById(settings.printer);
 
 /** The printer side of a bug report: what's selected, connected and last heard, right now. */
 export const printerInfo = () => {
@@ -176,7 +156,8 @@ const reportPrintError = (err) => {
 const renderForPrint = async (doc) => {
 	await ensureFontsFor(doc);
 	const canvas = document.createElement("canvas");
-	await renderLabel(withAutoLength(doc), canvas);
+	const dots = currentScale();
+	await renderLabel(withAutoLength(doc, dots), canvas, { dots });
 	return canvas.getContext("2d").getImageData(0, 0, canvas.width, canvas.height);
 };
 
@@ -345,7 +326,6 @@ const renderAutoPower = (t) => {
 	select.value = setting.minutes.includes(minutes) ? String(minutes) : "";
 };
 
-const validFeed = (v) => Number.isInteger(v) && v >= 0 && v <= 255;
 const renderFeed = () => {
 	const model = currentPrinter();
 	$("#setFeed").value = String(settings.feedLines);
@@ -382,7 +362,6 @@ const initSettings = () => {
 			renderPrinterStatus();
 		});
 	}
-	if (!validFeed(settings.feedLines)) settings.feedLines = currentPrinter().feedLines;
 	$("#setFeed").addEventListener("change", (ev) => {
 		const v = ev.target.valueAsNumber;
 		if (validFeed(v)) {
@@ -411,7 +390,6 @@ const initSettings = () => {
 			reportPrintError(err);
 		}
 	});
-	if (!["light", "normal", "dark"].includes(settings.density)) settings.density = "normal";
 	$("#density").value = settings.density;
 	$("#density").addEventListener("change", (ev) => {
 		settings.density = ev.target.value;

@@ -1,5 +1,6 @@
 // How big the label is on screen: fitted to the stage, zoomed, and panned by scrolling.
 import { labelDots } from "../render.js";
+import { currentScale } from "./settings.js";
 import { $ } from "./dom.js";
 import { state } from "./store.js";
 
@@ -14,7 +15,7 @@ const stage = $("#stage");
 
 /** Sizes the label on screen for the stage width and the zoom. */
 export const sizeStage = () => {
-	const { width, height } = labelDots(state.doc.label);
+	const { width, height } = labelDots(state.doc.label, currentScale());
 	// The border box, not clientWidth: scrollbars appearing at high zoom mustn't change the fit.
 	// With rulers, the left one and its gap take room beside the label too.
 	const ruler = paper.parentElement.classList.contains("with-ruler") ? 24 : 0;

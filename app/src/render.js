@@ -1,4 +1,4 @@
-import { mmToDots, ptToDots, DOTS_PER_MM } from "./units.js";
+import { dotScale } from "./units.js";
 import { LIMITS, MARGIN, textFillsLabel, withLength } from "./model.js";
 import { layoutText, stackLetters, graphemes, LINE_HEIGHT } from "./layout.js";
 import { threshold, toOneBit } from "./raster.js";
@@ -11,9 +11,14 @@ import { encodeQr, QR_QUIET } from "./qr.js";
 let lengthCanvasCtx = null;
 const lengthContext = () => (lengthCanvasCtx ??= document.createElement("canvas").getContext("2d"));
 
-export const labelDots = (label) => ({
-	width: Math.round(mmToDots(label.widthMm)),
-	height: Math.round(mmToDots(label.heightMm)),
+/**
+ * The label's size in the printer's dots.
+ * @param {import("./model.js").Label} label
+ * @param {import("./units.js").DotScale} [dots]
+ */
+export const labelDots = (label, dots = dotScale()) => ({
+	width: Math.round(dots.mm(label.widthMm)),
+	height: Math.round(dots.mm(label.heightMm)),
 });
 
 /**
@@ -21,21 +26,25 @@ export const labelDots = (label) => ({
  * text box is as long as its text at the size the height allows (fit) or the size set, one line
  * per paragraph; anything else ends a margin past its furthest element.
  * @param {import("./model.js").Doc} doc with its fields filled in
+ * @param {import("./units.js").DotScale} [dots] the resolution it prints at, which text is
+ *   measured in
  */
-export const contentLengthMm = (doc) => {
+export const contentLengthMm = (doc, dots = dotScale()) => {
 	let mm;
 	if (textFillsLabel(doc)) {
 		const e = /** @type {import("./model.js").TextElement} */ (doc.elements[0]);
 		// So wide nothing wraps: the label grows to the text instead.
-		const { lines, sizes, offsets, measure } = layoutTextBox(lengthContext(), e, {
-			w: 1e6,
-			h: Math.round(mmToDots(e.h)),
-		});
+		const { lines, sizes, offsets, measure } = layoutTextBox(
+			lengthContext(),
+			e,
+			{ w: 1e6, h: Math.round(dots.mm(e.h)) },
+			dots,
+		);
 		const widest = Math.max(
 			0,
 			...lines.map((line, i) => measure(offsets[i], offsets[i] + line.length, sizes[i])),
 		);
-		mm = widest / DOTS_PER_MM + 2 * MARGIN.x;
+		mm = dots.toMm(widest) + 2 * MARGIN.x;
 	} else {
 		mm = Math.max(0, ...doc.elements.map((e) => e.x + e.w)) + MARGIN.x;
 	}
@@ -43,9 +52,13 @@ export const contentLengthMm = (doc) => {
 	return Math.min(hi, Math.max(lo, Math.ceil(mm)));
 };
 
-/** The document at the length its content needs, if it's a continuous roll set to auto length. */
-export const withAutoLength = (doc) =>
-	doc.label.continuous && doc.label.autoLength ? withLength(doc, contentLengthMm(doc)) : doc;
+/**
+ * The document at the length its content needs, if it's a continuous roll set to auto length.
+ * @param {import("./model.js").Doc} doc
+ * @param {import("./units.js").DotScale} [dots]
+ */
+export const withAutoLength = (doc, dots = dotScale()) =>
+	doc.label.continuous && doc.label.autoLength ? withLength(doc, contentLengthMm(doc, dots)) : doc;
 
 const makeCanvas = (w, h) => {
 	const c = document.createElement("canvas");
@@ -72,13 +85,13 @@ const QUARTER = [
 const elementCache = new Map();
 const ELEMENT_CACHE_SIZE = 64;
 const imageIds = new Map();
-const cacheKey = (e, box) => {
+const cacheKey = (e, box, dots) => {
 	const { id: _id, x: _x, y: _y, ...look } = e;
 	if ("src" in look) {
 		if (!imageIds.has(look.src)) imageIds.set(look.src, imageIds.size);
 		look.src = imageIds.get(look.src);
 	}
-	return JSON.stringify([look, box.w, box.h]);
+	return JSON.stringify([look, box.w, box.h, dots.dotsPerMm]);
 };
 
 /**
@@ -97,11 +110,14 @@ export const clearRenderCache = () => {
  * Each element is drawn into its own canvas, snapped to whole dots, rotated in quarter
  * turns, optionally dithered, and then composited in z-order.
  *
+ * @param {import("./model.js").Doc} doc
+ * @param {HTMLCanvasElement} canvas
+ * @param {{dots?: import("./units.js").DotScale}} [options] the printer's resolution
  * @returns {Promise<{fittedSizes: Map<string, number>, warnings: Map<string, string>}>}
  *   font sizes chosen by fit-to-box (pt), and per-element problems worth telling the user
  */
-export const renderLabel = async (doc, canvas) => {
-	const { width, height } = labelDots(doc.label);
+export const renderLabel = async (doc, canvas, { dots = dotScale() } = {}) => {
+	const { width, height } = labelDots(doc.label, dots);
 	if (canvas.width !== width) canvas.width = width;
 	if (canvas.height !== height) canvas.height = height;
 	const ctx = canvas.getContext("2d", { willReadFrequently: true });
@@ -115,24 +131,24 @@ export const renderLabel = async (doc, canvas) => {
 		const draw = DRAW[e.type];
 		if (!draw) continue;
 		const box = {
-			x: Math.round(mmToDots(e.x)),
-			y: Math.round(mmToDots(e.y)),
-			w: Math.max(1, Math.round(mmToDots(e.w))),
-			h: Math.max(1, Math.round(mmToDots(e.h))),
+			x: Math.round(dots.mm(e.x)),
+			y: Math.round(dots.mm(e.y)),
+			w: Math.max(1, Math.round(dots.mm(e.w))),
+			h: Math.max(1, Math.round(dots.mm(e.h))),
 		};
-		const key = cacheKey(e, box);
+		const key = cacheKey(e, box, dots);
 		let drawn = elementCache.get(key);
 		if (drawn) {
 			// Most recently used last, so the oldest is the one dropped.
 			elementCache.delete(key);
 		} else {
-			drawn = await drawElement(draw, e, box);
+			drawn = await drawElement(draw, e, box, dots);
 			if (imageIds.size > ELEMENT_CACHE_SIZE) clearRenderCache();
 		}
 		if (!drawn.retry) elementCache.set(key, drawn);
 		if (elementCache.size > ELEMENT_CACHE_SIZE)
 			elementCache.delete(elementCache.keys().next().value);
-		if (drawn.fittedPx) fittedSizes.set(e.id, drawn.fittedPx / ptToDots(1));
+		if (drawn.fittedPx) fittedSizes.set(e.id, drawn.fittedPx / dots.pt(1));
 		if (drawn.warning) warnings.set(e.id, drawn.warning);
 		ctx.drawImage(drawn.canvas, box.x, box.y);
 	}
@@ -144,13 +160,13 @@ export const renderLabel = async (doc, canvas) => {
 };
 
 /** Draws one element into its own canvas the size of its box, rotated into place. */
-const drawElement = async (draw, e, box) => {
+const drawElement = async (draw, e, box, dots) => {
 	const quarter = ((e.rotation ?? 0) / 90) % 4;
 	const local = quarter % 2 ? { w: box.h, h: box.w } : { w: box.w, h: box.h };
 	const canvas = makeCanvas(box.w, box.h);
 	const o = canvas.getContext("2d", { willReadFrequently: true });
 	o.setTransform(...QUARTER[quarter](box.w, box.h));
-	const result = await draw(o, e, local);
+	const result = await draw(o, e, local, dots);
 	if (result?.process) {
 		o.setTransform(1, 0, 0, 1, 0, 0);
 		o.putImageData(result.process(o.getImageData(0, 0, canvas.width, canvas.height)), 0, 0);
@@ -159,7 +175,8 @@ const drawElement = async (draw, e, box) => {
 };
 
 // ---------------------------------------------------------------------------
-// Element painters: draw into a local frame (0,0)–(box.w, box.h), already rotated.
+// Element painters: draw into a local frame (0,0)–(box.w, box.h), already rotated, at the
+// printer's resolution (`dots`) for anything they size in millimetres or points.
 
 /**
  * Where a text element's lines go inside its (unrotated) box, in dots. Shared with the inline
@@ -170,8 +187,8 @@ const drawElement = async (draw, e, box) => {
  * widths added up; drawText draws it the same way, so layout, caret and print agree to the dot.
  * `measure` and `spans` work in offsets into the text as laid out (stacking adds line breaks).
  */
-export const layoutTextBox = (ctx, e, box) => {
-	const spacing = `${ptToDots(e.letterSpacingPt ?? 0)}px`;
+export const layoutTextBox = (ctx, e, box, dots = dotScale()) => {
+	const spacing = `${dots.pt(e.letterSpacingPt ?? 0)}px`;
 	const plain = textOf(e.text);
 	const stacked = e.stacked ? stackLetters(plain) : null;
 	const text = stacked ? stacked.text : plain;
@@ -204,7 +221,7 @@ export const layoutTextBox = (ctx, e, box) => {
 		text,
 		width: box.w,
 		height: box.h,
-		fontSize: ptToDots(e.fontSizePt),
+		fontSize: dots.pt(e.fontSizePt),
 		fit: e.fit,
 		measure,
 		firstScale: e.firstLineScale ?? 1,
@@ -276,11 +293,12 @@ const emojiRuns = (line) => {
 	return runs;
 };
 
-const drawText = (ctx, e, box) => {
+const drawText = (ctx, e, box, dots) => {
 	const { fontSize, lines, sizes, offsets, top, ascent, descent, measure, spans } = layoutTextBox(
 		ctx,
 		e,
 		box,
+		dots,
 	);
 
 	if (e.invert) {
@@ -396,14 +414,14 @@ const ellipsePath = (ctx, x, y, w, h) => {
  * Outlines are filled rings (outer path minus inner path, even-odd) rather than strokes, so
  * the line sits entirely inside the box and its thickness is a whole number of dots.
  */
-const drawShape = (ctx, e, box) => {
-	const t = Math.max(1, Math.round(mmToDots(e.strokeMm)));
+const drawShape = (ctx, e, box, dots) => {
+	const t = Math.max(1, Math.round(dots.mm(e.strokeMm)));
 	ctx.fillStyle = "#000";
 	if (e.shape === "line") {
 		ctx.fillRect(0, Math.round((box.h - t) / 2), box.w, t);
 		return;
 	}
-	const r = mmToDots(e.radiusMm);
+	const r = dots.mm(e.radiusMm);
 	ctx.beginPath();
 	if (e.shape === "rect") {
 		roundRectPath(ctx, 0, 0, box.w, box.h, r);
@@ -434,7 +452,7 @@ const drawUnavailable = (ctx, box, warning) => {
 // Human-readable line under 1D barcodes, in mm.
 const BARCODE_TEXT_MM = 2.25;
 
-const drawBarcode = (ctx, e, box) => {
+const drawBarcode = (ctx, e, box, dots) => {
 	let enc;
 	try {
 		enc = encodeBarcode(e.symbology, e.data);
@@ -452,7 +470,7 @@ const drawBarcode = (ctx, e, box) => {
 		);
 
 	const textH = e.showText
-		? Math.min(Math.round(mmToDots(BARCODE_TEXT_MM)), Math.floor(box.h * 0.4))
+		? Math.min(Math.round(dots.mm(BARCODE_TEXT_MM)), Math.floor(box.h * 0.4))
 		: 0;
 	const barsH = box.h - textH;
 	const width = enc.modules.length * unit;

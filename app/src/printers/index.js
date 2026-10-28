@@ -53,7 +53,9 @@ import { MODELS as PHOMEMO } from "./phomemo/models.js";
  * @property {PrinterDriver} driver
  * @property {string[]} prefixes how it names itself over Bluetooth, without spaces; the longest
  *   match across every model wins, so "D30PRO" beats "D30"
- * @property {number} headDots print head width in dots (8 per mm)
+ * @property {number} headDots print head width in dots
+ * @property {number} dotsPerMm its resolution: 8 for 203 dpi, 11.8 for 300 dpi. Labels are
+ *   drawn at it, so the preview is the bitmap it prints
  * @property {number} feedLines dot lines fed after a continuous label, 0 for none; the
  *   default for the Advanced setting, which can override it
  * @property {"each"|"last"} [feedAfter] which continuous copies get that feed

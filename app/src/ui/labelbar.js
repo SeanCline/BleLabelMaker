@@ -6,7 +6,8 @@ import { storageKey } from "../app-info.js";
 import { $, el, loadJson, storeJson } from "./dom.js";
 import { state, history, commit, amend, subscribe } from "./store.js";
 import { onDrawn, previewDocument } from "./stage.js";
-import { currentPrinter, onPrinterChange } from "./printing.js";
+import { onPrinterChange } from "./printing.js";
+import { currentPrinter, currentScale } from "./settings.js";
 
 const presetKey = (l) => `${l.widthMm}x${l.heightMm}`;
 // The sizes the printer being used takes; some models only take 12 mm labels, say.
@@ -72,7 +73,7 @@ const renderLabelBar = () => {
 		if (document.activeElement !== $(id)) $(id).value = v;
 	}
 	sel.title = KIND_TITLES[l.continuous ? "continuous" : "precut"];
-	const { width, height } = labelDots(l);
+	const { width, height } = labelDots(l, currentScale());
 	$("#labelInfo").textContent = `${width} × ${height} dots`;
 	$("#labelChipText").textContent = l.continuous
 		? `${l.heightMm} mm roll, ${l.autoLength ? "auto length" : `${l.widthMm} mm long`}`
@@ -180,7 +181,7 @@ $("#labelAutoLength").addEventListener("change", (ev) => {
 onDrawn(() => {
 	const l = state.doc.label;
 	if (!l.continuous || !l.autoLength) return;
-	const mm = contentLengthMm(previewDocument());
+	const mm = contentLengthMm(previewDocument(), currentScale());
 	if (mm !== l.widthMm) amend(withLength(state.doc, mm));
 });
 

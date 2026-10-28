@@ -2,6 +2,7 @@
 import { TEMPLATES, fromTemplate } from "../templates.js";
 import { fillDocument } from "../fields.js";
 import { renderLabel } from "../render.js";
+import { currentScale } from "./settings.js";
 import { ensureFontsFor } from "../fonts.js";
 import { $, el, toast } from "./dom.js";
 import { state, commit, history } from "./store.js";
@@ -39,7 +40,7 @@ const renderList = async () => {
 		const filled = fillDocument(doc, { now: new Date(), n: 1, row: row ?? null, columns: null });
 		await ensureFontsFor(filled);
 		if (token !== thumbToken) return;
-		await renderLabel(filled, thumb);
+		await renderLabel(filled, thumb, { dots: currentScale() });
 	}
 };
 

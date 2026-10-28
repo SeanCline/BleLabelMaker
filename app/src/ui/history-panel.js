@@ -9,6 +9,7 @@ import {
 	entryTitle,
 } from "../printhistory.js";
 import { renderLabel } from "../render.js";
+import { currentScale } from "./settings.js";
 import { ensureFontsFor } from "../fonts.js";
 import { $, el, toast, download } from "./dom.js";
 import { idbAll, idbWrite, keepStorage, HISTORY } from "./idb.js";
@@ -103,7 +104,7 @@ const renderThumbs = async (jobs) => {
 		const { doc } = entryToState(entry);
 		await ensureFontsFor(doc);
 		if (token !== thumbToken) return;
-		await renderLabel(doc, canvas);
+		await renderLabel(doc, canvas, { dots: currentScale() });
 	}
 };
 

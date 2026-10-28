@@ -6,7 +6,8 @@ import { diagnostics, problemReport, worksReport, issueUrl } from "../report.js"
 import { bluetoothAvailable, serialAvailable } from "../transport.js";
 import { $, loadJson, storeJson, toast } from "./dom.js";
 import { state } from "./store.js";
-import { printerInfo, currentPrinter, onPrinted } from "./printing.js";
+import { printerInfo, onPrinted } from "./printing.js";
+import { currentPrinter } from "./settings.js";
 
 // Models the pop-up has asked about, so it asks once per model.
 const ASKED_KEY = storageKey("worksAsked");
