@@ -1,12 +1,14 @@
 // Copy, cut and paste of elements. These use the browser's clipboard events rather than
 // keydown: the events can read and write the system clipboard without a permission prompt,
 // which is what lets elements travel to another label, tab or window.
+import { parseBatch } from "../batch.js";
 import { serializeElements, parseElements } from "../fileformat.js";
 import { isFormatted, parseHtml, spansForBox, spansFromHtml } from "../htmltext.js";
 import { createText, normalizeText, printableArea } from "../model.js";
 import { fromSpans } from "../richtext.js";
 import { isTyping, toast } from "./dom.js";
-import { state, selectedElements } from "./store.js";
+import { state, history, selectedElements, updateElement } from "./store.js";
+import { openBatch, setBatch } from "./batch.js";
 import { addCopies, addElement, addImageFile, centred, deleteSelected } from "./panels.js";
 
 // Text fields and open dialogs keep the normal clipboard behaviour.
@@ -65,4 +67,28 @@ document.addEventListener("paste", (ev) => {
 	if (isFormatted(spans))
 		box.text = normalizeText({ ...box, text: fromSpans(spansForBox(spans, box)) });
 	addElement(box);
+	offerBatch(text, box.id);
 });
+
+/**
+ * A list pasted onto the label is likely meant as many labels, one per line: the batch list
+ * is what does that, so this is where it's offered. The text box stays as pasted until the
+ * offer is taken, which puts the lines in the batch and the columns in the box.
+ */
+const offerBatch = (text, id) => {
+	const { rows } = parseBatch(text);
+	if (rows.length < 2) return;
+	const columns = Math.max(...rows.map((r) => r.length));
+	toast(`${rows.length} lines pasted.`, {
+		action: {
+			label: "Make a label for each",
+			run: () => {
+				const fields = Array.from({ length: columns }, (_, i) => `{${i + 1}}`);
+				updateElement(id, { text: fields.join("\n") });
+				history.seal();
+				setBatch(text);
+				openBatch();
+			},
+		},
+	});
+};

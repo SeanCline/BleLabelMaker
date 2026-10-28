@@ -320,6 +320,29 @@ summary:has(> .icon) {
 	background: var(--danger);
 }
 
+/* Batch, beside Print: a feature of its own, which says how many labels its list makes. */
+.batch-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 12px;
+	font-weight: 600;
+}
+.batch-button.active {
+	border-color: var(--accent);
+	color: var(--accent);
+}
+.batch-count {
+	min-width: 1.5em;
+	padding: 0 6px;
+	border-radius: 999px;
+	background: var(--accent);
+	color: var(--accent-text);
+	font-size: 12px;
+	line-height: 1.5;
+	text-align: center;
+}
+
 /* Print, with its options on a narrow button of its own. */
 .split-button {
 	position: relative;
@@ -949,10 +972,38 @@ progress {
 .field-head > label {
 	margin-right: auto;
 }
-.insert-field {
+/* The Field menu looks like the buttons beside it: its icon (and word) in a button's frame,
+   with the native list over it, unseen, so a click or a key opens it as any select (and a
+   phone's own picker). */
+.field-picker {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 4px;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: 6px;
+	cursor: pointer;
+}
+.field-picker:hover {
+	background: var(--surface-2);
+}
+.field-picker:has(select:focus-visible) {
+	outline: 2px solid var(--accent);
+	outline-offset: 1px;
+}
+.field-picker.small {
+	padding: 2px 8px;
 	font-size: 12px;
-	padding: 2px 4px;
-	max-width: 9em;
+}
+.field-picker > select {
+	position: absolute;
+	inset: 0;
+	width: 100%;
+	height: 100%;
+	opacity: 0;
+	cursor: pointer;
 }
 .insert-emoji {
 	padding: 2px 8px;
@@ -1183,6 +1234,21 @@ dialog form {
 .toast.error {
 	background: var(--danger);
 	color: #fff;
+}
+/* One that offers something takes clicks, over the bar docked at a phone's bottom. */
+.toast.with-action {
+	pointer-events: auto;
+	z-index: 25;
+	display: flex;
+	align-items: center;
+	gap: 12px;
+}
+.toast.with-action button {
+	background: none;
+	border-color: currentColor;
+	color: inherit;
+	font-weight: 600;
+	white-space: nowrap;
 }
 
 .history-dialog {
@@ -1433,7 +1499,7 @@ button.link {
 }
 /* One height for everything in a row of the bar, whatever each control's own padding, font
    and border: a select's box comes out taller than a button's from the same padding. */
-.quickbar :is(button, select, input:not([type="range"]), .segmented) {
+.quickbar :is(button, select, input:not([type="range"]), .segmented, .field-picker) {
 	height: 30px;
 }
 .quickbar .segmented button {
@@ -1462,10 +1528,6 @@ button.link {
 }
 .quickbar .qb-fill {
 	white-space: nowrap;
-}
-/* Its button shows "{ }"; the list it opens is as wide as its choices. */
-.quickbar .insert-field {
-	width: 4.5em;
 }
 /* A text's controls wrap one by one, when the bar must, so Edit isn't left alone on a row of
    its own and the bar takes two rows, not three. Duplicate, Delete and More stay together. */
@@ -1605,8 +1667,17 @@ button.link {
 	.menu > .printer-chip {
 		padding: 10px;
 	}
-	#printerChipLabel {
+	#printerChipLabel,
+	.batch-word,
+	.print-unit {
 		display: none;
+	}
+	#btnPrint:has(.print-unit) > .icon,
+	.batch-button.active > .icon {
+		display: none;
+	}
+	.batch-button {
+		padding: 6px 8px;
 	}
 	.topbar {
 		gap: 4px;
@@ -1640,6 +1711,7 @@ button.link {
 	.rail summary,
 	.canvas-tools button,
 	.quickbar button,
+	.quickbar .field-picker,
 	.topbar button,
 	.topbar summary {
 		min-width: 44px;

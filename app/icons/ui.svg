@@ -43,4 +43,5 @@
 <symbol id="align-vertical-distribute-center" viewBox="0 0 24 24"><path d="M22 17h-3" /><path d="M22 7h-5" /><path d="M5 17H2" /><path d="M7 7H2" /><rect x="5" y="14" width="14" height="6" rx="2" /><rect x="7" y="4" width="10" height="6" rx="2" /></symbol>
 <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></symbol>
 <symbol id="grip-vertical" viewBox="0 0 24 24"><circle cx="9" cy="12" r="1" /><circle cx="9" cy="5" r="1" /><circle cx="9" cy="19" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="5" r="1" /><circle cx="15" cy="19" r="1" /></symbol>
+<symbol id="braces" viewBox="0 0 24 24"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1" /><path d="M16 21h1a2 2 0 0 0 2-2v-5c0-1.1.9-2 2-2a2 2 0 0 1-2-2V5a2 2 0 0 0-2-2h-1" /></symbol>
 </svg>

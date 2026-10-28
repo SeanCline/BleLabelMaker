@@ -11,6 +11,8 @@ import { round } from "./units.js";
  * @property {string} description
  * @property {(doc: import("./model.js").Doc, area: Area) => import("./model.js").Element[]} [elements]
  *   what goes on the label, given an empty document on it and its printable area
+ * @property {string} [batch] sample lines for the batch list, for a template that prints one
+ *   label per line
  */
 
 /** Splits the area's width into columns, `gap` mm apart, by the given shares. */
@@ -32,12 +34,12 @@ export const TEMPLATES = [
 	{
 		id: "blank",
 		name: "Blank",
-		description: "One line of text that fills the label",
+		description: "One line of text, sized to fill the label.",
 	},
 	{
 		id: "name",
 		name: "Name tag",
-		description: "A name, with a smaller line under it",
+		description: "A name in large type, with a smaller line under it.",
 		elements: (doc, area) => [
 			createText(doc, {
 				...area,
@@ -49,9 +51,16 @@ export const TEMPLATES = [
 		],
 	},
 	{
+		id: "list",
+		name: "One per line",
+		description: "Prints a label for each line of a list. Bring your own custom list.",
+		elements: (doc, area) => [createText(doc, { ...area, text: "{1}", fit: true })],
+		batch: "Cumin\nPaprika\nSmoked salt\nSumac",
+	},
+	{
 		id: "food",
 		name: "Use-by date",
-		description: "Today's date, and the date three days on, filled in when it prints",
+		description: "Today's date and a use-by date three days later, filled in when it prints.",
 		elements: (doc, area) => [
 			createText(doc, { ...area, text: "Made {date}\nUse by {date+3d}", fit: true }),
 		],
@@ -59,7 +68,7 @@ export const TEMPLATES = [
 	{
 		id: "bin",
 		name: "Storage bin",
-		description: "A QR code beside what's in the box",
+		description: "A QR code beside a description of what's inside.",
 		elements: (doc, area) => {
 			const [code, words] = [area.h, area.w - area.h - 1];
 			return [
@@ -81,7 +90,7 @@ export const TEMPLATES = [
 	{
 		id: "price",
 		name: "Price tag",
-		description: "The item, and its price in white on black",
+		description: "An item name, with its price in white on black.",
 		elements: (doc, area) => {
 			const [item, price] = columns(area, [3, 2]);
 			return [
@@ -93,8 +102,7 @@ export const TEMPLATES = [
 	{
 		id: "cable",
 		name: "Cable flag",
-		description:
-			"The middle wraps round the cable and the ends meet as a flag, readable from both sides",
+		description: "Wraps around a cable, and the ends meet as a flag that reads from both sides.",
 		elements: (doc, area) => {
 			// The middle third goes round the cable, so nothing is printed there. The fold turns
 			// the right end over sideways, not top to bottom, so both ends print upright.
@@ -106,7 +114,7 @@ export const TEMPLATES = [
 	{
 		id: "asset",
 		name: "Asset tag",
-		description: "A barcode that counts up with every label printed",
+		description: "A barcode whose number goes up with every label printed.",
 		elements: (doc, area) => [createBarcode(doc, { ...area, data: "A-{n:0000}" })],
 	},
 ];

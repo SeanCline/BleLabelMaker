@@ -156,11 +156,8 @@ export const clickInMenu = async (page, selector) => {
 	});
 	await page.click(selector);
 };
-/** Opens the batch list, from Print's options. */
-export const openBatchList = async (page) => {
-	await page.click("#printMenu > summary");
-	await page.click("#btnBatch");
-};
+/** Opens the batch list, from its button beside Print. */
+export const openBatchList = (page) => page.click("#btnBatch");
 /** Picks an item from the File menu (New, Open, Save, Share, History). */
 export const fromFileMenu = async (page, selector) => {
 	await page.$eval("#fileMenu", (d) => d.setAttribute("open", ""));
@@ -229,3 +226,23 @@ export const printedMatchesPreview = (page, fakeName) =>
 		const got = /** @type {any} */ (window)[fakeName].labels[0];
 		return got.rows === expected.rows && got.data.every((b, i) => b === expected.data[i]);
 	}, fakeName);
+
+/**
+ * How far the caret is, in screen pixels, from the right edge of the ink in its line on the
+ * label canvas, and the line's height for scale. With the caret after a line's last letter,
+ * they should nearly meet: anything that puts the editor at another scale or in another
+ * font than the label shows up here, whatever the editor itself thinks.
+ */
+export const caretFromInk = (page) =>
+	page.evaluate(() => {
+		const caret = document.querySelector(".inline-caret").getBoundingClientRect();
+		const c = /** @type {HTMLCanvasElement} */ (document.querySelector("#labelCanvas"));
+		const r = c.getBoundingClientRect();
+		const k = c.width / r.width;
+		const top = Math.max(0, Math.floor((caret.top - r.top) * k));
+		const bottom = Math.min(c.height, Math.ceil((caret.bottom - r.top) * k));
+		const d = c.getContext("2d").getImageData(0, top, c.width, bottom - top).data;
+		let right = -1;
+		for (let i = 0; i < d.length; i += 4) if (!d[i]) right = Math.max(right, (i / 4) % c.width);
+		return { gap: caret.left - (r.left + (right + 1) / k), height: caret.height };
+	});

@@ -247,18 +247,11 @@ test("the header's printer chip names the printer and shows its problems", async
 	assert.deepEqual(page.errors, []);
 });
 
-test("the label size chip says what's loaded; the field menu opens the batch list", async () => {
+test("the label size chip says what's loaded", async () => {
 	const page = await env.open();
 	const chip = () => page.$eval("#labelChipText", (c) => c.textContent);
 	assert.equal(await chip(), "40 × 12 mm");
 	await page.select("#labelPreset", "continuous");
 	assert.equal(await chip(), "12 mm roll, auto length");
-
-	await page.select("#quickbar .insert-field", "@batch");
-	assert.equal(await page.$eval("#batchSheet", (s) => s.hidden), false);
-	assert.equal(await page.evaluate(() => document.activeElement.id), "batchData");
-	assert.equal((await appState(page)).doc.elements[0].text, "Hello world", "nothing inserted");
-	await page.keyboard.press("Escape");
-	assert.equal(await page.$eval("#batchSheet", (s) => s.hidden), true);
 	assert.deepEqual(page.errors, []);
 });

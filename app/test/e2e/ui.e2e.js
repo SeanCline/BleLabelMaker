@@ -12,6 +12,7 @@ import {
 	openSettings,
 	fromFileMenu,
 	loaded,
+	caretFromInk,
 } from "./harness.js";
 
 let env;
@@ -747,5 +748,82 @@ test("the Elements list restacks by dragging a row's grip, or Alt+arrows", async
 	await page.keyboard.up("Alt");
 	assert.deepEqual(await types(), ["text", "barcode", "qr"]);
 	assert.equal(await page.$eval("#btnForward", () => 1).catch(() => 0), 0, "no buttons for it");
+	assert.deepEqual(page.errors, []);
+});
+
+test("the caret is at the label's scale when an auto-length label shrinks for typing", async () => {
+	const page = await env.open();
+	// Filled in, the date is longer than "{date}", so the label shortens as typing starts.
+	await page.evaluate(() =>
+		window.labelApp.loadText(
+			JSON.stringify({
+				format: "labelmaker-label",
+				version: 1,
+				label: { widthMm: 69, heightMm: 12, continuous: true, autoLength: true },
+				elements: [
+					{ id: "e1", type: "text", x: 1, y: 1.5, w: 67, h: 9, text: "Hello {date}", fit: true },
+				],
+			}),
+		),
+	);
+	await loaded(page);
+	const box = await (await page.$(".box")).boundingBox();
+	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { count: 2 });
+	await page.waitForSelector(".inline-edit");
+	const caret = () => page.$eval(".inline-caret", (c) => parseFloat(c.style.height));
+	await page.waitForFunction(() => window.labelApp.state.doc.label.widthMm < 69);
+	await redraw(page);
+	await page.keyboard.press("End");
+	const ink = await caretFromInk(page);
+	assert.ok(Math.abs(ink.gap) < ink.height * 0.08, `caret ${ink.gap}px from the text's end`);
+	const before = await caret();
+	// Typing lays the editor out afresh: by then it must already have been right.
+	await page.keyboard.press("End");
+	await page.keyboard.type("x");
+	await page.keyboard.press("Backspace");
+	assert.ok(Math.abs((await caret()) - before) < 0.5, `${before} at first, ${await caret()} after`);
+	assert.deepEqual(page.errors, []);
+});
+
+test("the caret keeps to the label when the font changes or the label zooms mid-edit", async () => {
+	const page = await env.open();
+	const box = await (await page.$(".box.selected")).boundingBox();
+	await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2, { count: 2 });
+	await page.waitForSelector(".inline-edit");
+	await page.keyboard.press("End");
+	const caret = () =>
+		page.$eval(".inline-caret", (c) => [parseFloat(c.style.left), parseFloat(c.style.height)]);
+	/** Where the caret is, and where it goes once typing lays the editor out afresh. */
+	const settled = async () => {
+		const before = await caret();
+		await page.focus(".inline-edit");
+		await page.keyboard.press("End");
+		await page.keyboard.type("x");
+		await page.keyboard.press("Backspace");
+		return [before, await caret()];
+	};
+	const close = ([a, b]) => Math.abs(a[0] - b[0]) < 0.5 && Math.abs(a[1] - b[1]) < 0.5;
+	const atInk = async (when) => {
+		const ink = await caretFromInk(page);
+		assert.ok(Math.abs(ink.gap) < ink.height * 0.08, `${when}: caret ${ink.gap}px from the ink`);
+	};
+
+	// A font that isn't loaded yet: the editor's first measure is in a stand-in.
+	await page.select('#quickbar [data-prop="fontFamily"]', "Roboto Slab");
+	await redraw(page);
+	const font = await settled();
+	assert.ok(close(font), `after a font change: ${font.join(" then ")}`);
+	await atInk("after a font change");
+
+	// Zoom changes the label's scale without a redraw. Ctrl+wheel zooms and leaves the typing be.
+	await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+	await page.keyboard.down("Control");
+	await page.mouse.wheel({ deltaY: -100 });
+	await page.keyboard.up("Control");
+	await page.waitForFunction(() => document.querySelector("#zoomFit").textContent === "125%");
+	await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r(null))));
+	const zoom = await settled();
+	assert.ok(close(zoom), `after zooming: ${zoom.join(" then ")}`);
+	await atInk("after zooming");
 	assert.deepEqual(page.errors, []);
 });

@@ -299,13 +299,11 @@ const renderPrintBar = () => {
 const renderPrintButton = () => {
 	const batch = batchData();
 	const total = (batch?.rows.length ?? 1) * currentCopies();
-	const what = batch ? `${total} labels` : "";
 	const real = hardware();
-	const button = $("#btnPrint .print-label");
-	if (!real) button.textContent = ["Print", what].filter(Boolean).join(" ");
-	else if (!real.connected)
-		button.textContent = ["Connect & Print", what].filter(Boolean).join(" ");
-	else button.textContent = ["Print", what].filter(Boolean).join(" ");
+	const verb = real && !real.connected ? "Connect & Print" : "Print";
+	// On a phone the word goes, to keep Print beside Batch, whose count says what they are.
+	const what = batch ? [` ${total}`, el("span", { className: "print-unit" }, " labels")] : [];
+	$("#btnPrint .print-label").replaceChildren(verb, ...what);
 };
 
 // The preview shows the batch row being looked at and the next counter value.

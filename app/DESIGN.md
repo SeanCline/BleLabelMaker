@@ -124,7 +124,11 @@ every copy different, so each copy becomes its own raster. Every label is
 rendered off-screen and turned into its own job (init, copies, image), and the
 jobs go out in one send. After printing, the counter moves on to the next
 unused number. Batch lists (`src/batch.js`) are lines, tab-separated
-spreadsheet cells, or RFC 4180 CSV from an opened file. They're kept in local
+spreadsheet cells, or RFC 4180 CSV, from an opened file or pasted text whose
+lines all have the same number of values. Batch has its own button beside
+Print rather than a place in Print's options: it's one of the things that
+sets the app apart, so it's in sight, and pasting a list onto the label
+offers it. They're kept in local
 storage, not in the .label file, since one design is often printed with
 different lists.
 

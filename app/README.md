@@ -89,9 +89,10 @@ it never needs the internet.
     number_, under the arrow beside Print, sets where it continues.
   - `{{` and `}}` print a literal brace.
     Fields work in text, barcodes and QR codes.
-- **Batch:** open _Batch list…_ (under the arrow beside Print, or in the
-  Field menu) and paste a list (one label per line) or cells from a
-  spreadsheet, or open a CSV. Pasted lines that all have the same number of
+- **Batch:** click _Batch_ beside Print and paste a list (one label per line) or cells from a
+  spreadsheet, or open a CSV. Pasting a list straight onto the label offers
+  the same, and the _One per line_ template starts with a sample list. The
+  button shows how many labels the list makes. Pasted lines that all have the same number of
   comma-separated values are read as CSV. Put `{1}`, `{2}`… (or
   `{Column name}` with _First line is column names_) in the design, or `{0}`
   for the whole line. Print then

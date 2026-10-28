@@ -92,6 +92,10 @@ export const drawCanvas = async () => {
 	canvas.getContext("2d", { willReadFrequently: true }).drawImage(scratch, 0, 0);
 	canvas.setAttribute("aria-label", describeLabel(doc));
 	sizeStage();
+	// The editor was laid out when the text changed, perhaps before a newly picked font had
+	// loaded or before the label's new length set its scale; now both are settled.
+	const editing = inline && elementById(inline.id);
+	if (editing) positionInline(editing);
 	for (const fn of drawnListeners) fn();
 };
 
@@ -434,6 +438,13 @@ const positionInline = (e) => {
 	inline.textarea.style.font = cssFont(e, layout.fontSize * dot);
 	drawCaret();
 };
+
+// The editor's caret and selection are placed in screen pixels, at the label's scale when they
+// were laid out. Zoom, the rulers and the window's size change that scale without a redraw.
+new ResizeObserver(() => {
+	const e = inline && elementById(inline.id);
+	if (e) positionInline(e);
+}).observe(canvas);
 
 /** Shows the textarea's selection on the label's layout. */
 const drawCaret = () => {

@@ -8,6 +8,7 @@ import {
 	openSettings,
 	openBatchList,
 	loaded,
+	fromFileMenu,
 } from "./harness.js";
 
 let env;
@@ -125,5 +126,68 @@ test("pasted lines with commas in step are CSV: {1}, {2} each value, {0} the who
 	const whole = await canvasHash(page);
 	await setText(page, "Test1, a");
 	assert.equal(await canvasHash(page), whole);
+	assert.deepEqual(page.errors, []);
+});
+
+test("Batch sits beside Print and counts its list; the Field menu groups the list's fields", async () => {
+	const page = await env.open();
+	const count = () => page.$eval("#batchCount", (c) => !c.hidden && c.textContent);
+	assert.equal(await count(), false, "no count without a list");
+	await openBatchList(page);
+	assert.equal(await page.$eval("#batchSheet", (s) => s.hidden), false);
+	assert.equal(await page.evaluate(() => document.activeElement.id), "batchData");
+	await typeInto(page, "#batchData", "Cumin\nSage\nThyme");
+	assert.equal(await count(), "3");
+	assert.equal(
+		await page.$eval("#btnBatch", (b) => b.getAttribute("aria-label")),
+		"Batch: 3 labels from a list",
+	);
+	// The Field menu inserts fields, the list's among them; opening the list is Batch's job.
+	const fields = await page.$$eval("#quickbar .insert-field option:not([hidden])", (o) =>
+		o.slice(-3).map((x) => [x.value, x.textContent]),
+	);
+	assert.deepEqual(fields, [
+		["{1}", "Batch column 1"],
+		["{2}", "Batch column 2"],
+		["{0}", "Batch line"],
+	]);
+	assert.deepEqual(page.errors, []);
+});
+
+test("a list pasted onto the label offers a label for each line", async () => {
+	const page = await env.open();
+	await page.focus("#overlay");
+	await page.evaluate(() => {
+		const clipboardData = new DataTransfer();
+		clipboardData.setData("text/plain", "Test1, a\nTest2, b\nTest3, c");
+		document.activeElement.dispatchEvent(
+			new ClipboardEvent("paste", { clipboardData, bubbles: true, cancelable: true }),
+		);
+	});
+	const pasted = (await appState(page)).doc.elements.at(-1);
+	assert.equal(pasted.text, "Test1, a\nTest2, b\nTest3, c", "pasted as it was, until asked");
+	assert.match(await page.$eval("#toast", (t) => t.textContent), /^3 lines pasted\./);
+	await page.click("#toast button");
+	assert.equal((await appState(page)).doc.elements.at(-1).text, "{1}\n{2}");
+	assert.equal(await page.$eval("#batchCount", (c) => c.textContent), "3");
+	assert.equal(await page.$eval("#batchSheet", (s) => s.hidden), false, "the list, to check");
+	await page.click("#batchClose");
+	await page.click("#btnUndo");
+	assert.equal((await appState(page)).doc.elements.at(-1).text, "Test1, a\nTest2, b\nTest3, c");
+	assert.deepEqual(page.errors, []);
+});
+
+test("the One per line template starts a list, without replacing one already there", async () => {
+	const page = await env.open();
+	await fromFileMenu(page, "#btnNew");
+	await page.click('#templateList [data-id="list"]');
+	assert.equal((await appState(page)).doc.elements[0].text, "{1}");
+	assert.equal(await page.$eval("#batchData", (t) => t.value.split("\n")[0]), "Cumin");
+	assert.equal(await page.$eval("#batchSheet", (s) => s.hidden), false);
+	await typeInto(page, "#batchData", "Mine\nOurs");
+	await page.click("#batchClose");
+	await fromFileMenu(page, "#btnNew");
+	await page.click('#templateList [data-id="list"]');
+	assert.equal(await page.$eval("#batchData", (t) => t.value), "Mine\nOurs");
 	assert.deepEqual(page.errors, []);
 });

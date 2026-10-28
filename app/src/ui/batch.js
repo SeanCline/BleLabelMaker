@@ -32,6 +32,13 @@ const render = () => {
 	if ($("#batchData").value !== saved.text) $("#batchData").value = saved.text;
 	$("#batchHeadings").checked = saved.headings;
 	$("#batchSummary").textContent = n ? `· ${n} label${n === 1 ? "" : "s"}` : "";
+	$("#batchCount").hidden = n === 0;
+	$("#batchCount").textContent = n ? String(n) : "";
+	$("#btnBatch").classList.toggle("active", n > 0);
+	$("#btnBatch").setAttribute(
+		"aria-label",
+		n ? `Batch: ${n} label${n === 1 ? "" : "s"} from a list` : "Batch",
+	);
 	// On the label area while there's a list: which row it shows, and the way back to the list.
 	$("#batchNav").hidden = n === 0;
 	$("#batchPos").textContent = n ? `Row ${previewRow() + 1} of ${n}` : "";
@@ -43,6 +50,18 @@ const render = () => {
 		: "";
 	// With one column, {0} is just {1}.
 	$("#batchWhole").hidden = cols.length < 2;
+};
+
+/** Whether there's a list now, which a template's sample rows mustn't replace. */
+export const hasBatch = () => parsed.rows.length > 0;
+
+/** Puts a list in the batch, as if pasted there, and shows the first row. */
+export const setBatch = (text) => {
+	saved.text = text;
+	saved.csv = false;
+	saved.headings = false;
+	preview = 0;
+	changed();
 };
 
 $("#batchData").addEventListener("input", (ev) => {
@@ -97,10 +116,7 @@ sheet.addEventListener("keydown", (ev) => {
 	ev.stopPropagation();
 	closeBatch();
 });
-$("#btnBatch").addEventListener("click", () => {
-	$("#printMenu").removeAttribute("open");
-	openBatch();
-});
+$("#btnBatch").addEventListener("click", openBatch);
 
 // A list from last time shows on the label area (and in the Print button's count), so a
 // batch print is never a surprise.

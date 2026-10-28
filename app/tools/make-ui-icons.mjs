@@ -52,6 +52,7 @@ const ICONS = [
 	"align-vertical-distribute-center",
 	"x",
 	"grip-vertical",
+	"braces",
 ];
 
 const source = new URL("../node_modules/lucide-static/", import.meta.url);

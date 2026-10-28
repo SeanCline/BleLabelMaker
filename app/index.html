@@ -130,14 +130,20 @@
 					</details>
 				</div>
 			</details>
-			<!-- Print, and what this print makes: copies, numbering, a batch. -->
+			<!-- A label for each line of a list: beside Print, since it's what a print makes. -->
+			<button id="btnBatch" class="batch-button" title="Print a label for each line of a list">
+				<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#table" /></svg
+				><span class="batch-word">Batch</span
+				><span class="batch-count" id="batchCount" hidden></span>
+			</button>
+			<!-- Print, and what this print makes: copies, numbering. -->
 			<div class="split-button">
 				<button id="btnPrint" class="primary" title="Print (Ctrl+P)">
 					<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#printer" /></svg
 					><span class="print-label">Print</span>
 				</button>
 				<details class="menu print-menu" id="printMenu">
-					<summary class="primary" title="Copies, numbering and batch lists">
+					<summary class="primary" title="Copies and numbering">
 						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#chevron-down" /></svg
 						><span class="sr-only">Print options</span>
 					</summary>
@@ -154,10 +160,6 @@
 							Next number
 							<input type="number" id="counterStart" min="0" step="1" />
 						</label>
-						<button id="btnBatch">
-							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#table" /></svg> Batch
-							list…
-						</button>
 					</div>
 				</details>
 				<progress id="progress" max="1" value="0" hidden></progress>
@@ -379,18 +381,21 @@
 						>
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#smile" /></svg>
 						</button>
-						<select class="insert-field" aria-label="Insert a field" title="Insert a field">
-							<option value="">{ }</option>
-							<option value="{date}">Today's date</option>
-							<option value="{date+30d}">Date in 30 days</option>
-							<option value="{date:iso}">Date as 2026-12-31</option>
-							<option value="{time}">Time</option>
-							<option value="{n}">Counter (1, 2, 3…)</option>
-							<option value="{n:000}">Counter (001, 002…)</option>
-							<option value="{1}">Batch column 1</option>
-							<option value="{2}">Batch column 2</option>
-							<option value="@batch">Batch list…</option>
-						</select>
+						<span class="field-picker icon-button" title="Insert a field">
+							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#braces" /></svg>
+							<select class="insert-field" aria-label="Insert a field">
+								<option value="" hidden disabled selected>Insert a field</option>
+								<option value="{date}">Today's date</option>
+								<option value="{date+30d}">Date in 30 days</option>
+								<option value="{date:iso}">Date as 2026-12-31</option>
+								<option value="{time}">Time</option>
+								<option value="{n}">Counter (1, 2, 3…)</option>
+								<option value="{n:000}">Counter (001, 002…)</option>
+								<option value="{1}">Batch column 1</option>
+								<option value="{2}">Batch column 2</option>
+								<option value="{0}">Batch line</option>
+							</select>
+						</span>
 						<button data-qb-action="edit" title="Type on the label (double-click)">
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#pencil" /></svg>
 							<span class="qb-label">Edit</span>
@@ -605,7 +610,7 @@
 				</section>
 			</section>
 
-			<!-- The batch list, opened from Print's options or the field menu. -->
+			<!-- The batch list, opened from its button beside Print, or the field menu. -->
 			<aside class="sheet batch" id="batchSheet" role="dialog" aria-labelledby="batchTitle" hidden>
 				<div class="sheet-head">
 					<h2 id="batchTitle">Batch list <span class="hint" id="batchSummary"></span></h2>
@@ -663,18 +668,22 @@
 								>
 									😀 Emoji
 								</button>
-								<select class="insert-field small" aria-label="Insert a field">
-									<option value="">{ } Field…</option>
-									<option value="{date}">Today's date</option>
-									<option value="{date+30d}">Date in 30 days</option>
-									<option value="{date:iso}">Date as 2026-12-31</option>
-									<option value="{time}">Time</option>
-									<option value="{n}">Counter (1, 2, 3…)</option>
-									<option value="{n:000}">Counter (001, 002…)</option>
-									<option value="{1}">Batch column 1</option>
-									<option value="{2}">Batch column 2</option>
-									<option value="@batch">Batch list…</option>
-								</select></span
+								<span class="field-picker small" title="Insert a field where the cursor is">
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#braces" /></svg>
+									Field
+									<select class="insert-field" aria-label="Insert a field">
+										<option value="" hidden disabled selected>Insert a field</option>
+										<option value="{date}">Today's date</option>
+										<option value="{date+30d}">Date in 30 days</option>
+										<option value="{date:iso}">Date as 2026-12-31</option>
+										<option value="{time}">Time</option>
+										<option value="{n}">Counter (1, 2, 3…)</option>
+										<option value="{n:000}">Counter (001, 002…)</option>
+										<option value="{1}">Batch column 1</option>
+										<option value="{2}">Batch column 2</option>
+										<option value="{0}">Batch line</option>
+									</select>
+								</span></span
 							>
 							<textarea id="designText" data-prop="text" rows="3"></textarea>
 							<label
@@ -972,7 +981,6 @@
 				<form method="dialog"><button aria-label="Close">✕</button></form>
 			</div>
 			<ul class="template-list" id="templateList"></ul>
-			<p class="hint">Change anything afterwards. Undo (Ctrl+Z) brings back what you had.</p>
 		</dialog>
 
 		<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>

@@ -46,15 +46,30 @@ export const announce = (msg) => {
 };
 
 let toastTimer;
-export const toast = (msg, { error = false } = {}) => {
+/**
+ * A short message at the bottom of the page. With an action, it carries a button for it and
+ * stays long enough to reach.
+ * @param {string} msg
+ * @param {{error?: boolean, action?: {label: string, run: () => void}}} [options]
+ */
+export const toast = (msg, { error = false, action = null } = {}) => {
 	const t = $("#toast");
-	t.textContent = msg;
-	t.className = "toast" + (error ? " error" : "");
+	const hide = () => (t.hidden = true);
+	t.replaceChildren(msg);
+	if (action) {
+		const button = el("button", { type: "button" }, action.label);
+		button.addEventListener("click", () => {
+			hide();
+			action.run();
+		});
+		t.append(" ", button);
+	}
+	t.className = "toast" + (error ? " error" : "") + (action ? " with-action" : "");
 	// Errors interrupt; confirmations wait their turn.
 	t.setAttribute("role", error ? "alert" : "status");
 	t.hidden = false;
 	clearTimeout(toastTimer);
-	toastTimer = setTimeout(() => (t.hidden = true), error ? 7000 : 3000);
+	toastTimer = setTimeout(hide, error || action ? 8000 : 3000);
 };
 
 export const download = (name, text, type = "application/json") => {
