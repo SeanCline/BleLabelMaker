@@ -220,7 +220,7 @@ export const layoutTextBox = (ctx, e, box) => {
 	else if (e.vAlign === "bottom") top = box.h - layout.height;
 	// Where each line starts in the element's own text, which stacking rearranges.
 	const starts = stacked ? layout.starts.map((i) => stacked.source[i]) : layout.starts;
-	return { ...layout, starts, top, ascent, descent, measure, spans };
+	return { ...layout, starts, top, ascent, descent, measure, spans, text: stacked ? null : text };
 };
 
 /**

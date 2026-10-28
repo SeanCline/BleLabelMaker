@@ -615,8 +615,8 @@
 				</div>
 
 				<p class="hint">
-					Paste a list, or cells from a spreadsheet, and put {1}, {2}… in your text where each value
-					goes. Every line prints as its own label.
+					Paste a list, comma-separated values, or cells from a spreadsheet, and put {1}, {2}… in
+					your text where each value goes. Every line prints as its own label.
 				</p>
 				<textarea
 					id="batchData"
@@ -634,6 +634,7 @@
 					<button id="batchClear">Clear</button>
 				</div>
 				<p class="hint" id="batchHint"></p>
+				<p class="hint" id="batchWhole" hidden>{0} inserts the whole line.</p>
 				<p class="warning" id="batchUnused" hidden>
 					The label doesn't use the list yet, so every label would come out the same. Put {1} in a
 					text box (or use the Field menu).

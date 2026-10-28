@@ -91,8 +91,10 @@ it never needs the internet.
     Fields work in text, barcodes and QR codes.
 - **Batch:** open _Batch list…_ (under the arrow beside Print, or in the
   Field menu) and paste a list (one label per line) or cells from a
-  spreadsheet, or open a CSV. Put `{1}`, `{2}`… (or
-  `{Column name}` with _First line is column names_) in the design. Print then
+  spreadsheet, or open a CSV. Pasted lines that all have the same number of
+  comma-separated values are read as CSV. Put `{1}`, `{2}`… (or
+  `{Column name}` with _First line is column names_) in the design, or `{0}`
+  for the whole line. Print then
   makes one label per row. While there's a list, the label area shows which
   row it previews, with arrows to step through them.
 - **Labels:** the size chip at the label area's bottom left; pick a pre-cut size, or _Continuous roll_ for rolls that are one

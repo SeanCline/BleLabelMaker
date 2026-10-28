@@ -41,11 +41,14 @@ const render = () => {
 	$("#batchHint").textContent = n
 		? `Columns: ${cols.map((c) => `{${c}}`).join(" ")}. Put them in your text, barcode or QR code.`
 		: "";
+	// With one column, {0} is just {1}.
+	$("#batchWhole").hidden = cols.length < 2;
 };
 
 $("#batchData").addEventListener("input", (ev) => {
 	saved.text = ev.target.value;
-	// Typed or pasted text is lines or spreadsheet cells; only an opened file is read as CSV.
+	// Typed or pasted text is read as CSV only when it looks like it (batch.js); an opened .csv
+	// file always is.
 	saved.csv = false;
 	changed();
 });

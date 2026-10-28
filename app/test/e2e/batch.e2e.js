@@ -102,3 +102,28 @@ test("spreadsheet columns by heading, and the field menu inserts at the cursor",
 	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Print 2 labels");
 	assert.deepEqual(page.errors, []);
 });
+
+test("pasted lines with commas in step are CSV: {1}, {2} each value, {0} the whole line", async () => {
+	const page = await env.open();
+	await openBatchList(page);
+	await typeInto(page, "#batchData", "Test1, a\nTest2, b\nTest3, c");
+	assert.equal(
+		await page.$eval("#batchHint", (h) => h.textContent),
+		"Columns: {1} {2}. Put them in your text, barcode or QR code.",
+	);
+	assert.equal(
+		await page.$eval("#batchWhole", (h) => !h.hidden && h.textContent),
+		"{0} inserts the whole line.",
+	);
+	await setText(page, "{2}");
+	await page.click("#batchNext");
+	const second = await canvasHash(page);
+	await setText(page, "b");
+	assert.equal(await canvasHash(page), second, "{2} of the second row is b");
+	await page.click("#batchPrev");
+	await setText(page, "{0}");
+	const whole = await canvasHash(page);
+	await setText(page, "Test1, a");
+	assert.equal(await canvasHash(page), whole);
+	assert.deepEqual(page.errors, []);
+});

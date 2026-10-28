@@ -316,6 +316,7 @@ const refreshPreview = () =>
 			now: new Date(),
 			n: settings.counterStart,
 			row: batch ? batch.rows[previewRow()] : null,
+			line: batch?.lines[previewRow()],
 			columns: batch?.columns ?? null,
 		};
 	});

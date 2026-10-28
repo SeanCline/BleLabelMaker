@@ -35,6 +35,8 @@ test("batch columns by number or by heading", () => {
 	assert.equal(fillFields("{spice} – {Best before}", c), "Paprika – 2026-12");
 	assert.equal(fillFields("{3}", c), "", "a missing column is empty, not an error");
 	assert.equal(fillFields("{1}", ctx()), "{1}", "outside a batch, columns stay as typed");
+	assert.equal(fillFields("{0}", ctx({ ...c, line: "Paprika, 2026-12" })), "Paprika, 2026-12");
+	assert.equal(fillFields("{0}", c), "Paprika, 2026-12", "without its line, the values joined");
 });
 
 test("fillDocument fills text, barcode and QR data, and can skip the element being edited", () => {
@@ -64,18 +66,41 @@ test("batch rows: lines, spreadsheet tabs, CSV, headings, blank lines", () => {
 	assert.deepEqual(parseBatch("Salt, fine\n\nPepper\n"), {
 		columns: null,
 		rows: [["Salt, fine"], ["Pepper"]],
+		lines: ["Salt, fine", "Pepper"],
 	});
 	assert.deepEqual(parseBatch("Spice\tYear\r\nCumin\t2027\r\n", { headings: true }), {
 		columns: ["Spice", "Year"],
 		rows: [["Cumin", "2027"]],
+		lines: ["Cumin\t2027"],
 	});
 	assert.deepEqual(
 		parseBatch('name,note\n"Salt, fine","say ""hi"""\n', { csv: true, headings: true }),
 		{
 			columns: ["name", "note"],
 			rows: [["Salt, fine", 'say "hi"']],
+			lines: ['"Salt, fine","say ""hi"""'],
 		},
 	);
+	// Pasted text with the same number of values on every line is CSV.
+	assert.deepEqual(parseBatch("Test1, a\nTest2, b\r\n\nTest3, c\n"), {
+		columns: null,
+		rows: [
+			["Test1", "a"],
+			["Test2", "b"],
+			["Test3", "c"],
+		],
+		lines: ["Test1, a", "Test2, b", "Test3, c"],
+	});
+	assert.deepEqual(parseBatch('Salt, "fine, ground"\nPepper, black').rows, [
+		["Salt", "fine, ground"],
+		["Pepper", "black"],
+	]);
+	assert.deepEqual(
+		parseBatch("Salt, fine\nPepper, black, cracked").rows,
+		[["Salt, fine"], ["Pepper, black, cracked"]],
+		"lines that differ stay whole",
+	);
+	assert.deepEqual(parseBatch("Salt, fine").rows, [["Salt, fine"]], "one line could be anything");
 	assert.deepEqual(parseCsv('a,"two\nlines"\nb,c'), [
 		["a", "two\nlines"],
 		["b", "c"],

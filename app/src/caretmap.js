@@ -10,8 +10,9 @@ import { graphemes, LINE_HEIGHT } from "./layout.js";
 
 /**
  * @param {object} p
- * @param {{lines: string[], sizes: number[], starts: number[], offsets: number[], top: number}}
- *   p.layout from layoutTextBox
+ * @param {{lines: string[], sizes: number[], starts: number[], offsets: number[], top: number,
+ *   text?: string | null}} p.layout from layoutTextBox; text, the text as laid out (none when
+ *   stacked, which draws no spaces), gives the caret the spaces the lines leave out
  * @param {number} p.width the box's width, in dots
  * @param {"left"|"center"|"right"} p.align
  * @param {(from: number, to: number, size: number) => number} p.measure width of the laid-out
@@ -32,8 +33,18 @@ export const caretMap = ({ layout, width, align, measure }) => {
 			prefix += g.length;
 			stops.push({ index: start + prefix, x: left + measure(from, from + prefix, size) });
 		}
+		// Spaces after the last word aren't drawn (nor counted in its alignment), but typing
+		// them should still move the caret along, up to the box's edge. Those before a wrap
+		// stop short of the next line's start, which is the next line's.
+		const next = layout.starts[i + 1] ?? Infinity;
+		for (let k = from + prefix; layout.text && / /.test(layout.text[k] ?? ""); k++) {
+			if (start + k + 1 - from >= next) break;
+			prefix++;
+			const x = left + measure(from, from + prefix, size);
+			stops.push({ index: start + prefix, x: Math.min(x, width) });
+		}
 		const height = size * LINE_HEIGHT;
-		const out = { start, end: start + line.length, top: y, height, stops };
+		const out = { start, end: start + prefix, top: y, height, stops };
 		y += height;
 		return out;
 	});

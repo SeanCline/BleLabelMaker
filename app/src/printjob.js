@@ -18,7 +18,7 @@ import { concat } from "./bytes.js";
  * @param {import("./model.js").Doc} doc
  * @param {object} opts
  * @param {number} opts.copies per batch row
- * @param {{columns: string[] | null, rows: string[][]} | null} opts.batch
+ * @param {{columns: string[] | null, rows: string[][], lines?: string[]} | null} opts.batch
  * @param {number} opts.counterStart the value {n} starts at
  * @param {Date} opts.now
  * @returns {LabelPlan}
@@ -28,7 +28,8 @@ export const planLabels = (doc, { copies, batch, counterStart, now }) => {
 	let n = counterStart;
 	const labels = [];
 	for (const [index, row] of (batch ? batch.rows : [null]).entries()) {
-		const ctx = (n) => ({ now, n, row, columns: batch?.columns ?? null });
+		const line = batch?.lines?.[index];
+		const ctx = (n) => ({ now, n, row, line, columns: batch?.columns ?? null });
 		const at = batch ? index : null;
 		if (used.counter) {
 			for (let i = 0; i < copies; i++) {

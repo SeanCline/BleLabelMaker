@@ -35,6 +35,12 @@ test("a batch makes a label per row, times copies, counting across rows", () => 
 	assert.equal(plan.total, 4);
 });
 
+test("{0} is each batch row's line as it was typed", () => {
+	const batch = { columns: null, rows: [["Test1", "a"]], lines: ["Test1,  a"] };
+	const plan = planLabels(docWith("{0}|{2}"), { copies: 1, batch, counterStart: 1, now });
+	assert.deepEqual(plan.labels.map(text), ["Test1,  a|a"]);
+});
+
 test("jobs decode back to one label per planned copy, centred on the head", async () => {
 	const plan = planLabels(docWith("x"), {
 		copies: 2,

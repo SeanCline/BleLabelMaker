@@ -77,8 +77,36 @@ const mapOf = (text, { width = 60, align = "left", firstScale = 1 } = {}) => {
 		measure: monoRange(text),
 		firstScale,
 	});
-	return caretMap({ layout: { ...layout, top: 0 }, width, align, measure: monoRange(text) });
+	return caretMap({ layout: { ...layout, top: 0, text }, width, align, measure: monoRange(text) });
 };
+
+test("spaces after the last word move the caret on, though the label doesn't draw them", () => {
+	const map = mapOf("ab  \ncd");
+	assert.deepEqual(
+		[2, 3, 4].map((i) => caretAt(map, i).x),
+		[10, 15, 20],
+	);
+	assert.equal(map[0].end, 4, "End goes after them");
+	assert.equal(lineOf(map, 5), 1);
+	// Centred, the text stays where it was; the caret runs on to its right.
+	const centred = mapOf("ab ", { align: "center" });
+	assert.deepEqual(
+		[2, 3].map((i) => caretAt(centred, i).x),
+		[35, 40],
+	);
+	// Never past the box's edge, and the spaces at a wrap stay on the line before it.
+	const right = mapOf("ab  ", { align: "right" });
+	assert.equal(caretAt(right, 4).x, 60);
+	const wrap = mapOf("small print   here");
+	assert.deepEqual(
+		[12, 13].map((i) => caretAt(wrap, i)),
+		[
+			{ x: 60, top: 0, height: 10 * LINE_HEIGHT },
+			{ x: 60, top: 0, height: 10 * LINE_HEIGHT },
+		],
+	);
+	assert.equal(caretAt(wrap, 14).top, 10 * LINE_HEIGHT, "where the next line starts");
+});
 
 test("the caret follows the label's line breaks, not the text's", () => {
 	const map = mapOf("small print here");

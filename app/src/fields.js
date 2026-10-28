@@ -1,7 +1,7 @@
 import { mapText, textOf } from "./richtext.js";
 
 // Fields in text, barcode and QR data: {date}, {date+30d:iso}, {time}, {n}, {n:000}, {1},
-// {Column name}. The document keeps the template; each printed label gets its own values.
+// {Column name}, and {0} for a batch row's whole line. The document keeps the template; each printed label gets its own values.
 // {{ and }} stand for literal braces.
 
 /**
@@ -9,6 +9,7 @@ import { mapText, textOf } from "./richtext.js";
  * @property {Date} now
  * @property {number} n counter value for this label
  * @property {string[] | null} row batch row, or null when not printing a batch
+ * @property {string} [line] the batch row's line as typed, for {0}; else its values joined
  * @property {string[] | null} columns column names (first row of the batch), if any
  */
 
@@ -59,6 +60,7 @@ const valueOf = (name, ctx) => {
 	const counter = COUNTER.exec(key);
 	if (counter) return String(ctx.n).padStart(counter[1]?.length ?? 0, "0");
 	if (!ctx.row) return null;
+	if (key === "0") return ctx.line ?? ctx.row.join(", ");
 	if (/^\d+$/.test(key)) return ctx.row[Number(key) - 1] ?? "";
 	const col = ctx.columns?.findIndex((c) => c.trim().toLowerCase() === key.toLowerCase()) ?? -1;
 	return col >= 0 ? (ctx.row[col] ?? "") : null;
