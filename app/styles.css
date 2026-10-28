@@ -1431,6 +1431,14 @@ button.link {
 .quickbar button {
 	padding: 5px 8px;
 }
+/* One height for everything in a row of the bar, whatever each control's own padding, font
+   and border: a select's box comes out taller than a button's from the same padding. */
+.quickbar :is(button, select, input:not([type="range"]), .segmented) {
+	height: 30px;
+}
+.quickbar .segmented button {
+	height: 100%;
+}
 .quickbar input[type="range"] {
 	width: 8em;
 	/* On a phone the bar scrolls sideways; a drag on the slider is for the slider. */
@@ -1641,6 +1649,9 @@ button.link {
 	.quickbar input,
 	.menu-list button {
 		min-height: 44px;
+	}
+	.quickbar .segmented {
+		height: auto;
 	}
 	/* Its word in the middle of the taller button, as the buttons' icons are. */
 	.topbar summary {

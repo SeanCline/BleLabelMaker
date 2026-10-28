@@ -450,7 +450,8 @@ test("zoom: buttons, keys and Ctrl+wheel; dragging still moves by the right amou
 	const width = () => page.$eval("#labelCanvas", (c) => c.getBoundingClientRect().width);
 	const fit = await width();
 	await page.click("#zoomIn");
-	await page.click("#zoomIn");
+	assert.equal(await page.$eval("#zoomFit", (b) => b.textContent), "125%", "a quarter at a time");
+	for (let i = 0; i < 3; i++) await page.click("#zoomIn");
 	assert.equal(await page.$eval("#zoomFit", (b) => b.textContent), "200%");
 	assert.ok((await width()) > fit * 1.8, "twice as big");
 	// The whole label is reachable by scrolling, left edge included.
@@ -485,7 +486,7 @@ test("zoom: buttons, keys and Ctrl+wheel; dragging still moves by the right amou
 	await page.keyboard.down("Control");
 	await page.mouse.wheel({ deltaY: -100 });
 	await page.keyboard.up("Control");
-	await page.waitForFunction(() => document.querySelector("#zoomFit").textContent === "150%");
+	await page.waitForFunction(() => document.querySelector("#zoomFit").textContent === "125%");
 	assert.deepEqual(page.errors, []);
 });
 

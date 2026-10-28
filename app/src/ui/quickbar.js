@@ -74,8 +74,7 @@ const render = () => {
 	bar.classList.toggle("empty", !els.length);
 	if (!els.length) {
 		for (const group of $$("[data-qb]", bar)) group.hidden = group.dataset.qb !== "empty";
-		$("#barHint").textContent =
-			`${touch.matches ? "Tap" : "Click"} something on the label to change it`;
+		$("#barHint").textContent = "No element(s) selected. Select an element to edit.";
 		barKeys();
 		place({ x: 0, y: 0, w: state.doc.label.widthMm, h: 0 });
 		return;
@@ -105,7 +104,6 @@ const render = () => {
 // On a phone the bar docks to the bottom of the screen (styles.css), above the on-screen
 // keyboard; it's placed here only where it floats over the label.
 const phone = matchMedia("(max-width: 600px)");
-const touch = matchMedia("(pointer: coarse)");
 
 /** The bar's width on one row, from its controls' own widths, which wrapping doesn't change. */
 const oneRowWidth = () => {

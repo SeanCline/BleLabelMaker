@@ -167,7 +167,7 @@ test("with nothing selected, the bar's place says what to do", async () => {
 	assert.deepEqual((await appState(page)).selectedIds, []);
 	assert.equal(
 		await page.$eval("#barHint", (h) => h.textContent),
-		"Click something on the label to change it",
+		"No element(s) selected. Select an element to edit.",
 	);
 	assert.equal(await visible(page, '#quickbar [data-qb="text"]'), false);
 	await page.keyboard.press("Delete"); // nothing selected: nothing goes
