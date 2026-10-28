@@ -1,40 +1,13 @@
-import {
-	LIMITS,
-	createBarcode,
-	createImage,
-	createQr,
-	createShape,
-	createText,
-	rotateTo,
-	printableArea,
-	clampToLabel,
-	alignPatches,
-	distributePatches,
-	placeCopies,
-} from "../model.js";
+// The settings for what's selected: each input names the property it edits (data-prop), and
+// each section the element types it's for (data-panel, data-types).
+import { LIMITS } from "../model.js";
 import { FONTS, WEIGHT_NAMES, weightsFor, nearestWeight, fontInfo, hasEmoji } from "../fonts.js";
 import { clamp, round } from "../units.js";
-import { currentScale } from "./settings.js";
-import { encodeBarcode } from "../barcode.js";
-import { $, $$, el, toast, announce } from "./dom.js";
-import { contentOf, describeElement, typeName } from "./describe.js";
-import { importImageFile, fitBox } from "./images.js";
-import {
-	state,
-	history,
-	commit,
-	updateElement,
-	updateElements,
-	select,
-	selected,
-	selectedElements,
-	toggleSelected,
-	subscribe,
-	undo,
-	redo,
-} from "./store.js";
+import { $, $$ } from "./dom.js";
+import { state, history, updateElement, selected, subscribe, undo, redo } from "./store.js";
+import { rotateElement } from "./actions.js";
 import { fittedSizes, onDrawn, renderWarnings } from "./stage.js";
-import { inlineEdit, onInlineChange, startInlineEdit } from "./inline-editor.js";
+import { inlineEdit, onInlineChange } from "./inline-editor.js";
 import {
 	STYLE_PROPS,
 	clearStyle,
@@ -185,33 +158,6 @@ const onPropInput = (ev) => {
 
 const radioValue = (group, raw) => (group.dataset.radioType === "number" ? Number(raw) : raw);
 
-/** Turns each element a quarter turn (or three) about its own centre, as one undo step. */
-export const rotateElements = (els, deltaDeg) => {
-	const patches = {};
-	for (const e of els) {
-		const { rotation, x, y, w, h } = clampToLabel(
-			rotateTo(e, /** @type {0|90|180|270} */ ((e.rotation + deltaDeg) % 360)),
-			state.doc.label,
-		);
-		patches[e.id] = { rotation, x, y, w, h };
-	}
-	updateElements(patches);
-	history.seal();
-	announce(
-		els.length === 1
-			? `Rotated to ${patches[els[0].id].rotation}°`
-			: `Rotated ${els.length} elements`,
-	);
-};
-
-/** Rotation reshapes the box (see rotateTo), so it can't be a plain property patch. */
-export const rotateElement = (e, rotation) => {
-	const { x, y, w, h } = clampToLabel(rotateTo(e, rotation), state.doc.label);
-	updateElement(e.id, { rotation, x, y, w, h });
-	history.seal();
-	announce(`Rotated to ${rotation}°`);
-};
-
 for (const root of $$("[data-panel]")) {
 	root.addEventListener("input", onPropInput);
 	root.addEventListener("change", () => history.seal());
@@ -235,59 +181,9 @@ $$(".font-select").forEach((sel) =>
 // ---------------------------------------------------------------------------
 // Panel rendering
 
-const LAYER_KIND = { text: "T", shape: "▭", barcode: "║", qr: "▦", image: "▣" };
-
-const gripIcon = () => {
-	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-	svg.setAttribute("class", "icon");
-	const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
-	use.setAttribute("href", "icons/ui.svg#grip-vertical");
-	svg.append(use);
-	return svg;
-};
-
-let layersKey = "";
-/**
- * Listbox with roving tabindex: Tab lands on the selected element, arrows move between them.
- * Rebuilt only when what it shows changes; a drag commits on every frame, and rebuilding
- * then is wasted work that can also make screen readers re-read the list.
- */
-const renderLayers = () => {
-	const ordered = [...state.doc.elements].reverse();
-	const items = ordered.map((e) => [e.id, e.type, typeName(e), contentOf(e)]);
-	const key = JSON.stringify([items, state.selectedIds]);
-	if (key === layersKey) return;
-	layersKey = key;
-	const focusId = state.selectedIds.at(-1) ?? ordered[0]?.id;
-	const hadFocus = $("#layers").contains(document.activeElement);
-	$("#layers").replaceChildren(
-		...ordered.map((e) =>
-			el(
-				"li",
-				{
-					role: "option",
-					dataset: { id: e.id },
-					"aria-selected": String(state.selectedIds.includes(e.id)),
-					tabIndex: e.id === focusId ? 0 : -1,
-				},
-				el(
-					"span",
-					{ className: "grip", title: "Drag to reorder", "aria-hidden": "true" },
-					gripIcon(),
-				),
-				el("span", { className: "kind", "aria-hidden": "true" }, LAYER_KIND[e.type] ?? "▭"),
-				el("span", { className: "sr-only" }, `${typeName(e)}: `),
-				contentOf(e) || typeName(e),
-			),
-		),
-	);
-	if (hadFocus) $(`#layers [data-id="${focusId}"]`)?.focus();
-};
-
 const renderPanels = () => {
 	$("#btnUndo").disabled = !history.canUndo;
 	$("#btnRedo").disabled = !history.canRedo;
-	renderLayers();
 
 	const e = selected();
 	const count = state.selectedIds.length;
@@ -301,201 +197,6 @@ const renderPanels = () => {
 		if (!panel.hidden) syncProps(panel, e);
 	}
 };
-
-/** Restacks the elements in the order the list shows them, top of the list in front. */
-const restack = (ids) => {
-	const byId = new Map(state.doc.elements.map((e) => [e.id, e]));
-	const elements = ids.map((id) => byId.get(id)).reverse();
-	if (elements.every((e, i) => e === state.doc.elements[i])) return;
-	commit({ ...state.doc, elements });
-	history.seal();
-};
-const listedIds = () => $$("#layers li").map((li) => li.dataset.id);
-
-// White prints as nothing, so the stacking order rarely shows; for when it does, a grip on
-// each row drags it up or down the list. The row moves as it's dragged, and the order is
-// committed once, on letting go, so the drag is one undo step.
-let dragged = null;
-$("#layers").addEventListener("pointerdown", (ev) => {
-	const grip = ev.target.closest(".grip");
-	if (!grip) return;
-	ev.preventDefault();
-	grip.setPointerCapture(ev.pointerId);
-	dragged = grip.closest("li");
-	dragged.classList.add("dragging");
-});
-$("#layers").addEventListener("pointermove", (ev) => {
-	if (!dragged) return;
-	const over = $$("#layers li").find((li) => {
-		const r = li.getBoundingClientRect();
-		return li !== dragged && ev.clientY >= r.top && ev.clientY < r.bottom;
-	});
-	if (!over) return;
-	if (over.compareDocumentPosition(dragged) & Node.DOCUMENT_POSITION_PRECEDING) over.after(dragged);
-	else over.before(dragged);
-});
-const drop = () => {
-	if (!dragged) return;
-	dragged.classList.remove("dragging");
-	dragged = null;
-	restack(listedIds());
-};
-$("#layers").addEventListener("pointerup", drop);
-$("#layers").addEventListener("pointercancel", drop);
-
-$("#layers").addEventListener("click", (ev) => {
-	if (ev.target.closest(".grip")) return;
-	const li = ev.target.closest("li");
-	if (!li) return;
-	if (ev.ctrlKey || ev.metaKey || ev.shiftKey) toggleSelected(li.dataset.id);
-	else select(li.dataset.id);
-});
-$("#layers").addEventListener("keydown", (ev) => {
-	const items = $$("#layers li");
-	const i = items.indexOf(document.activeElement);
-	// Alt+arrows move the element up or down the list, as dragging its grip does.
-	if (ev.altKey && (ev.key === "ArrowUp" || ev.key === "ArrowDown") && i >= 0) {
-		ev.preventDefault();
-		ev.stopPropagation();
-		const ids = items.map((li) => li.dataset.id);
-		const j = i + (ev.key === "ArrowUp" ? -1 : 1);
-		if (j < 0 || j >= ids.length) return;
-		[ids[i], ids[j]] = [ids[j], ids[i]];
-		restack(ids);
-		$(`#layers [data-id="${ids[j]}"]`)?.focus();
-		announce(ev.key === "ArrowUp" ? "Moved forward" : "Moved back");
-		return;
-	}
-	const next = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: items.length - 1 }[ev.key];
-	if (next === undefined || !items.length) return;
-	ev.preventDefault();
-	ev.stopPropagation(); // arrows here pick an element; they don't nudge it
-	const target = items[Math.max(0, Math.min(items.length - 1, next))];
-	select(target.dataset.id);
-	announce(describeElement(state.doc.elements.find((e) => e.id === target.dataset.id)));
-});
-
-// ---------------------------------------------------------------------------
-// Design actions
-
-export const addElement = (element) => {
-	commit(
-		{ ...state.doc, elements: [...state.doc.elements, clampToLabel(element, state.doc.label)] },
-		{ selectedIds: [element.id] },
-	);
-	history.seal();
-	announce(`Added ${describeElement(element)}`);
-};
-
-// New elements go to the centre of the printable area so they're never off-screen on small labels.
-export const centred = (w, h) => {
-	const a = printableArea(state.doc.label);
-	const cw = Math.min(w, a.w);
-	const ch = Math.min(h, a.h);
-	return { x: round(a.x + (a.w - cw) / 2), y: round(a.y + (a.h - ch) / 2), w: cw, h: ch };
-};
-
-$("#addText").addEventListener("click", () => {
-	const a = printableArea(state.doc.label);
-	const e = createText(state.doc, { ...centred(a.w / 2, a.h / 2), text: "Text", fit: true });
-	addElement(e);
-	// Straight to typing on it, with the placeholder selected to type over.
-	startInlineEdit(e.id);
-});
-
-$("#addShape").addEventListener("click", () => {
-	const a = printableArea(state.doc.label);
-	addElement(createShape(state.doc, { ...a }));
-});
-
-$("#addBarcode").addEventListener("click", () => {
-	const a = printableArea(state.doc.label);
-	const e = createBarcode(state.doc);
-	// Wide enough for 2-dot bars (the narrowest that scans reliably), if the label allows.
-	const modules = encodeBarcode(e.symbology, e.data).modules.length;
-	const width = Math.min(a.w, Math.ceil(currentScale().toMm(modules * 2) + 0.5));
-	addElement({ ...e, ...centred(width, a.h) });
-	$('#quickbar [data-qb="barcode"] [data-prop="data"]').select();
-});
-
-$("#addQr").addEventListener("click", () => {
-	const a = printableArea(state.doc.label);
-	const side = Math.min(a.h, a.w);
-	addElement(createQr(state.doc, centred(side, side)));
-	$('#quickbar [data-qb="qr"] [data-prop="data"]').select();
-});
-
-/** Adds an image file as a new element, sized to fit the printable area. Switches to design mode. */
-export const addImageFile = async (file) => {
-	try {
-		const img = await importImageFile(file);
-		const { w, h } = fitBox(img, printableArea(state.doc.label));
-		addElement(createImage(state.doc, { ...centred(w, h), src: img.src }));
-	} catch (err) {
-		toast(err.message, { error: true });
-	}
-};
-
-let replacing = null;
-$("#addImage").addEventListener("click", () => {
-	replacing = null;
-	$("#imageFile").click();
-});
-$("#replaceImage").addEventListener("click", () => {
-	replacing = selected()?.id ?? null;
-	$("#imageFile").click();
-});
-$("#imageFile").addEventListener("change", async (ev) => {
-	const file = ev.target.files[0];
-	ev.target.value = "";
-	if (!file) return;
-	if (!replacing) return addImageFile(file);
-	try {
-		const { src } = await importImageFile(file);
-		updateElement(replacing, { src });
-		history.seal();
-	} catch (err) {
-		toast(err.message, { error: true });
-	}
-});
-
-const describeSelection = (els) =>
-	els.length === 1 ? describeElement(els[0]) : `${els.length} elements`;
-
-export const deleteSelected = () => {
-	const doomed = selectedElements();
-	if (!doomed.length) return;
-	announce(`Deleted ${describeSelection(doomed)}`);
-	commit({ ...state.doc, elements: state.doc.elements.filter((e) => !doomed.includes(e)) });
-	history.seal();
-};
-
-/** Adds copies of elements (from the clipboard or a duplicate) and selects them. */
-export const addCopies = (elements) => {
-	if (!elements.length) return;
-	const copies = placeCopies(state.doc, elements);
-	commit(
-		{ ...state.doc, elements: [...state.doc.elements, ...copies] },
-		{ selectedIds: copies.map((c) => c.id) },
-	);
-	history.seal();
-	announce(`Added ${describeSelection(copies)}`);
-};
-
-export const duplicateSelected = () => addCopies(selectedElements());
-
-const arrange = (patches) => {
-	updateElements(patches);
-	history.seal();
-};
-for (const b of $$("[data-align]")) {
-	b.addEventListener("click", () => arrange(alignPatches(selectedElements(), b.dataset.align)));
-}
-for (const b of $$("[data-distribute]")) {
-	b.addEventListener("click", () =>
-		arrange(distributePatches(selectedElements(), b.dataset.distribute)),
-	);
-}
 
 $("#btnUndo").addEventListener("click", undo);
 $("#btnRedo").addEventListener("click", redo);

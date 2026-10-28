@@ -53,7 +53,9 @@ src/
     viewport.js  fit, zoom and pan
     ruler.js     millimetre rulers with the selection's extent and the pointer
     errors.js    a toast for errors nothing else caught
-    panels.js    settings sections, Elements list, add/delete/arrange
+    panels.js    settings sections: inputs bound to the selected element's properties
+    actions.js   add, delete, duplicate, rotate and arrange elements, each one undo step
+    layers.js    the Elements list: pick from it, restack by grip or Alt+arrows
     quickbar.js  the bar over the label (the selection's essentials) and the settings sheet
     toolbar.js   arrow keys between a toolbar's controls, one Tab stop for its buttons
     labelbar.js  label size: the printer's presets, continuous, custom, remembered per printer

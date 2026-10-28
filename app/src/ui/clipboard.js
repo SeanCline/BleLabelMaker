@@ -9,7 +9,7 @@ import { fromSpans } from "../richtext.js";
 import { isTyping, toast } from "./dom.js";
 import { state, history, selectedElements, updateElement } from "./store.js";
 import { openBatch, setBatch } from "./batch.js";
-import { addCopies, addElement, addImageFile, centred, deleteSelected } from "./panels.js";
+import { addCopies, addElement, addImageFile, centred, deleteSelected } from "./actions.js";
 
 // Text fields and open dialogs keep the normal clipboard behaviour.
 const forElements = (ev) => !isTyping(ev.target) && !document.querySelector("dialog[open]");

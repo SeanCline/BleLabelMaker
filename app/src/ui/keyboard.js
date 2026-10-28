@@ -12,7 +12,7 @@ import {
 } from "./store.js";
 import { SNAP_MM } from "./stage.js";
 import { setZoom, zoomStep } from "./viewport.js";
-import { deleteSelected, duplicateSelected, rotateElements } from "./panels.js";
+import { deleteSelected, duplicateSelected, rotateElements } from "./actions.js";
 import { save, openPicker } from "./files.js";
 import { print } from "./printing.js";
 

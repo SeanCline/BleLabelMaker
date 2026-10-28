@@ -3,7 +3,7 @@ import { parse, FILE_EXTENSION, TOO_LARGE } from "../fileformat.js";
 import { encodeShare, decodeShare } from "../share.js";
 import { $, toast, download } from "./dom.js";
 import { state, loadState, currentFile } from "./store.js";
-import { addImageFile } from "./panels.js";
+import { addImageFile } from "./actions.js";
 import { keepStorage } from "./idb.js";
 import { textOf } from "../richtext.js";
 

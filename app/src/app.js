@@ -11,6 +11,7 @@ import { simulateVirtual } from "./ui/printer-menu.js";
 import "./ui/keyboard.js";
 import "./ui/clipboard.js";
 import "./ui/labelbar.js";
+import "./ui/layers.js";
 import "./ui/new-label.js";
 import "./ui/welcome.js";
 import "./ui/text-insert.js";

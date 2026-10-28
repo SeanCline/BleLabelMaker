@@ -14,7 +14,8 @@ import {
 	updateElement,
 	subscribe,
 } from "./store.js";
-import { deleteSelected, duplicateSelected, syncProps } from "./panels.js";
+import { deleteSelected, duplicateSelected } from "./actions.js";
+import { syncProps } from "./panels.js";
 import { rovingToolbar } from "./toolbar.js";
 import { onDrawn } from "./stage.js";
 import {
