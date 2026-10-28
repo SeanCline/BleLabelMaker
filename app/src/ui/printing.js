@@ -147,30 +147,19 @@ const renderChip = (real, t) => {
 	const chip = $("#printerChip");
 	const problem = t.connected && hasProblem(t.status);
 	const battery = typeof t.status.battery === "number" ? `${t.status.battery}%` : "";
-	const name = !real
-		? "Virtual printer"
-		: real.connected
-			? real.name
-			: { bluetooth: "Bluetooth printer", serial: "Serial printer" }[settings.target];
-	// Without Web Bluetooth the virtual printer is all there is, which the chip owns up to
-	// rather than a banner across the page; its menu says what to do about it.
-	const unsupported = !real && !bluetoothAvailable();
+	// What's connected; what the browser can't connect to is in the menu it opens.
+	const name = !real ? "Virtual printer" : real.connected ? real.name : "Not connected";
 	const detail = problem
 		? describeStatus(t.status, { battery: false })
 		: real?.connected
 			? battery
-			: real
-				? "not connected"
-				: unsupported
-					? "browser can't use Bluetooth"
-					: "";
+			: "";
 	const text = [name, detail].filter(Boolean).join(" · ");
 	$("#printerChipLabel").textContent = text;
 	// On a phone the chip is just its dot, so its name says the rest.
 	chip.setAttribute("aria-label", `Printer: ${text}`);
 	chip.classList.toggle("ok", !!real?.connected && !problem);
 	chip.classList.toggle("problem", problem);
-	chip.classList.toggle("unsupported", unsupported);
 };
 
 const reportPrintError = (err) => {
@@ -370,12 +359,12 @@ const initSettings = () => {
 		$("#noBluetooth").hidden = false;
 		const option = $('#target option[value="bluetooth"]');
 		option.disabled = true;
-		option.textContent = "Bluetooth (not in this browser)";
+		option.textContent = "Bluetooth (browser lacks support)";
 	}
 	if (!serialAvailable()) {
 		const option = $('#target option[value="serial"]');
 		option.disabled = true;
-		option.textContent = "Serial port (not in this browser)";
+		option.textContent = "Serial port (browser lacks support)";
 	}
 	$("#setFlip").checked = settings.flip180;
 	const vendors = [...new Set(PRINTERS.map((p) => p.vendor))];

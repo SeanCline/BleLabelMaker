@@ -788,6 +788,15 @@ export const startInlineEdit = (id, caret) => {
 	}
 	frame.addEventListener("pointerup", endSelect);
 	frame.addEventListener("pointercancel", endSelect);
+	// A tap on anything that isn't a text field puts a phone's keyboard away, even with the
+	// focus kept in the textarea: the taps and presses that move the caret, select a word or
+	// drag a handle are kept from the browser's own handling, so the keyboard stays to type on.
+	for (const target of [frame, ...Object.values(handles).map((h) => h.handle)]) {
+		target.addEventListener("touchend", (ev) => ev.cancelable && ev.preventDefault(), {
+			passive: false,
+		});
+		target.addEventListener("contextmenu", (ev) => ev.preventDefault());
+	}
 	// A double-click inside the editor selects a word; it isn't a request to start editing.
 	frame.addEventListener("dblclick", (ev) => ev.stopPropagation());
 

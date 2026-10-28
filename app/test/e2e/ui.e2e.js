@@ -11,6 +11,7 @@ import {
 	openElements,
 	openSettings,
 	fromFileMenu,
+	loaded,
 } from "./harness.js";
 
 let env;
@@ -107,8 +108,8 @@ test("save → load restores exactly; bad files leave the label alone; autosave 
 	assert.match(await page.$eval("#toast", (e) => e.textContent), /newer version/);
 	assert.equal(await serialized(page), saved);
 
-	await page.reload({ waitUntil: "networkidle0" });
-	await page.evaluate(() => window.labelApp.ready);
+	await page.reload({ waitUntil: "load" });
+	await loaded(page);
 	assert.equal(await serialized(page), saved);
 });
 
@@ -193,9 +194,9 @@ test("test hooks exist only under automation or with ?debug", async () => {
 	await page.evaluateOnNewDocument(() =>
 		Object.defineProperty(Navigator.prototype, "webdriver", { get: () => false }),
 	);
-	await page.reload({ waitUntil: "networkidle0" });
+	await page.reload({ waitUntil: "load" });
 	assert.equal(await page.evaluate(() => "labelApp" in window), false);
-	await page.goto(page.url() + "?debug", { waitUntil: "networkidle0" });
+	await page.goto(page.url() + "?debug", { waitUntil: "load" });
 	assert.equal(await page.evaluate(() => "labelApp" in window), true);
 });
 
@@ -639,8 +640,8 @@ test("the ruler toggles, spans the label, still fits the window, and is remember
 		overflows: false,
 	});
 
-	await page.reload({ waitUntil: "networkidle0" });
-	await page.evaluate(() => window.labelApp.ready);
+	await page.reload({ waitUntil: "load" });
+	await loaded(page);
 	assert.equal((await rulers()).pressed, "true", "remembered");
 	await page.click("#btnRuler");
 	assert.equal((await rulers()).hidden, true);
@@ -713,5 +714,37 @@ test("the first-run tip goes once the label is typed on, or after a print, and s
 	await page.reload();
 	await page.evaluate(() => window.labelApp.ready);
 	assert.equal(await page.$eval("#welcome", (w) => w.hidden), true);
+	assert.deepEqual(page.errors, []);
+});
+
+test("the Elements list restacks by dragging a row's grip, or Alt+arrows", async () => {
+	const page = await env.open();
+	await page.click("#addQr");
+	await page.click("#addBarcode");
+	const types = async () => (await appState(page)).doc.elements.map((e) => e.type);
+	assert.deepEqual(await types(), ["text", "qr", "barcode"]);
+	await openElements(page);
+
+	// The list puts the front first; the text, at the bottom, is dragged to the top.
+	const rows = await page.$$("#layers li");
+	const grip = await (await rows[2].$(".grip")).boundingBox();
+	const top = await rows[0].boundingBox();
+	await page.mouse.move(grip.x + grip.width / 2, grip.y + grip.height / 2);
+	await page.mouse.down();
+	await page.mouse.move(grip.x + grip.width / 2, top.y + 2, { steps: 6 });
+	await page.mouse.up();
+	assert.deepEqual(await types(), ["qr", "barcode", "text"]);
+	assert.equal(await page.$eval("#layersMenu", (d) => d.open), true, "still open to drag again");
+	await page.click("#btnUndo");
+	assert.deepEqual(await types(), ["text", "qr", "barcode"], "one undo step");
+
+	// From the keyboard: the barcode, at the front, goes back one.
+	await openElements(page);
+	await page.focus("#layers li:first-child");
+	await page.keyboard.down("Alt");
+	await page.keyboard.press("ArrowDown");
+	await page.keyboard.up("Alt");
+	assert.deepEqual(await types(), ["text", "barcode", "qr"]);
+	assert.equal(await page.$eval("#btnForward", () => 1).catch(() => 0), 0, "no buttons for it");
 	assert.deepEqual(page.errors, []);
 });

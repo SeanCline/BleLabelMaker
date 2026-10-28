@@ -33,7 +33,7 @@ jobs:
       - run: npx c8 --reporter=none node --test $REPORTERS "test/*.test.js"
       # ubuntu-latest ships Google Chrome at /usr/bin/google-chrome, which the e2e harness finds.
       # The harness adds what ran in the browser to the same coverage.
-      - run: npx c8 --clean=false --reporter=none node --test --test-concurrency=1 $REPORTERS "test/e2e/*.e2e.js"
+      - run: npx c8 --clean=false --reporter=none node --test --test-concurrency=3 $REPORTERS "test/e2e/*.e2e.js"
       # The per-file table goes on the run's summary page; the floors are in app/.c8rc.json.
       - name: Coverage
         run: |

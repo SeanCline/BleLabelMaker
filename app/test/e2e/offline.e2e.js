@@ -7,7 +7,7 @@ before(async () => (env = await setup()));
 after(async () => env?.teardown());
 
 test("works offline after one visit: app, fonts and virtual printing", async () => {
-	const page = await env.open();
+	const page = await env.open({ offline: true });
 	// Wait until the service worker has installed (precached everything) and controls the page.
 	await page.evaluate(async () => {
 		await navigator.serviceWorker.ready;

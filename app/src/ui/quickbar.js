@@ -300,10 +300,11 @@ document.addEventListener(
 	},
 	true,
 );
-// Picking an element from the list is what the list was opened for.
+// Picking an element from the list is what the list was opened for; reordering isn't.
 $("#layers").addEventListener("click", (ev) => {
 	const plain = !(ev.ctrlKey || ev.metaKey || ev.shiftKey);
-	if (plain && /** @type {Element} */ (ev.target).closest("li")) layersMenu.open = false;
+	const target = /** @type {Element} */ (ev.target);
+	if (plain && target.closest("li") && !target.closest(".grip")) layersMenu.open = false;
 });
 $("#fileMenu .menu-list").addEventListener("click", () => ($("#fileMenu").open = false));
 

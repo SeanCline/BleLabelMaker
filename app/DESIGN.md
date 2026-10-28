@@ -403,7 +403,8 @@ printer can buffer, to adjust on hardware.
   (before Esc deselects). While typing on the label, the bar's buttons don't
   take the focus, and its menus hand it back.
 - The Elements list (the menu above the label) is a listbox: Tab reaches it,
-  arrow keys / Home / End change the selection. The canvas overlay is focusable; there, arrow keys
+  arrow keys / Home / End change the selection, and Alt+Up / Alt+Down move the
+  element forward or back, as dragging a row's grip does. The canvas overlay is focusable; there, arrow keys
   nudge, R rotates and Delete removes. Clicking an element focuses the canvas
   so shortcuts apply to it.
 - The preview canvas carries a text description of every element; adding,
@@ -416,9 +417,10 @@ printer can buffer, to adjust on hardware.
 ## Browser support
 
 `navigator.bluetooth` is feature-detected. Without it (Firefox, Safari),
-printing is limited to the virtual printer. The printer chip says the browser
-can't use Bluetooth, its menu says to open the page in Chrome or Edge, and
-everything else works.
+printing is limited to the virtual printer. The printer chip shows the virtual
+printer; its menu marks Bluetooth (and the serial port, where that's missing
+too) "browser lacks support", says to open the page in Chrome or Edge, and
+links to which browsers support it. Everything else works.
 
 ## Hardware verification checklist (milestone 4)
 

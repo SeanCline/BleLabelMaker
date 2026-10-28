@@ -8,6 +8,7 @@ import {
 	openSettings,
 	redraw,
 	typeInto,
+	loaded,
 } from "./harness.js";
 import { installFakeBluetooth } from "./fake-bluetooth.js";
 
@@ -113,8 +114,8 @@ test("formatting survives a reload, and editing in the settings keeps it on its 
 	await page.keyboard.press("Escape");
 	const before = await labelPixels(page);
 
-	await page.reload({ waitUntil: "networkidle0" });
-	await page.evaluate(() => window.labelApp.ready);
+	await page.reload({ waitUntil: "load" });
+	await loaded(page);
 	assert.deepEqual(await text(page), [[BOLD, "Hello"], " world"]);
 	assert.equal((await labelPixels(page)).hash, before.hash, "it looks the same");
 

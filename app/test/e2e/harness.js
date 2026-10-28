@@ -41,11 +41,18 @@ export const setup = async () => {
 
 	/**
 	 * Pages start on the virtual printer, so tests print without a device picker; `printer: null`
-	 * leaves the app's own default.
-	 * @param {{width?: number, height?: number, printer?: string | null, beforeLoad?: (page: import("puppeteer-core").Page) => Promise<unknown>}} [options]
+	 * leaves the app's own default. The service worker only runs where a test asks for it
+	 * (`offline: true`): installing it fetches every file the app has, for every page.
+	 * @param {{width?: number, height?: number, printer?: string | null, offline?: boolean, beforeLoad?: (page: import("puppeteer-core").Page) => Promise<unknown>}} [options]
 	 * @returns {Promise<import("puppeteer-core").Page & {errors: string[]}>} errors collects console errors and uncaught exceptions
 	 */
-	const open = async ({ width = 1280, height = 900, printer = "virtual", beforeLoad } = {}) => {
+	const open = async ({
+		width = 1280,
+		height = 900,
+		printer = "virtual",
+		offline = false,
+		beforeLoad,
+	} = {}) => {
 		const context = await browser.createBrowserContext();
 		const page = /** @type {import("puppeteer-core").Page & {errors: string[]}} */ (
 			await context.newPage()
@@ -67,14 +74,20 @@ export const setup = async () => {
 				printer,
 			);
 		}
+		if (!offline)
+			await page.evaluateOnNewDocument(
+				() => delete (/** @type {any} */ (Navigator.prototype).serviceWorker),
+			);
 		if (beforeLoad) await beforeLoad(page);
 		pages.push(page);
 		page.errors = [];
 		page.on("console", (m) => m.type() === "error" && page.errors.push(m.text()));
 		page.on("pageerror", (e) => page.errors.push(String(e)));
 		await page.setViewport({ width, height });
-		await page.goto(url, { waitUntil: "networkidle0" });
-		await page.evaluate(() => window.labelApp.ready);
+		// Not networkidle0, which waits out half a second of quiet on every page: the app's own
+		// ready, and the fonts it asked for, are what tests need.
+		await page.goto(url, { waitUntil: "load" });
+		await loaded(page);
 		return page;
 	};
 
@@ -110,6 +123,13 @@ export const setup = async () => {
 	};
 	return { url, open, stopServer, teardown };
 };
+
+/** Waits for a page (re)loaded with waitUntil "load" to be drawn, with its fonts. */
+export const loaded = (page) =>
+	page.evaluate(async () => {
+		await window.labelApp.ready;
+		await document.fonts.ready;
+	});
 
 /** Sets a form control's value the way a user would, firing the input event the app listens to. */
 export const typeInto = (page, selector, value) =>

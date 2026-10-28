@@ -319,9 +319,6 @@ summary:has(> .icon) {
 .printer-chip.problem .chip-dot {
 	background: var(--danger);
 }
-.printer-chip.unsupported .chip-dot {
-	background: #d99a00;
-}
 
 /* Print, with its options on a narrow button of its own. */
 .split-button {
@@ -1049,6 +1046,24 @@ h3.section {
 	background: var(--accent);
 	color: var(--accent-text);
 }
+/* Only the grip drags, so a row still scrolls the list under a finger. */
+.layers li .grip {
+	display: inline-flex;
+	vertical-align: middle;
+	margin: -5px 4px -5px -6px;
+	padding: 5px 2px;
+	cursor: grab;
+	touch-action: none;
+	opacity: 0.5;
+}
+.layers li .grip .icon {
+	width: 14px;
+	height: 14px;
+}
+.layers li.dragging {
+	opacity: 0.7;
+	cursor: grabbing;
+}
 .layers li .kind {
 	opacity: 0.6;
 	margin-right: 6px;
@@ -1609,6 +1624,10 @@ button.link {
 /* Fingers: bigger buttons where they're small, and handles that can be caught. */
 /* Finger-sized: 44px, the size phones' own guidelines ask for. */
 @media (pointer: coarse) {
+	/* Keyboard and mouse shortcuts, which a finger has no use for. */
+	.keys {
+		display: none;
+	}
 	.rail .icon-button,
 	.rail summary,
 	.canvas-tools button,

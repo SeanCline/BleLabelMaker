@@ -71,6 +71,9 @@
 					<p id="noBluetooth" class="hint" hidden>
 						This browser can't reach Bluetooth printers. You can still design, save and try prints
 						on the virtual printer; to print for real, open this page in Chrome or Edge.
+						<a href="https://caniuse.com/web-bluetooth" target="_blank" rel="noopener"
+							>Which browsers support Bluetooth</a
+						>
 					</p>
 					<span id="printerStatus" class="status"></span>
 					<button id="btnConnect" hidden>Connect</button>
@@ -316,7 +319,7 @@
 						The canvas is empty. Add an element like text or a shape to continue editing.
 					</p>
 					<p class="coach" id="welcome" hidden>
-						<span id="welcomeText">Double-click the label to type on it</span>
+						<span id="welcomeText">Double-click the label to start editing</span>
 						<button id="welcomeClose" class="icon-button" aria-label="Dismiss" title="Dismiss">
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#x" /></svg>
 						</button>
@@ -561,9 +564,9 @@
 				</div>
 
 				<details class="hint keys" id="keysHelp">
-					<summary>Hints</summary>
+					<summary>Shortcuts</summary>
 					<ul>
-						<li>Double-click text to type on the label; <kbd>Esc</kbd> finishes.</li>
+						<li>Double-click text to edit it on the label; <kbd>Esc</kbd> finishes.</li>
 						<li>Drag to move, drag the corners to resize.</li>
 						<li>
 							Things snap to the centre, the margins and each other; hold <kbd>Alt</kbd> while
@@ -571,6 +574,10 @@
 						</li>
 						<li>Arrow keys nudge the selection (<kbd>Shift</kbd> for 1 mm).</li>
 						<li><kbd>R</kbd> rotates, <kbd>Del</kbd> deletes.</li>
+						<li>
+							In the Elements list, drag a row's grip, or press <kbd>Alt</kbd>+<kbd>↑</kbd> /
+							<kbd>↓</kbd>, to bring it forward or send it back.
+						</li>
 						<li><kbd>Shift</kbd>-click, or drag across empty space, to select several.</li>
 						<li>
 							<kbd>Ctrl</kbd>+<kbd>A</kbd> selects everything, <kbd>Ctrl</kbd>+<kbd>D</kbd>
@@ -865,13 +872,6 @@
 							<label
 								>H <input type="number" data-prop="h" data-type="number" step="0.25" min="1"
 							/></label>
-						</div>
-						<h3 class="section">Layer</h3>
-						<div class="toolbar">
-							<button id="btnForward" title="In front of the element above it">
-								Bring forward
-							</button>
-							<button id="btnBackward" title="Behind the element below it">Send back</button>
 						</div>
 					</div>
 				</div>

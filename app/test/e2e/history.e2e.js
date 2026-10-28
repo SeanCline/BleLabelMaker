@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { setup, typeInto, serialized, appState, fromFileMenu } from "./harness.js";
+import { setup, typeInto, serialized, appState, fromFileMenu, loaded } from "./harness.js";
 
 let env;
 let downloads;
@@ -109,8 +109,8 @@ test("history survives a reload; delete and clear work", async () => {
 	await printText(page, "One");
 	await printText(page, "Two");
 	await page.evaluate(() => window.labelApp.historySaved());
-	await page.reload({ waitUntil: "networkidle0" });
-	await page.evaluate(() => window.labelApp.ready);
+	await page.reload({ waitUntil: "load" });
+	await loaded(page);
 	await fromFileMenu(page, "#btnHistory");
 	await page.waitForSelector("#historyList li");
 	await page.click('#historyList li [data-action="delete"]');
@@ -165,8 +165,8 @@ test("history holds more than localStorage could: big images survive a reload", 
 	assert.ok(total > 6_000_000, `${total} characters of labels`);
 	await page.waitForFunction(() => window.labelApp.historyEntries().length === 3);
 	await page.evaluate(() => window.labelApp.historySaved());
-	await page.reload({ waitUntil: "networkidle0" });
-	await page.evaluate(() => window.labelApp.ready);
+	await page.reload({ waitUntil: "load" });
+	await loaded(page);
 	assert.equal(await page.evaluate(() => window.labelApp.historyEntries().length), 3);
 	assert.deepEqual(page.errors, []);
 });

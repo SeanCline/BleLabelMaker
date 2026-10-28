@@ -96,8 +96,8 @@ it never needs the internet.
   makes one label per row. While there's a list, the label area shows which
   row it previews, with arrows to step through them.
 - **Labels:** the size chip at the label area's bottom left; pick a pre-cut size, or _Continuous roll_ for rolls that are one
-  long label, then set the length, or tick _Auto_ to make it as long as the
-  text (in a batch, each label gets its own length). Only the sizes the selected printer model
+  long label. A roll starts out as long as the text (_Auto_; in a batch, each label gets its
+  own length); untick _Auto_ to set a length. Only the sizes the selected printer model
   takes are listed.
 - **Design:** add text, shapes, barcodes, QR codes and images from the toolbar
   down the label's left (or drop a picture on the page), then drag to move and

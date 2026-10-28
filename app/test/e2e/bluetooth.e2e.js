@@ -24,16 +24,23 @@ test("a first visit starts on the Bluetooth printer, or the virtual one without 
 	assert.equal(await page.$eval("#target", (s) => s.value), "bluetooth");
 	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Connect & Print");
 	assert.equal(await page.$eval("#noBluetooth", (b) => b.hidden), true);
+	assert.equal(await page.$eval("#printerChipLabel", (l) => l.textContent), "Not connected");
 
 	const without = await env.open({
 		printer: null,
 		beforeLoad: (p) => p.evaluateOnNewDocument(() => delete Navigator.prototype.bluetooth),
 	});
 	assert.equal(await without.$eval("#target", (s) => s.value), "virtual");
-	// The chip says so, and its menu says what to do; nothing across the page.
+	// The chip says what's connected; its menu says what the browser lacks, and what to do.
+	assert.equal(await without.$eval("#printerChipLabel", (l) => l.textContent), "Virtual printer");
 	assert.equal(
-		await without.$eval("#printerChipLabel", (l) => l.textContent),
-		"Virtual printer · browser can't use Bluetooth",
+		await without.$eval('#target option[value="bluetooth"]', (o) => o.textContent),
+		"Bluetooth (browser lacks support)",
+	);
+	assert.match(
+		await without.$eval("#noBluetooth a", (a) => a.href),
+		/caniuse\.com\/web-bluetooth/,
+		"which browsers do",
 	);
 	assert.equal(await without.$eval("#noBluetooth", (b) => b.hidden), false);
 	assert.ok(await without.$eval("#noBluetooth", (b) => !!b.closest("#printerMenu")));

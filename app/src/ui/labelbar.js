@@ -130,10 +130,17 @@ $("#labelPreset").addEventListener("change", (ev) => {
 	const v = ev.target.value;
 	delete ev.target.dataset.forceCustom;
 	if (v === "continuous") {
-		const length = state.doc.label.continuous ? state.doc.label.widthMm : CONTINUOUS_LENGTH_MM;
-		setLabel({ widthMm: length, heightMm: currentPrinter().continuousHeightMm, continuous: true });
+		// A roll starts out as long as what's on it, as the printer's own app does; a length can
+		// be set instead.
+		const l = state.doc.label;
+		setLabel({
+			widthMm: l.continuous ? l.widthMm : CONTINUOUS_LENGTH_MM,
+			heightMm: currentPrinter().continuousHeightMm,
+			continuous: true,
+			autoLength: l.continuous ? l.autoLength : true,
+		});
 		history.seal();
-		$("#labelLen").focus();
+		$("#labelAutoLength").focus();
 		return;
 	}
 	if (v === "custom") {

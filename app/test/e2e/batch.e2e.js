@@ -1,6 +1,14 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, appState, labelPixels, openSettings, openBatchList } from "./harness.js";
+import {
+	setup,
+	typeInto,
+	appState,
+	labelPixels,
+	openSettings,
+	openBatchList,
+	loaded,
+} from "./harness.js";
 
 let env;
 before(async () => (env = await setup()));
@@ -62,8 +70,8 @@ test("a batch list prints one label per line, with a preview of each", async () 
 	assert.equal(history[0].copies, 3);
 
 	// The list survives a reload, and shows on the label area so a batch is never a surprise.
-	await page.reload({ waitUntil: "networkidle0" });
-	await page.evaluate(() => window.labelApp.ready);
+	await page.reload({ waitUntil: "load" });
+	await loaded(page);
 	assert.equal(await page.$eval("#batchNav", (n) => n.hidden), false);
 	assert.equal(await page.$eval("#batchPos", (p) => p.textContent), "Row 1 of 3");
 	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Print 3 labels");

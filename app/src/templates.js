@@ -41,7 +41,7 @@ export const TEMPLATES = [
 		elements: (doc, area) => [
 			createText(doc, {
 				...area,
-				text: "Alex Morgan\nFacilities",
+				text: "John Smith\nFacilities",
 				fit: true,
 				fontWeight: 700,
 				firstLineScale: 2,

@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, appState, clickInMenu, openBatchList } from "./harness.js";
+import { setup, typeInto, appState, clickInMenu, openBatchList, loaded } from "./harness.js";
 import { installFakeBluetooth } from "./fake-bluetooth.js";
 
 let env;
@@ -31,8 +31,8 @@ test("status line shows what the printer reports; density is sent and decoded", 
 	assert.match(await page.$eval("#tape .printed .hint", (e) => e.textContent), /density dark/);
 
 	// The setting persists.
-	await page.reload({ waitUntil: "networkidle0" });
-	await page.evaluate(() => window.labelApp.ready);
+	await page.reload({ waitUntil: "load" });
+	await loaded(page);
 	assert.equal(await page.$eval("#density", (s) => s.value), "dark");
 	assert.deepEqual(page.errors, []);
 });
@@ -84,6 +84,9 @@ test("pre-cut labels stop at the gap; a continuous roll feeds and has a free len
 
 	await page.select("#labelPreset", "continuous");
 	assert.equal(await page.$eval("#continuousSize", (e) => e.hidden), false);
+	// A roll starts out as long as what's on it; a length can be set instead.
+	assert.equal((await appState(page)).doc.label.autoLength, true);
+	await clickInMenu(page, "#labelAutoLength");
 	await typeInto(page, "#labelLen", "85");
 	const { label } = (await appState(page)).doc;
 	assert.deepEqual(label, { widthMm: 85, heightMm: 12, continuous: true });
@@ -117,8 +120,8 @@ test("the continuous feed can be overridden, and a model change restores its def
 	await page.waitForSelector("#tape .printed");
 	assert.match(await page.$eval("#tape .printed .hint", (e) => e.textContent), /feed 40/);
 
-	await page.reload({ waitUntil: "networkidle0" });
-	await page.evaluate(() => window.labelApp.ready);
+	await page.reload({ waitUntil: "load" });
+	await loaded(page);
 	assert.equal((await feed()).value, "40", "kept across reloads");
 
 	await page.select("#virtualModel", "a30");
@@ -196,7 +199,7 @@ test("auto length: a continuous label grows with its text, per batch row when pr
 	const page = await env.open();
 	const label = () => appState(page).then((s) => s.doc.label);
 	await page.select("#labelPreset", "continuous");
-	await clickInMenu(page, "#labelAutoLength");
+	assert.equal(await page.$eval("#labelAutoLength", (i) => i.checked), true, "auto to start with");
 	assert.equal(await page.$eval("#labelLen", (i) => i.disabled), true, "nothing to type");
 	await typeInto(page, "#designText", "Hi");
 	await page.waitForFunction(() => window.labelApp.state.doc.label.widthMm < 20);
@@ -249,7 +252,7 @@ test("the label size chip says what's loaded; the field menu opens the batch lis
 	const chip = () => page.$eval("#labelChipText", (c) => c.textContent);
 	assert.equal(await chip(), "40 × 12 mm");
 	await page.select("#labelPreset", "continuous");
-	assert.match(await chip(), /^12 mm roll, \d+ mm long$/);
+	assert.equal(await chip(), "12 mm roll, auto length");
 
 	await page.select("#quickbar .insert-field", "@batch");
 	assert.equal(await page.$eval("#batchSheet", (s) => s.hidden), false);

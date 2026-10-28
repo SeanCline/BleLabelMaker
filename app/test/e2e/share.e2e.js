@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, appState, fromFileMenu } from "./harness.js";
+import { setup, typeInto, appState, fromFileMenu, loaded } from "./harness.js";
 
 let env;
 before(async () => (env = await setup()));
@@ -22,8 +22,8 @@ test("Share copies a link that opens the label elsewhere; Undo brings back what 
 	// Somebody else opens it, with their own label on screen.
 	const other = await env.open();
 	await typeInto(other, "#designText", "Mine");
-	await other.goto(link, { waitUntil: "networkidle0" });
-	await other.evaluate(() => window.labelApp.ready);
+	await other.goto(link, { waitUntil: "load" });
+	await loaded(other);
 	let s = await appState(other);
 	assert.equal(s.doc.elements[0].text, "Shared spices 🌶");
 	assert.equal(s.doc.label.continuous, true);
@@ -33,8 +33,8 @@ test("Share copies a link that opens the label elsewhere; Undo brings back what 
 	assert.equal(s.doc.elements[0].text, "Mine");
 
 	// A link cut off in transit says so instead of failing silently.
-	await other.goto(link.slice(0, link.length - 20), { waitUntil: "networkidle0" });
-	await other.evaluate(() => window.labelApp.ready);
+	await other.goto(link.slice(0, link.length - 20), { waitUntil: "load" });
+	await loaded(other);
 	assert.match(await other.$eval("#toast", (t) => t.textContent), /damaged or incomplete/);
 	assert.deepEqual(page.errors, []);
 });

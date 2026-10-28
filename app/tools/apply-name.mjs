@@ -68,7 +68,9 @@ const printerTable = () => {
  */
 export const stampReadme = async (text) => {
 	const blocks = {
-		intro: [`# ${APP_NAME}`, "", APP_DESCRIPTION, "", `**Open it: ${await siteUrl()}**`].join("\n"),
+		intro: [`# ${APP_NAME}`, "", APP_DESCRIPTION, "", `**Live site: ${await siteUrl()}**`].join(
+			"\n",
+		),
 		printers: [
 			printerTable(),
 			"",

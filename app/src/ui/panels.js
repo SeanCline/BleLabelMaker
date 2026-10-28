@@ -242,6 +242,15 @@ $$(".font-select").forEach((sel) =>
 
 const LAYER_KIND = { text: "T", shape: "▭", barcode: "║", qr: "▦", image: "▣" };
 
+const gripIcon = () => {
+	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	svg.setAttribute("class", "icon");
+	const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+	use.setAttribute("href", "icons/ui.svg#grip-vertical");
+	svg.append(use);
+	return svg;
+};
+
 let layersKey = "";
 /**
  * Listbox with roving tabindex: Tab lands on the selected element, arrows move between them.
@@ -266,6 +275,11 @@ const renderLayers = () => {
 					"aria-selected": String(state.selectedIds.includes(e.id)),
 					tabIndex: e.id === focusId ? 0 : -1,
 				},
+				el(
+					"span",
+					{ className: "grip", title: "Drag to reorder", "aria-hidden": "true" },
+					gripIcon(),
+				),
 				el("span", { className: "kind", "aria-hidden": "true" }, LAYER_KIND[e.type] ?? "▭"),
 				el("span", { className: "sr-only" }, `${typeName(e)}: `),
 				contentOf(e) || typeName(e),
@@ -291,13 +305,51 @@ const renderPanels = () => {
 		panel.hidden = !e || !(types.includes(e.type) || types.includes("*"));
 		if (!panel.hidden) syncProps(panel, e);
 	}
-	if (!e) return;
-	const idx = state.doc.elements.indexOf(e);
-	$("#btnForward").disabled = idx === state.doc.elements.length - 1;
-	$("#btnBackward").disabled = idx === 0;
 };
 
+/** Restacks the elements in the order the list shows them, top of the list in front. */
+const restack = (ids) => {
+	const byId = new Map(state.doc.elements.map((e) => [e.id, e]));
+	const elements = ids.map((id) => byId.get(id)).reverse();
+	if (elements.every((e, i) => e === state.doc.elements[i])) return;
+	commit({ ...state.doc, elements });
+	history.seal();
+};
+const listedIds = () => $$("#layers li").map((li) => li.dataset.id);
+
+// White prints as nothing, so the stacking order rarely shows; for when it does, a grip on
+// each row drags it up or down the list. The row moves as it's dragged, and the order is
+// committed once, on letting go, so the drag is one undo step.
+let dragged = null;
+$("#layers").addEventListener("pointerdown", (ev) => {
+	const grip = ev.target.closest(".grip");
+	if (!grip) return;
+	ev.preventDefault();
+	grip.setPointerCapture(ev.pointerId);
+	dragged = grip.closest("li");
+	dragged.classList.add("dragging");
+});
+$("#layers").addEventListener("pointermove", (ev) => {
+	if (!dragged) return;
+	const over = $$("#layers li").find((li) => {
+		const r = li.getBoundingClientRect();
+		return li !== dragged && ev.clientY >= r.top && ev.clientY < r.bottom;
+	});
+	if (!over) return;
+	if (over.compareDocumentPosition(dragged) & Node.DOCUMENT_POSITION_PRECEDING) over.after(dragged);
+	else over.before(dragged);
+});
+const drop = () => {
+	if (!dragged) return;
+	dragged.classList.remove("dragging");
+	dragged = null;
+	restack(listedIds());
+};
+$("#layers").addEventListener("pointerup", drop);
+$("#layers").addEventListener("pointercancel", drop);
+
 $("#layers").addEventListener("click", (ev) => {
+	if (ev.target.closest(".grip")) return;
 	const li = ev.target.closest("li");
 	if (!li) return;
 	if (ev.ctrlKey || ev.metaKey || ev.shiftKey) toggleSelected(li.dataset.id);
@@ -306,6 +358,19 @@ $("#layers").addEventListener("click", (ev) => {
 $("#layers").addEventListener("keydown", (ev) => {
 	const items = $$("#layers li");
 	const i = items.indexOf(document.activeElement);
+	// Alt+arrows move the element up or down the list, as dragging its grip does.
+	if (ev.altKey && (ev.key === "ArrowUp" || ev.key === "ArrowDown") && i >= 0) {
+		ev.preventDefault();
+		ev.stopPropagation();
+		const ids = items.map((li) => li.dataset.id);
+		const j = i + (ev.key === "ArrowUp" ? -1 : 1);
+		if (j < 0 || j >= ids.length) return;
+		[ids[i], ids[j]] = [ids[j], ids[i]];
+		restack(ids);
+		$(`#layers [data-id="${ids[j]}"]`)?.focus();
+		announce(ev.key === "ArrowUp" ? "Moved forward" : "Moved back");
+		return;
+	}
 	const next = { ArrowDown: i + 1, ArrowUp: i - 1, Home: 0, End: items.length - 1 }[ev.key];
 	if (next === undefined || !items.length) return;
 	ev.preventDefault();
@@ -437,18 +502,6 @@ for (const b of $$("[data-distribute]")) {
 	);
 }
 
-const moveLayer = (delta) => {
-	const list = [...state.doc.elements];
-	const i = list.findIndex((e) => e.id === state.selectedId);
-	const j = i + delta;
-	if (i < 0 || j < 0 || j >= list.length) return;
-	[list[i], list[j]] = [list[j], list[i]];
-	commit({ ...state.doc, elements: list });
-	history.seal();
-};
-
-$("#btnForward").addEventListener("click", () => moveLayer(1));
-$("#btnBackward").addEventListener("click", () => moveLayer(-1));
 $("#btnUndo").addEventListener("click", undo);
 $("#btnRedo").addEventListener("click", redo);
 

@@ -23,6 +23,11 @@ test("on a phone the bar docks to the bottom, and nothing runs off the side", as
 	assert.deepEqual([bar.left, Math.round(bar.width)], [0, 390], "the full width");
 	assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), 390);
 	assert.match(await page.$eval("#welcomeText", (t) => t.textContent), /^Tap the label/);
+	assert.equal(
+		await page.$eval("#keysHelp", (k) => k.getClientRects().length),
+		0,
+		"no keyboard shortcuts for a finger",
+	);
 
 	// More opens the settings as a sheet resting on the bar.
 	await page.click('#quickbar [data-qb-action="more"]');
@@ -76,6 +81,8 @@ test("typing by touch: double tap or hold for a word, handles to drag the ends",
 	const [from, to] = await selection();
 	assert.equal(from, 0);
 	assert.ok(to > 6, `past the space (to ${to})`);
+	// The keyboard stays: the browser doesn't take a tap on the label as a tap away.
+	assert.equal(await page.evaluate(() => document.activeElement.className), "inline-edit");
 
 	// Holding still on a word selects it.
 	await page.touchscreen.tap(f.x + 4, f.y + f.height / 2);
@@ -86,6 +93,7 @@ test("typing by touch: double tap or hold for a word, handles to drag the ends",
 	});
 	await touch("touchEnd");
 	assert.deepEqual(await selection(), [6, 11]);
+
 	assert.deepEqual(page.errors, []);
 });
 

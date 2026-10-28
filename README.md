@@ -4,7 +4,7 @@
 
 Design and print labels on Bluetooth label makers, right from the web.
 
-**Open it: https://blelabelmaker.sdcline.com/**
+**Live site: https://blelabelmaker.sdcline.com/**
 
 <!-- /generated:intro -->
 

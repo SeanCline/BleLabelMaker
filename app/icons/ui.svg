@@ -1,4 +1,4 @@
-<!-- Lucide v1.55.0 (ISC; icons/LICENSE-lucide.txt). Made by tools/make-ui-icons.mjs. -->
+<!-- Lucide v1.56.0 (ISC; icons/LICENSE-lucide.txt). Made by tools/make-ui-icons.mjs. -->
 <svg xmlns="http://www.w3.org/2000/svg">
 <symbol id="file" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /></symbol>
 <symbol id="file-plus" viewBox="0 0 24 24"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z" /><path d="M14 2v5a1 1 0 0 0 1 1h5" /><path d="M9 15h6" /><path d="M12 18v-6" /></symbol>
@@ -42,4 +42,5 @@
 <symbol id="align-horizontal-distribute-center" viewBox="0 0 24 24"><rect width="6" height="14" x="4" y="5" rx="2" /><rect width="6" height="10" x="14" y="7" rx="2" /><path d="M17 22v-5" /><path d="M17 7V2" /><path d="M7 22v-3" /><path d="M7 5V2" /></symbol>
 <symbol id="align-vertical-distribute-center" viewBox="0 0 24 24"><path d="M22 17h-3" /><path d="M22 7h-5" /><path d="M5 17H2" /><path d="M7 7H2" /><rect x="5" y="14" width="14" height="6" rx="2" /><rect x="7" y="4" width="10" height="6" rx="2" /></symbol>
 <symbol id="x" viewBox="0 0 24 24"><path d="M18 6 6 18" /><path d="m6 6 12 12" /></symbol>
+<symbol id="grip-vertical" viewBox="0 0 24 24"><circle cx="9" cy="12" r="1" /><circle cx="9" cy="5" r="1" /><circle cx="9" cy="19" r="1" /><circle cx="15" cy="12" r="1" /><circle cx="15" cy="5" r="1" /><circle cx="15" cy="19" r="1" /></symbol>
 </svg>
