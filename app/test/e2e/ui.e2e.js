@@ -855,3 +855,15 @@ test("a label renders at the printer's resolution: 300 dpi is the same label in 
 	assert.ok(ratio > 1.9 && ratio < 2.5, `ink ratio ${ratio}`);
 	assert.deepEqual(page.errors, []);
 });
+
+test("a text box's settings offer to request a font, on the repository's issue form", async () => {
+	const page = await env.open();
+	await openSettings(page);
+	const href = await page.$eval("#requestFont", (a) => /** @type {HTMLAnchorElement} */ (a).href);
+	assert.equal(
+		href,
+		"https://github.com/SeanCline/BleLabelMaker/issues/new?template=font-request.yml",
+	);
+	assert.equal(await page.$eval("#requestFont", (a) => a.checkVisibility()), true);
+	assert.deepEqual(page.errors, []);
+});

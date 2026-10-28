@@ -1,0 +1,25 @@
+# The app's "Request a font" link (in a text box's settings) opens this form. Fonts are
+# self-hosted from Google Fonts (app/tools/fetch-fonts.mjs), so a request names one there.
+name: Request a font
+description: Ask for a Google Font to be added to the font list.
+title: "Font request: "
+labels: ["font request"]
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Fonts come from [Google Fonts](https://fonts.google.com), so they can be included with
+        the app and work offline. Find the one you'd like there and paste its page's address below.
+  - type: input
+    id: url
+    attributes:
+      label: Google Fonts link
+      description: The font's page, such as https://fonts.google.com/specimen/Inter
+      placeholder: https://fonts.google.com/specimen/…
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: What would you use it for?
+      description: Optional. The labels you have in mind help choose which fonts to add.

@@ -119,10 +119,12 @@ const renderPrintButton = () => {
 	const batch = batchData();
 	const total = (batch?.rows.length ?? 1) * currentCopies();
 	const real = hardware();
-	const verb = real && !real.connected ? "Connect & Print" : "Print";
-	// On a phone the word goes, to keep Print beside Batch, whose count says what they are.
-	const what = batch ? [` ${total}`, el("span", { className: "print-unit" }, " labels")] : [];
-	$("#btnPrint .print-label").replaceChildren(verb, ...what);
+	// On a phone, "Connect &" and the count go, to keep Print on the top row beside the
+	// printer's chip (whose dot says it isn't connected) and Batch (which shows the count).
+	const connect =
+		real && !real.connected ? [el("span", { className: "print-connect" }, "Connect & ")] : [];
+	const what = batch ? [el("span", { className: "print-unit" }, ` ${total} labels`)] : [];
+	$("#btnPrint .print-label").replaceChildren(...connect, "Print", ...what);
 	$("#btnPrint").disabled = busy;
 };
 

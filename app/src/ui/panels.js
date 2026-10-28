@@ -4,6 +4,7 @@ import { LIMITS } from "../model.js";
 import { FONTS, WEIGHT_NAMES, weightsFor, nearestWeight, fontInfo, hasEmoji } from "../fonts.js";
 import { clamp, round } from "../units.js";
 import { $, $$ } from "./dom.js";
+import { REPO_URL } from "../app-info.js";
 import { state, history, updateElement, selected, subscribe, undo, redo } from "./store.js";
 import { rotateElement } from "./actions.js";
 import { fittedSizes, onDrawn, renderWarnings } from "./stage.js";
@@ -177,6 +178,8 @@ for (const root of $$("[data-panel]")) {
 $$(".font-select").forEach((sel) =>
 	sel.replaceChildren(...FONTS.map((f) => new Option(f.label, f.family))),
 );
+// The list is kept short on purpose; one that's asked for is worth adding.
+$("#requestFont").href = `${REPO_URL}/issues/new?template=font-request.yml`;
 
 // ---------------------------------------------------------------------------
 // Panel rendering

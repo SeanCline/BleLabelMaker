@@ -1,6 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import { setup, appState } from "./harness.js";
+import { installFakeBluetooth } from "./fake-bluetooth.js";
 
 let env;
 before(async () => (env = await setup()));
@@ -113,4 +114,42 @@ test("a tap selects; only a second tap on the same text types", async () => {
 	const after = (await appState(page)).doc.elements[0];
 	assert.deepEqual([after.x, after.y], [before.x, before.y], "and taps don't move it");
 	assert.deepEqual(page.errors, []);
+});
+
+test("on a phone the bar's controls are one finger size, none cut off, and Print stays up top", async () => {
+	const page = await phone();
+	const sizes = await page.$$eval(
+		"#quickbar .segmented, #quickbar .segmented button, #quickbar select, #quickbar input, #quickbar .field-picker",
+		(els) =>
+			els
+				.filter((e) => e.getClientRects().length)
+				.map((e) => {
+					const r = e.getBoundingClientRect();
+					const group = e.closest(".segmented")?.getBoundingClientRect();
+					const inside = !group || e === e.closest(".segmented") || r.bottom <= group.bottom + 0.5;
+					return [e.className || e.tagName, Math.round(r.height), inside];
+				}),
+	);
+	for (const [what, height, inside] of sizes) {
+		assert.ok(height >= 42 && height <= 44, `${what} is ${height}px`);
+		assert.ok(inside, `${what} fits inside its group`);
+	}
+	// A Bluetooth printer not yet connected: the dot says so, and Print keeps to one row.
+	const bt = await env.open({
+		width: 360,
+		height: 800,
+		printer: null,
+		beforeLoad: (p) => p.evaluateOnNewDocument(installFakeBluetooth),
+	});
+	await bt.setViewport({ width: 360, height: 800, hasTouch: true, isMobile: true });
+	await bt.evaluate(() => window.labelApp.ready);
+	assert.equal(await bt.$eval("#btnPrint", (b) => b.innerText.trim()), "Print");
+	const row = await bt.$$eval(".topbar > *", (els) =>
+		els
+			.filter((e) => e.getClientRects().length > 0 && e.offsetHeight > 2)
+			.map((e) => Math.round(e.getBoundingClientRect().top)),
+	);
+	assert.ok(Math.max(...row) - Math.min(...row) < 10, `one row: ${row}`);
+	assert.deepEqual(page.errors, []);
+	assert.deepEqual(bt.errors, []);
 });

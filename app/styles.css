@@ -1499,8 +1499,11 @@ button.link {
 }
 /* One height for everything in a row of the bar, whatever each control's own padding, font
    and border: a select's box comes out taller than a button's from the same padding. */
+.quickbar {
+	--control-height: 30px;
+}
 .quickbar :is(button, select, input:not([type="range"]), .segmented, .field-picker) {
-	height: 30px;
+	height: var(--control-height);
 }
 .quickbar .segmented button {
 	height: 100%;
@@ -1669,10 +1672,11 @@ button.link {
 	}
 	#printerChipLabel,
 	.batch-word,
+	.print-connect,
 	.print-unit {
 		display: none;
 	}
-	#btnPrint:has(.print-unit) > .icon,
+	#btnPrint > .icon,
 	.batch-button.active > .icon {
 		display: none;
 	}
@@ -1722,8 +1726,13 @@ button.link {
 	.menu-list button {
 		min-height: 44px;
 	}
-	.quickbar .segmented {
-		height: auto;
+	/* Every control on the bar at the finger size, the button groups with them. */
+	.quickbar {
+		--control-height: 44px;
+	}
+	/* The group is the finger-sized target; its buttons fill it, inside its border. */
+	.quickbar .segmented button {
+		min-height: 0;
 	}
 	/* Its word in the middle of the taller button, as the buttons' icons are. */
 	.topbar summary {
@@ -1749,6 +1758,13 @@ button.link {
 @media (max-width: 400px) {
 	.logo {
 		display: none;
+	}
+	/* Room for Print on the top row, beside the printer and Batch. */
+	.topbar {
+		padding-inline: 6px;
+	}
+	#btnPrint {
+		padding-inline: 12px;
 	}
 }
 @media (max-width: 500px) {
