@@ -138,9 +138,12 @@ test("the bar and the rail are toolbars: one Tab stop for their buttons, arrows 
 	await page.keyboard.press("ArrowRight");
 	await page.keyboard.press("ArrowRight");
 	assert.equal(await focused(), "Font", "on into the font menu");
-	// In a field, the arrows are the field's.
+	// In a field, the arrows are the field's (a list drawn by the page may open on them).
 	await page.keyboard.press("ArrowRight");
-	assert.equal(await focused(), "Font");
+	assert.equal(
+		await page.evaluate(() => document.activeElement.closest("select")?.ariaLabel),
+		"Font",
+	);
 	await page.focus('#quickbar [data-style="underline"]');
 	assert.equal(await stops("#quickbar"), 1, "still one stop, now on the last button used");
 	assert.equal(await page.$eval('#quickbar [data-style="underline"]', (b) => b.tabIndex), 0);

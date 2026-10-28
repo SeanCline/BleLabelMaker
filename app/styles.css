@@ -1526,6 +1526,39 @@ button.link {
 .quickbar .font-select {
 	max-width: 10em;
 }
+/* Each font's name is in its own face (panels.js). A plain list shows that on a computer but
+   not on a phone; where the list can be styled, it's drawn by the page, so phones show it too. */
+@supports (appearance: base-select) {
+	.font-select,
+	.font-select::picker(select) {
+		appearance: base-select;
+	}
+	.font-select {
+		white-space: nowrap;
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+	.font-select::picker(select) {
+		background: var(--surface);
+		color: var(--text);
+		border: 1px solid var(--border);
+		border-radius: 8px;
+		box-shadow: var(--shadow);
+		padding: 4px 0;
+	}
+	.font-select option {
+		padding: 7px 12px;
+		white-space: nowrap;
+	}
+	.font-select option:is(:hover, :focus-visible) {
+		background: var(--surface-2);
+	}
+	.font-select hr {
+		border: 0;
+		border-top: 1px solid var(--border);
+		margin: 4px 0;
+	}
+}
 .quickbar [data-style][aria-pressed="mixed"] {
 	background: color-mix(in srgb, var(--accent) 30%, transparent);
 }

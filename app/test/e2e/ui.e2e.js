@@ -856,14 +856,35 @@ test("a label renders at the printer's resolution: 300 dpi is the same label in 
 	assert.deepEqual(page.errors, []);
 });
 
-test("a text box's settings offer to request a font, on the repository's issue form", async () => {
+test("the font list shows each face, ends with a request for one, and has no stray entries", async () => {
 	const page = await env.open();
-	await openSettings(page);
-	const href = await page.$eval("#requestFont", (a) => /** @type {HTMLAnchorElement} */ (a).href);
-	assert.equal(
-		href,
-		"https://github.com/SeanCline/BleLabelMaker/issues/new?template=font-request.yml",
-	);
-	assert.equal(await page.$eval("#requestFont", (a) => a.checkVisibility()), true);
+	await page.evaluate(() => {
+		window.opened = [];
+		window.open = (...args) => (window.opened.push(args), null);
+	});
+	// The bar's list is synced for a shape too, which has no font to show.
+	await page.click("#addShape");
+	await openElements(page);
+	await page.click("#layers li:last-child");
+	assert.equal((await appState(page)).selectedIds[0], (await appState(page)).doc.elements[0].id);
+	const options = () =>
+		page.$$eval("#quickbar .font-select option", (all) =>
+			all.map((o) => [o.textContent, o.style.fontFamily]),
+		);
+	const list = await options();
+	assert.ok(!list.some(([name]) => name.includes("undefined")), JSON.stringify(list));
+	assert.deepEqual(list[0], ["Inter (clean sans)", 'Inter, sans-serif, "Noto Emoji"']);
+	assert.deepEqual(list.at(-1), ["Request a font…", ""]);
+
+	await page.select("#quickbar .font-select", "request-font");
+	assert.deepEqual(await page.evaluate(() => window.opened), [
+		[
+			"https://github.com/SeanCline/BleLabelMaker/issues/new?template=font-request.yml",
+			"_blank",
+			"noopener",
+		],
+	]);
+	assert.equal(await page.$eval("#quickbar .font-select", (s) => s.value), "Inter", "unchanged");
+	assert.equal((await appState(page)).doc.elements[0].fontFamily, "Inter");
 	assert.deepEqual(page.errors, []);
 });

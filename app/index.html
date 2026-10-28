@@ -7,7 +7,13 @@
 			http-equiv="Content-Security-Policy"
 			content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'"
 		/>
-		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<!-- The on-screen keyboard shrinks the page rather than covering it, so the bar docked
+		     at its bottom (styles.css) sits on the keyboard as the browser lays it out, without
+		     chasing it from script. Safari ignores this; quickbar.js covers it there. -->
+		<meta
+			name="viewport"
+			content="width=device-width, initial-scale=1, interactive-widget=resizes-content"
+		/>
 		<title>BLE Label Maker</title>
 		<meta
 			name="description"
@@ -699,22 +705,17 @@
 							Weight
 							<select data-prop="fontWeight" data-type="number" class="weight-select"></select>
 						</label>
-						<!-- Its address is filled in from the repository's (panels.js). -->
-						<p class="hint">
-							Missing a font you need?
-							<a id="requestFont" target="_blank" rel="noopener">Request a font.</a>
-						</p>
 						<label class="check" title="The largest size that fits the box"
 							><input type="checkbox" data-prop="fit" data-type="bool" /> Fit to box</label
 						>
 						<div class="field">
-							<span>Up and down</span>
+							<span>Vertical justification</span>
 							<div class="row">
 								<div
 									class="segmented small"
 									data-radio="vAlign"
 									role="group"
-									aria-label="Vertical alignment"
+									aria-label="Vertical justification"
 								>
 									<button data-value="top">Top</button>
 									<button data-value="middle">Middle</button>

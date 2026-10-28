@@ -215,3 +215,13 @@ test("a narrow window tightens the bar to one row, then wraps it to two, never o
 	assert.ok((await bar()).height < 50);
 	assert.deepEqual(page.errors, []);
 });
+
+test("the bar's Edit starts typing on the text, as a double-click does", async () => {
+	const page = await env.open();
+	await page.click('#quickbar [data-qb-action="edit"]');
+	assert.equal(await page.evaluate(() => document.activeElement.className), "inline-edit");
+	await page.keyboard.type("Hi");
+	assert.equal((await first(page)).text, "Hi");
+	assert.equal(await visible(page, '#quickbar [data-qb-action="done"]'), true);
+	assert.deepEqual(page.errors, []);
+});

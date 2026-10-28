@@ -1,7 +1,15 @@
 // The settings for what's selected: each input names the property it edits (data-prop), and
 // each section the element types it's for (data-panel, data-types).
 import { LIMITS } from "../model.js";
-import { FONTS, WEIGHT_NAMES, weightsFor, nearestWeight, fontInfo, hasEmoji } from "../fonts.js";
+import {
+	FONTS,
+	WEIGHT_NAMES,
+	cssFamily,
+	weightsFor,
+	nearestWeight,
+	fontInfo,
+	hasEmoji,
+} from "../fonts.js";
 import { clamp, round } from "../units.js";
 import { $, $$ } from "./dom.js";
 import { REPO_URL } from "../app-info.js";
@@ -55,10 +63,7 @@ export const syncProps = (root, element) => {
 			weightOptions(input, element);
 			continue;
 		}
-		if (prop === "fontFamily" && ![...input.options].some((o) => o.value === element.fontFamily)) {
-			// Unknown family from a loaded file: show it rather than silently switching fonts.
-			input.append(new Option(`${element.fontFamily} (from file)`, element.fontFamily));
-		}
+		if (input.classList.contains("font-select")) showFamily(input, element[prop]);
 		if (input.type === "checkbox") input.checked = !!element[prop];
 		else if (prop === "fontSizePt") input.value = String(shownSize(element));
 		else if (prop === "text") input.value = textOf(element.text);
@@ -83,6 +88,17 @@ export const syncProps = (root, element) => {
 	// Only worth offering while there's an emoji to print.
 	for (const node of $$("[data-show-if-emoji]", root))
 		node.hidden = !hasEmoji(textOf(element.text ?? ""));
+};
+
+/** A family from a loaded file that the list doesn't have is shown, not silently switched. */
+const showFamily = (sel, family) => {
+	for (const o of $$("option.from-file", sel)) if (o.value !== family) o.remove();
+	// The bar's font list is synced for every element, and only a text has a family.
+	if (typeof family !== "string" || [...sel.options].some((o) => o.value === family)) return;
+	const option = Object.assign(new Option(`${family} (from file)`, family), {
+		className: "from-file",
+	});
+	sel.insertBefore(option, $("hr", sel) ?? $(`[value="${REQUEST_FONT}"]`, sel));
 };
 
 /** The size a text is drawn at: the fitted one while it fits itself, else the one set. */
@@ -120,6 +136,11 @@ const onPropInput = (ev) => {
 	const e = targetFor(input.closest("[data-panel]"));
 	if (!e) return;
 	const prop = input.dataset.prop;
+	if (input.value === REQUEST_FONT) {
+		open(FONT_REQUEST_URL, "_blank", "noopener");
+		/** @type {HTMLSelectElement} */ (input).value = e[prop];
+		return;
+	}
 	const value = coerce(input);
 	if (typeof value === "number" && !Number.isFinite(value)) return; // mid-typing, e.g. "-"
 
@@ -175,11 +196,22 @@ for (const root of $$("[data-panel]")) {
 		history.seal();
 	});
 }
-$$(".font-select").forEach((sel) =>
-	sel.replaceChildren(...FONTS.map((f) => new Option(f.label, f.family))),
-);
-// The list is kept short on purpose; one that's asked for is worth adding.
-$("#requestFont").href = `${REPO_URL}/issues/new?template=font-request.yml`;
+// The list is kept short on purpose, so one that's asked for is worth adding. Asking is the
+// list's last choice, where someone who didn't find theirs ends up.
+const REQUEST_FONT = "request-font";
+const FONT_REQUEST_URL = `${REPO_URL}/issues/new?template=font-request.yml`;
+for (const sel of $$(".font-select")) {
+	sel.replaceChildren(
+		// Each name in its own face, so the list shows how they look without picking each one.
+		...FONTS.map((f) => {
+			const option = new Option(f.label, f.family);
+			option.style.fontFamily = cssFamily(f.family);
+			return option;
+		}),
+		document.createElement("hr"),
+		new Option("Request a font…", REQUEST_FONT),
+	);
+}
 
 // ---------------------------------------------------------------------------
 // Panel rendering

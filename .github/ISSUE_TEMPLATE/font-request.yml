@@ -1,4 +1,4 @@
-# The app's "Request a font" link (in a text box's settings) opens this form. Fonts are
+# "Request a font…", the last choice in the app's font list, opens this form. Fonts are
 # self-hosted from Google Fonts (app/tools/fetch-fonts.mjs), so a request names one there.
 name: Request a font
 description: Ask for a Google Font to be added to the font list.

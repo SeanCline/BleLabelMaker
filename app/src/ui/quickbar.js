@@ -220,11 +220,13 @@ bar.addEventListener("keydown", (ev) => {
 	refocusInline();
 });
 // Leaving the bar or the settings for anywhere but the text ends the typing, as leaving the
-// text does.
+// text does. A control that hid itself, as Edit does once typing starts, loses the focus
+// without anyone leaving.
 const keepTyping = (ev) => {
 	const to = /** @type {Element} */ (ev.relatedTarget);
 	if (!inlineEdit() || bar.contains(to) || settings.contains(to) || to?.matches(".inline-edit"))
 		return;
+	if (!to && !(/** @type {Element} */ (ev.target).getClientRects().length)) return;
 	stopInlineEdit();
 };
 bar.addEventListener("focusout", keepTyping);
@@ -312,7 +314,8 @@ onInlineChange(render);
 onDrawn(render);
 addEventListener("resize", render);
 phone.addEventListener("change", render);
-// How much of the window the on-screen keyboard covers, for what's docked above it.
+// How much of the window the on-screen keyboard covers, for what's docked above it. Where it
+// shrinks the page instead (index.html's viewport), nothing is covered and this stays 0.
 const keyboard = () => {
 	const v = visualViewport;
 	const covered = Math.max(0, Math.round(innerHeight - v.height - v.offsetTop));
