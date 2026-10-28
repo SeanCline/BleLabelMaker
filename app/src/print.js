@@ -54,8 +54,7 @@ export const renderForPrint = async (doc, dots) => {
  * Prints a document: each batch row, each copy, with its fields filled in.
  * @param {import("./model.js").Doc} doc
  * @param {object} o
- * @param {import("./transport.js").BluetoothPrinter | import("./transport.js").SerialPrinter
- *   | import("./transport.js").VirtualPrinter} o.connection
+ * @param {import("./transport.js").Connection} o.connection
  * @param {import("./printers/index.js").PrinterModel} o.printer
  * @param {number} o.copies per batch row
  * @param {{columns: string[] | null, rows: string[][], lines?: string[]} | null} o.batch

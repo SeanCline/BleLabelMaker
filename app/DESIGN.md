@@ -35,7 +35,10 @@ src/
   raster.js      canvas pixels → printer-oriented 1bpp rows, centred on the head
   printjob.js    design → labels to print (batch, copies, counter) → job bytes
   print.js       a whole print without UI: plan, connect, check, render, send, outcome
-  transport.js   Connection base class: Bluetooth, serial port, virtual printer
+  transport/     ways to reach a printer (transport.js re-exports them)
+    connection.js  what they share: queueing, chunked sends, status, SendError
+    bluetooth.js, serial.js  the Web Bluetooth and Web Serial links
+    virtual.js   the virtual printer: the driver's decoder and simulator as the far end
   history.js     undo/redo over document snapshots
   printhistory.js  print history entries, export/import
   share.js       labels as links
@@ -463,4 +466,4 @@ links to which browsers support it. Everything else works.
 11. Serial: pair the D30 in Windows, choose _Phomemo D30 (serial port)_, and
     connect. If the picker shows two COM ports, the outgoing one is usually the
     right one. Print a label and a 10-label batch; if the batch garbles,
-    increase `SERIAL_GAP_MS` in `transport.js`.
+    increase `chunkGapMs` in `transport/serial.js`.
