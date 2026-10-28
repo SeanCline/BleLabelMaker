@@ -48,7 +48,8 @@ src/
   ui/
     dom.js       DOM helpers, toast, best-effort localStorage
     store.js     editor state, commit/undo, selection, subscribe, autosave
-    stage.js     preview canvas, overlay, drag/resize/box-select, inline editor
+    stage.js     preview canvas, overlay, drag/resize/box-select
+    inline-editor.js  typing on the label: hidden textarea, caret and selection from caretmap
     viewport.js  fit, zoom and pan
     ruler.js     millimetre rulers with the selection's extent and the pointer
     errors.js    a toast for errors nothing else caught

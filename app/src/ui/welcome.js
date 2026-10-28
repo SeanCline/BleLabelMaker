@@ -3,7 +3,7 @@
 import { storageKey } from "../app-info.js";
 import { $, loadJson, storeJson } from "./dom.js";
 import { onPrinted } from "./printing.js";
-import { inlineEdit, onInlineChange } from "./stage.js";
+import { inlineEdit, onInlineChange } from "./inline-editor.js";
 
 const KEY = storageKey("welcomed");
 const tip = $("#welcome");

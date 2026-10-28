@@ -4,6 +4,16 @@ import { currentScale } from "./settings.js";
 import { $ } from "./dom.js";
 import { state } from "./store.js";
 
+/** A share of a length, as a CSS percentage. */
+export const pct = (v, total) => `${(v / total) * 100}%`;
+/** Where a box in the label's millimetres sits over the label on screen, as CSS. */
+export const placeStyle = ({ x, y, w, h }, { widthMm, heightMm }) => ({
+	left: pct(x, widthMm),
+	top: pct(y, heightMm),
+	width: pct(w, widthMm),
+	height: pct(h, heightMm),
+});
+
 const canvas = $("#labelCanvas");
 const paper = $("#paper");
 

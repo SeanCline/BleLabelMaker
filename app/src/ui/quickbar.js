@@ -16,15 +16,15 @@ import {
 } from "./store.js";
 import { deleteSelected, duplicateSelected, syncProps } from "./panels.js";
 import { rovingToolbar } from "./toolbar.js";
+import { onDrawn } from "./stage.js";
 import {
 	inlineEdit,
-	onDrawn,
 	onInlineChange,
 	refocusInline,
 	startInlineEdit,
 	stopInlineEdit,
 	toggleStyle,
-} from "./stage.js";
+} from "./inline-editor.js";
 
 const bar = $("#quickbar");
 const stage = $("#stage");

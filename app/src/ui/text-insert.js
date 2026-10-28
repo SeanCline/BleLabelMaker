@@ -5,7 +5,7 @@ import { plainText } from "../layout.js";
 import { applyEdit, textOf } from "../richtext.js";
 import { $, $$, el } from "./dom.js";
 import { state, history, updateElement } from "./store.js";
-import { inlineEdit, startInlineEdit } from "./stage.js";
+import { inlineEdit, startInlineEdit } from "./inline-editor.js";
 import { rememberCaret, takeCaret } from "./caret.js";
 import { targetFor } from "./panels.js";
 

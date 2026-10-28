@@ -33,14 +33,8 @@ import {
 	undo,
 	redo,
 } from "./store.js";
-import {
-	fittedSizes,
-	inlineEdit,
-	onDrawn,
-	onInlineChange,
-	renderWarnings,
-	startInlineEdit,
-} from "./stage.js";
+import { fittedSizes, onDrawn, renderWarnings } from "./stage.js";
+import { inlineEdit, onInlineChange, startInlineEdit } from "./inline-editor.js";
 import {
 	STYLE_PROPS,
 	clearStyle,

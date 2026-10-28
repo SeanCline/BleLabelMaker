@@ -45,6 +45,9 @@ export const announce = (msg) => {
 	requestAnimationFrame(() => (a.textContent = msg));
 };
 
+// How far a press can wander, in screen pixels, and still be a tap or a hold rather than a drag.
+export const DRAG_SLACK_PX = 4;
+
 let toastTimer;
 /**
  * A short message at the bottom of the page. With an action, it carries a button for it and
