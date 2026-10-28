@@ -15,6 +15,8 @@ const model = (name, more = {}) => ({
 	vendor: "Phomemo",
 	driver: dSeries,
 	headDots: 96,
+	// The head spans the tape's height, so a label goes through on its side.
+	labelTurn: 90,
 	dotsPerMm: 8,
 	feedLines: 23,
 	feedAfter: "each",

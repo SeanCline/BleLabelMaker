@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { buildPrintJob, rasterCommand, PACKET_SIZE } from "../src/printers/phomemo/protocol.js";
 import { packetize } from "../src/bytes.js";
 import { printerById } from "../src/printers/index.js";
-import { toPrinterRaster, rasterToReadingBits } from "../src/raster.js";
+import { toPrinterRaster, rasterToReadingBits, flipped } from "../src/raster.js";
 import { PrinterDecoder, DecodeError } from "../src/printers/phomemo/decoder.js";
 
 const D30 = printerById("d30");
@@ -108,11 +108,25 @@ test("non-multiple-of-8 heights pad with white bits", () => {
 	assert.deepEqual([...r.data.subarray(0, 2)], [0xff, 0xc0]);
 });
 
-test("flip180 is its own inverse through the virtual printer", () => {
+test("every turn comes back as the same label through the virtual printer", () => {
 	const img = makeImage(240, 96, noise(3));
-	for (const flip180 of [false, true]) {
-		const back = rasterToReadingBits(toPrinterRaster(img, { flip180 }), { flip180 });
+	for (const turn of /** @type {const} */ ([0, 90, 180, 270])) {
+		const raster = toPrinterRaster(img, { turn });
+		assert.equal(raster.rows, turn % 180 ? 240 : 96, `rows for ${turn}`);
+		const back = rasterToReadingBits(raster, { turn });
 		for (let i = 0; i < 240 * 96; i++) assert.equal(back.bits[i], img.data[i * 4] === 0 ? 1 : 0);
+	}
+});
+
+test("a flip is the label turned upside down before it goes through", () => {
+	const img = makeImage(24, 16, noise(4));
+	const upsideDown = makeImage(24, 16, (x, y) => img.data[((15 - y) * 24 + (23 - x)) * 4] === 0);
+	for (const turn of /** @type {const} */ ([0, 90])) {
+		assert.deepEqual(
+			toPrinterRaster(img, { turn: flipped(turn, true) }).data,
+			toPrinterRaster(upsideDown, { turn }).data,
+			`flipped ${turn}`,
+		);
 	}
 });
 

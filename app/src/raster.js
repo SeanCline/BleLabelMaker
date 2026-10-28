@@ -14,46 +14,75 @@ const isBlack = (d, i, threshold) => {
 };
 
 /**
- * The rows of a label the print head can reach: a label taller than the head (a 14 mm roll
+ * How a label passes under a print head, as a clockwise quarter turn from reading orientation:
+ * 90 where the head spans the label's height (tape printers, the D-series), 0 where it spans its
+ * width (shipping-label printers). Flipping a print upside down adds 180.
+ * @typedef {0 | 90 | 180 | 270} Turn
+ */
+
+/**
+ * Where printer dot (row r, column c across the head) comes from in a width × height label.
+ * @type {Record<Turn, (r: number, c: number, width: number, height: number) => [number, number]>}
+ */
+const SOURCE = {
+	0: (r, c) => [c, r],
+	90: (r, c, _w, h) => [r, h - 1 - c],
+	180: (r, c, w, h) => [w - 1 - c, h - 1 - r],
+	270: (r, c, w) => [w - 1 - r, c],
+};
+
+/** Adds a flip to a turn: what upside down means for a printer that turns labels `turn`. */
+export const flipped = (turn, flip) => /** @type {Turn} */ ((turn + (flip ? 180 : 0)) % 360);
+
+/** The label's sides along and across the head, for a turn. */
+const across = (turn, width, height) => (turn % 180 ? height : width);
+
+/**
+ * The part of a label the print head can reach: a label taller than the head (a 14 mm roll
  * on a 12 mm head) prints its middle, the way the roll sits centred on the head.
  * @template {{width: number, height: number, data: Uint8ClampedArray}} I
  * @param {I} image
  * @param {number} headDots
+ * @param {Turn} [turn] which of the label's sides spans the head
  * @returns {I}
  */
-export const centreOnHead = (image, headDots) => {
-	if (image.height <= headDots) return image;
-	const top = Math.floor((image.height - headDots) / 2);
-	const rowBytes = image.width * 4;
-	const data = image.data.slice(top * rowBytes, (top + headDots) * rowBytes);
-	return { ...image, height: headDots, data };
+export const centreOnHead = (image, headDots, turn = 90) => {
+	const { width, height } = image;
+	if (across(turn, width, height) <= headDots) return image;
+	if (turn % 180) {
+		const top = Math.floor((height - headDots) / 2);
+		const rowBytes = width * 4;
+		const data = image.data.slice(top * rowBytes, (top + headDots) * rowBytes);
+		return { ...image, height: headDots, data };
+	}
+	const left = Math.floor((width - headDots) / 2);
+	const data = new Uint8ClampedArray(headDots * height * 4);
+	for (let y = 0; y < height; y++) {
+		const from = (y * width + left) * 4;
+		data.set(image.data.subarray(from, from + headDots * 4), y * headDots * 4);
+	}
+	return { ...image, width: headDots, data };
 };
 
 /**
- * Turns label pixels (in reading orientation, landscape) into the printer's raster.
- * The head spans the label's short side, so the image is rotated 90° clockwise: each
- * printer row is one column of the label, top of the label at the end of the row.
+ * Turns label pixels (in reading orientation) into the printer's raster: rows in the order
+ * they pass under the head, each one across it.
  *
  * @param {{width: number, height: number, data: Uint8ClampedArray}} image RGBA pixels
- * @param {{flip180?: boolean, threshold?: number}} opts
- * @returns {{bytesPerRow: number, rows: number, data: Uint8Array}}
+ * @param {{turn?: Turn, threshold?: number}} opts
+ * @returns {Raster}
  */
-export const toPrinterRaster = (image, { flip180 = false, threshold = THRESHOLD } = {}) => {
+export const toPrinterRaster = (image, { turn = 90, threshold = THRESHOLD } = {}) => {
 	const { width, height, data } = image;
-	const bytesPerRow = Math.ceil(height / 8);
-	const rows = width;
+	const dots = across(turn, width, height);
+	const bytesPerRow = Math.ceil(dots / 8);
+	const rows = turn % 180 ? width : height;
+	const source = SOURCE[turn];
 	const out = new Uint8Array(bytesPerRow * rows);
-
 	for (let r = 0; r < rows; r++) {
-		for (let c = 0; c < bytesPerRow * 8; c++) {
-			// Clockwise rotation: printer (row r, col c) ← label (x = r, y = height - 1 - c).
-			let x = r;
-			let y = height - 1 - c;
-			if (flip180) {
-				x = width - 1 - x;
-				y = height - 1 - y;
-			}
-			if (y < 0 || y >= height) continue; // padding bits to a whole byte stay white
+		// Bits past the label's last dot pad the row to whole bytes, and stay white.
+		for (let c = 0; c < dots; c++) {
+			const [x, y] = source(r, c, width, height);
 			if (isBlack(data, (y * width + x) * 4, threshold)) {
 				out[r * bytesPerRow + (c >> 3)] |= 0x80 >> (c & 7);
 			}
@@ -62,20 +91,22 @@ export const toPrinterRaster = (image, { flip180 = false, threshold = THRESHOLD 
 	return { bytesPerRow, rows, data: out };
 };
 
-/** Inverse of toPrinterRaster's rotation, so the virtual printer can show a readable label. */
-export const rasterToReadingBits = ({ bytesPerRow, rows, data }, { flip180 = false } = {}) => {
-	const width = rows;
-	const height = bytesPerRow * 8;
+/**
+ * Inverse of toPrinterRaster, so the virtual printer can show a readable label. The raster's
+ * padding bits come back as extra white dots on the side that went across the head.
+ * @param {Raster} raster
+ * @param {{turn?: Turn}} [opts]
+ */
+export const rasterToReadingBits = ({ bytesPerRow, rows, data }, { turn = 90 } = {}) => {
+	const dots = bytesPerRow * 8;
+	const width = turn % 180 ? rows : dots;
+	const height = turn % 180 ? dots : rows;
+	const source = SOURCE[turn];
 	const bits = new Uint8Array(width * height);
 	for (let r = 0; r < rows; r++) {
-		for (let c = 0; c < height; c++) {
+		for (let c = 0; c < dots; c++) {
 			if (!(data[r * bytesPerRow + (c >> 3)] & (0x80 >> (c & 7)))) continue;
-			let x = r;
-			let y = height - 1 - c;
-			if (flip180) {
-				x = width - 1 - x;
-				y = height - 1 - y;
-			}
+			const [x, y] = source(r, c, width, height);
 			bits[y * width + x] = 1;
 		}
 	}

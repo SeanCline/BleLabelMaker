@@ -1,7 +1,7 @@
 // From a design to the bytes a printer gets: which labels a print makes (batch rows, copies,
 // counter values) and the job for each. Rendering is passed in, so this runs in tests too.
 import { fillDocument, fieldsUsed } from "./fields.js";
-import { centreOnHead, toPrinterRaster } from "./raster.js";
+import { centreOnHead, flipped, toPrinterRaster } from "./raster.js";
 import { concat } from "./bytes.js";
 
 /**
@@ -51,7 +51,7 @@ export const planLabels = (doc, { copies, batch, counterStart, now }) => {
  * @param {import("./printers/index.js").PrinterModel} opts.printer
  * @param {"gaps"|"continuous"} opts.paper
  * @param {number|null} opts.density
- * @param {boolean} opts.flip180
+ * @param {boolean} opts.flip180 upside down from the model's own orientation
  * @param {number} [opts.feedLines] overrides the model's continuous feed
  * @returns {Promise<{bytes: Uint8Array, firstImage: any, ends: number[]}>} firstImage is for the
  *   history thumbnail; ends[i] is where label i's bytes end, to tell which labels a broken-off
@@ -65,7 +65,8 @@ export const buildJobs = async (plan, { render, printer, paper, density, flip180
 	for (const label of plan.labels) {
 		const pixels = await render(label.doc);
 		firstImage ??= pixels;
-		const raster = toPrinterRaster(centreOnHead(pixels, printer.headDots), { flip180 });
+		const turn = flipped(printer.labelTurn, flip180);
+		const raster = toPrinterRaster(centreOnHead(pixels, printer.headDots, turn), { turn });
 		const options = { copies: label.copies, paper, density, printer, feedLines };
 		const job = printer.driver.buildJob(raster, options);
 		jobs.push(job);

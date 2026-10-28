@@ -74,4 +74,12 @@ test("a label taller than the head prints its middle", () => {
 	assert.equal(on.data[0], 0, "first head row is label row 12");
 	assert.equal(on.data[95 * 4 * 4], 0, "last head row is label row 107");
 	assert.equal(centreOnHead(makeImage(4, 96), 96).height, 96, "a fitting label is untouched");
+	// A head across the label's width takes the middle of its width instead.
+	const wide = centreOnHead(
+		makeImage(120, 2, (x) => x === 12 || x === 107),
+		96,
+		0,
+	);
+	assert.deepEqual([wide.width, wide.height], [96, 2]);
+	assert.deepEqual([wide.data[0], wide.data[95 * 4], wide.data[96 * 4]], [0, 0, 0], "both rows");
 });

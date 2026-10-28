@@ -290,16 +290,18 @@ label sizes. Set `tested: true` once it has printed.
 models to `PRINTERS` in `src/printers/index.js`. Unit-test the job builder
 against its decoder the way `test/phomemo-protocol.test.js` does; the virtual
 printer then works for it with no further code. A model's `dotsPerMm` sets
-the resolution everything is drawn at, preview included. Things the interface doesn't
+the resolution everything is drawn at, preview included, and its `labelTurn`
+how a label goes under the head (`raster.js`): 90 for a tape printer, whose
+head spans the label's height, or 0 for one whose head spans its width. The
+user's Flip 180° adds half a turn to it. Things the interface doesn't
 cover yet, because no printer has needed them:
 
-1. **Orientation.** `toPrinterRaster` always turns the label a quarter turn,
-   because a D-series head spans the label's height. Printers whose heads span
-   the label's width (shipping-label printers) don't turn it, and some tape
-   printers also turn it 180°. That would become a model field.
-2. **Margins.** `MARGIN` in `model.js` is shared by every model today. A
-   printer with other margins would carry its own.
-3. **Label limits.** `LIMITS.labelHeightMm` (6–15 mm) and the label bar's
+1. **Margins.** `MARGIN` in `model.js` is shared by every model today. A
+   printer with other margins would carry its own. It's more than a number:
+   `textFillsLabel` compares a text box with the printable area to decide that
+   it fills the label (and so follows its size), so the margin would have to
+   reach the model functions that resize labels.
+2. **Label limits.** `LIMITS.labelHeightMm` (6–15 mm) and the label bar's
    inputs assume a 12 mm head. A wider printer needs its own range.
 
 ## The Phomemo D-series driver

@@ -54,6 +54,8 @@ import { MODELS as PHOMEMO } from "./phomemo/models.js";
  * @property {string[]} prefixes how it names itself over Bluetooth, without spaces; the longest
  *   match across every model wins, so "D30PRO" beats "D30"
  * @property {number} headDots print head width in dots
+ * @property {import("../raster.js").Turn} labelTurn how a label passes under the head: 90 when
+ *   the head spans the label's height (tape printers), 0 when it spans its width
  * @property {number} dotsPerMm its resolution: 8 for 203 dpi, 11.8 for 300 dpi. Labels are
  *   drawn at it, so the preview is the bitmap it prints
  * @property {number} feedLines dot lines fed after a continuous label, 0 for none; the

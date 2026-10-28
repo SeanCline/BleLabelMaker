@@ -36,7 +36,7 @@ export const showVirtualOutput = (result, copies, { flip180 }, printer) => {
 	// Decode without un-flipping: this is how the bytes come out of the head if the reference
 	// repo's orientation is right, so a wrong flip setting shows up here as upside-down.
 	const pictures = distinct.map((l) => {
-		const c = bitsToCanvas(rasterToReadingBits(l));
+		const c = bitsToCanvas(rasterToReadingBits(l, { turn: printer.labelTurn }));
 		c.style.width = `${c.width * 2}px`;
 		return c;
 	});
