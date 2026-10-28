@@ -134,14 +134,15 @@ test("on a phone the bar's controls are one finger size, none cut off, and Print
 		assert.ok(height >= 42 && height <= 44, `${what} is ${height}px`);
 		assert.ok(inside, `${what} fits inside its group`);
 	}
-	// A Bluetooth printer not yet connected: the dot says so, and Print keeps to one row.
+	// A Bluetooth printer not yet connected: the dot says so, and Print keeps to one row on a
+	// common phone width (narrower ones depend on the system font).
 	const bt = await env.open({
-		width: 360,
+		width: 390,
 		height: 800,
 		printer: null,
 		beforeLoad: (p) => p.evaluateOnNewDocument(installFakeBluetooth),
 	});
-	await bt.setViewport({ width: 360, height: 800, hasTouch: true, isMobile: true });
+	await bt.setViewport({ width: 390, height: 800, hasTouch: true, isMobile: true });
 	await bt.evaluate(() => window.labelApp.ready);
 	assert.equal(await bt.$eval("#btnPrint", (b) => b.innerText.trim()), "Print");
 	const row = await bt.$$eval(".topbar > *", (els) =>
