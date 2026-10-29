@@ -14,9 +14,9 @@ import {
 	distributePatches,
 	placeCopies,
 } from "../model.js";
-import { round } from "../units.js";
+import { clamp, round } from "../units.js";
 import { encodeBarcode } from "../barcode.js";
-import { $, $$, toast, announce } from "./dom.js";
+import { $, $$, el, toast, announce, DRAG_SLACK_PX } from "./dom.js";
 import { describeElement } from "./describe.js";
 import { importImageFile, fitBox } from "./images.js";
 import { currentScale } from "./settings.js";
@@ -30,6 +30,7 @@ import {
 	selectedElements,
 } from "./store.js";
 import { startInlineEdit } from "./inline-editor.js";
+import { labelPointAt } from "./stage.js";
 
 /** Turns each element a quarter turn (or three) about its own centre, as one undo step. */
 export const rotateElements = (els, deltaDeg) => {
@@ -67,60 +68,78 @@ export const addElement = (element) => {
 	announce(`Added ${describeElement(element)}`);
 };
 
-// New elements go to the centre of the printable area so they're never off-screen on small labels.
-export const centred = (w, h) => {
+/**
+ * New elements go to the centre of the printable area so they're never off-screen on small
+ * labels. One dragged from the rail is centred on where it was dropped (`at`, in mm), kept
+ * inside the printable area.
+ */
+export const centred = (w, h, at = null) => {
 	const a = printableArea(state.doc.label);
 	const cw = Math.min(w, a.w);
 	const ch = Math.min(h, a.h);
+	if (at)
+		return {
+			x: round(clamp(at.x - cw / 2, a.x, a.x + a.w - cw)),
+			y: round(clamp(at.y - ch / 2, a.y, a.y + a.h - ch)),
+			w: cw,
+			h: ch,
+		};
 	return { x: round(a.x + (a.w - cw) / 2), y: round(a.y + (a.h - ch) / 2), w: cw, h: ch };
 };
 
-$("#addText").addEventListener("click", () => {
-	const a = printableArea(state.doc.label);
-	const e = createText(state.doc, { ...centred(a.w / 2, a.h / 2), text: "Text", fit: true });
-	addElement(e);
-	// Straight to typing on it, with the placeholder selected to type over.
-	startInlineEdit(e.id);
-});
+let replacing = null;
+// Where a picture dragged from the rail was dropped, while its file is being picked.
+let droppedAt = null;
 
-$("#addShape").addEventListener("click", () => {
-	const a = printableArea(state.doc.label);
-	addElement(createShape(state.doc, { ...a }));
-});
-
-$("#addBarcode").addEventListener("click", () => {
-	const a = printableArea(state.doc.label);
-	const e = createBarcode(state.doc);
-	// Wide enough for 2-dot bars (the narrowest that scans reliably), if the label allows.
-	const modules = encodeBarcode(e.symbology, e.data).modules.length;
-	const width = Math.min(a.w, Math.ceil(currentScale().toMm(modules * 2) + 0.5));
-	addElement({ ...e, ...centred(width, a.h) });
-	$('#quickbar [data-qb="barcode"] [data-prop="data"]').select();
-});
-
-$("#addQr").addEventListener("click", () => {
-	const a = printableArea(state.doc.label);
-	const side = Math.min(a.h, a.w);
-	addElement(createQr(state.doc, centred(side, side)));
-	$('#quickbar [data-qb="qr"] [data-prop="data"]').select();
-});
+/** What each of the rail's buttons adds: centred, or at `at` (mm) when dragged there. */
+const ADD = {
+	text: (at) => {
+		const a = printableArea(state.doc.label);
+		const e = createText(state.doc, { ...centred(a.w / 2, a.h / 2, at), text: "Text", fit: true });
+		addElement(e);
+		// Straight to typing on it, with the placeholder selected to type over.
+		startInlineEdit(e.id);
+	},
+	// A click's fills the label, to draw a border; a dropped one would have nowhere to go at
+	// that size, so it's half as big.
+	shape: (at) => {
+		const a = printableArea(state.doc.label);
+		addElement(createShape(state.doc, at ? centred(a.w / 2, a.h / 2, at) : { ...a }));
+	},
+	barcode: (at) => {
+		const a = printableArea(state.doc.label);
+		const e = createBarcode(state.doc);
+		// Wide enough for 2-dot bars (the narrowest that scans reliably), if the label allows.
+		const modules = encodeBarcode(e.symbology, e.data).modules.length;
+		const width = Math.min(a.w, Math.ceil(currentScale().toMm(modules * 2) + 0.5));
+		addElement({ ...e, ...centred(width, a.h, at) });
+		$('#quickbar [data-qb="barcode"] [data-prop="data"]').select();
+	},
+	qr: (at) => {
+		const a = printableArea(state.doc.label);
+		const side = Math.min(a.h, a.w);
+		addElement(createQr(state.doc, centred(side, side, at)));
+		$('#quickbar [data-qb="qr"] [data-prop="data"]').select();
+	},
+	image: (at) => {
+		replacing = null;
+		droppedAt = at;
+		$("#imageFile").click();
+	},
+};
+for (const button of $$(".rail [data-add]"))
+	button.addEventListener("click", () => ADD[button.dataset.add](null));
 
 /** Adds an image file as a new element, sized to fit the printable area. Switches to design mode. */
-export const addImageFile = async (file) => {
+export const addImageFile = async (file, at = null) => {
 	try {
 		const img = await importImageFile(file);
 		const { w, h } = fitBox(img, printableArea(state.doc.label));
-		addElement(createImage(state.doc, { ...centred(w, h), src: img.src }));
+		addElement(createImage(state.doc, { ...centred(w, h, at), src: img.src }));
 	} catch (err) {
 		toast(err.message, { error: true });
 	}
 };
-
-let replacing = null;
-$("#addImage").addEventListener("click", () => {
-	replacing = null;
-	$("#imageFile").click();
-});
 $("#replaceImage").addEventListener("click", () => {
 	replacing = selected()?.id ?? null;
 	$("#imageFile").click();
@@ -135,7 +154,7 @@ $("#imageFile").addEventListener("change", async (ev) => {
 	const file = ev.target.files[0];
 	ev.target.value = "";
 	if (!file) return;
-	if (!replacing) return addImageFile(file);
+	if (!replacing) return addImageFile(file, droppedAt);
 	try {
 		const { src } = await importImageFile(file);
 		updateElement(replacing, { src });
@@ -143,6 +162,60 @@ $("#imageFile").addEventListener("change", async (ev) => {
 	} catch (err) {
 		toast(err.message, { error: true });
 	}
+});
+
+// ---------------------------------------------------------------------------
+// Dragging from the rail onto the label, as in schematic editors, puts it where it's dropped.
+// A press that doesn't move is still a click, so clicking works just as it always has.
+
+let railDrag = null;
+const rail = $(".rail");
+
+const endRailDrag = () => {
+	railDrag?.ghost?.remove();
+	railDrag = null;
+};
+
+rail.addEventListener("pointerdown", (ev) => {
+	const button = ev.target.closest("[data-add]");
+	if (!button || ev.button !== 0) return;
+	railDrag = { button, startX: ev.clientX, startY: ev.clientY, ghost: null, cancelled: false };
+	button.setPointerCapture(ev.pointerId);
+});
+
+rail.addEventListener("pointermove", (ev) => {
+	if (!railDrag || railDrag.cancelled) return;
+	if (!railDrag.ghost) {
+		if (Math.hypot(ev.clientX - railDrag.startX, ev.clientY - railDrag.startY) < DRAG_SLACK_PX)
+			return;
+		railDrag.ghost = el("div", { className: "rail-ghost" });
+		railDrag.ghost.append($("svg", railDrag.button).cloneNode(true));
+		document.body.append(railDrag.ghost);
+	}
+	railDrag.ghost.style.translate = `${ev.clientX}px ${ev.clientY}px`;
+	railDrag.ghost.classList.toggle("over", !!labelPointAt(ev.clientX, ev.clientY));
+});
+
+rail.addEventListener("pointerup", (ev) => {
+	const drag = railDrag;
+	endRailDrag();
+	if (!drag || (!drag.ghost && !drag.cancelled)) return; // a click, which adds it centred
+	// The click the browser sends after a drag isn't one.
+	const swallow = (/** @type {Event} */ e) => e.stopImmediatePropagation();
+	drag.button.addEventListener("click", swallow, { capture: true, once: true });
+	setTimeout(() => drag.button.removeEventListener("click", swallow, { capture: true }));
+	const at = drag.cancelled ? null : labelPointAt(ev.clientX, ev.clientY);
+	if (at) ADD[drag.button.dataset.add](at);
+});
+
+rail.addEventListener("pointercancel", endRailDrag);
+
+// Escape mid-drag drops nothing, and letting go afterwards still isn't a click.
+addEventListener("keydown", (ev) => {
+	if (ev.key !== "Escape" || !railDrag?.ghost) return;
+	railDrag.ghost.remove();
+	railDrag.ghost = null;
+	railDrag.cancelled = true;
 });
 
 const describeSelection = (els) =>

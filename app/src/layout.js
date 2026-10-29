@@ -1,5 +1,9 @@
 export const LINE_HEIGHT = 1.2;
 
+/** How far in a line starts, aligned in `room` (the box's width less the line's). */
+export const alignOffset = (/** @type {"left"|"center"|"right"} */ align, room) =>
+	align === "left" ? 0 : align === "right" ? room : room / 2;
+
 /**
  * Greedy word wrap. Explicit newlines are kept; a word wider than the box is broken
  * between characters so text never spills outside its box.

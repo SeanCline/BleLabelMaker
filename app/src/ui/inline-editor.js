@@ -5,9 +5,9 @@
 // stacked and mixed-size text, which a textarea can't lay out. An earlier version showed the
 // textarea's own caret, which drifted wherever its wrapping differed from the label's.
 
-import { layoutTextBox } from "../render.js";
+import { layoutTextBox, localSize, quarterOf, QUARTER } from "../render.js";
 import { caretMap, caretAt, indexAt, lineOf, nearestStop, selectionRects } from "../caretmap.js";
-import { cssFont, fontInfo, nearestWeight } from "../fonts.js";
+import { BOLD, cssFont, fontInfo, nearestWeight } from "../fonts.js";
 import {
 	applyEdit,
 	diffText,
@@ -51,20 +51,12 @@ export const inlineEdit = () =>
 		id: inline.id,
 		from: inline.textarea.selectionStart,
 		to: inline.textarea.selectionEnd,
-		pending: inline.pending,
 	};
 /** Back to typing, after a quick bar control took the focus. */
 export const refocusInline = () => inline?.textarea.focus({ preventScroll: true });
 
 const measureCtx = document.createElement("canvas").getContext("2d");
 
-// The element's local frame inside its box, as the renderer turns it (QUARTER in render.js).
-const QUARTER_CSS = [
-	() => [1, 0, 0, 1, 0, 0],
-	(w) => [0, 1, -1, 0, w, 0],
-	(w, h) => [-1, 0, 0, -1, w, h],
-	(_w, h) => [0, -1, 1, 0, 0, h],
-];
 /** A point in the box (dots, as on the label) in the element's local frame. */
 const toLocal = (quarter, w, h, x, y) =>
 	[() => [x, y], () => [y, w - x], () => [w - x, h - y], () => [h - y, x]][quarter]();
@@ -73,8 +65,8 @@ const positionInline = (e) => {
 	const dot = parseFloat(getComputedStyle(paper).getPropertyValue("--dot")) || 1;
 	const dots = currentScale();
 	const box = { w: Math.round(dots.mm(e.w)), h: Math.round(dots.mm(e.h)) };
-	const quarter = ((e.rotation ?? 0) / 90) % 4;
-	const local = quarter % 2 ? { w: box.h, h: box.w } : box;
+	const quarter = quarterOf(e);
+	const local = localSize(quarter, box);
 	// The same layout the renderer uses, computed now rather than taken from the last render,
 	// which lags a frame behind typing.
 	const layout = layoutTextBox(measureCtx, e, local, dots);
@@ -85,7 +77,8 @@ const positionInline = (e) => {
 		dot,
 	});
 	Object.assign(inline.frame.style, placeStyle(e, state.doc.label));
-	const [a, b, c, d, tx, ty] = QUARTER_CSS[quarter](box.w, box.h);
+	// The element's local frame inside its box, turned as the renderer turns it.
+	const [a, b, c, d, tx, ty] = QUARTER[quarter](box.w, box.h);
 	Object.assign(inline.local.style, {
 		width: `${local.w * dot}px`,
 		height: `${local.h * dot}px`,
@@ -230,14 +223,25 @@ const lineKey = (key) => {
 
 // Ctrl+B, I and U format what's selected, or with nothing selected, what's typed next.
 const STYLE_KEYS = { b: "fontWeight", i: "italic", u: "underline" };
-const BOLD = 600;
+
+/**
+ * How the words a style button is for look, each with the box's style filled in: those
+ * selected while typing on `e` (with nothing selected, what's typed next), else all of them.
+ * @param {import("../model.js").TextElement} e
+ */
+export const selectedLooks = (e) => {
+	const t = inline?.id === e.id ? inline.textarea : null;
+	const from = t?.selectionStart ?? 0;
+	const to = t?.selectionEnd ?? textOf(e.text).length;
+	const pending = t && from === to && inline.pending?.at === from ? inline.pending.style : {};
+	return stylesBetween(e.text, from, to, e).map((s) => ({ ...s, ...pending }));
+};
 
 export const toggleStyle = (prop) => {
 	const e = /** @type {import("../model.js").TextElement} */ (elementById(inline.id));
 	if (prop === "italic" && !(fontInfo(e.fontFamily)?.italic ?? true)) return;
 	const { selectionStart: a, selectionEnd: b } = inline.textarea;
-	const pending = a === b && inline.pending?.at === a ? inline.pending.style : {};
-	const looks = stylesBetween(e.text, a, b, e).map((s) => ({ ...s, ...pending }));
+	const looks = selectedLooks(e);
 	const on =
 		prop === "fontWeight"
 			? !looks.every((s) => s.fontWeight >= BOLD)
@@ -248,6 +252,7 @@ export const toggleStyle = (prop) => {
 			? nearestWeight(e.fontFamily, on ? 700 : e.fontWeight < BOLD ? e.fontWeight : 400)
 			: on;
 	if (a === b) {
+		const pending = inline.pending?.at === a ? inline.pending.style : {};
 		inline.pending = { at: a, style: { ...typingStyle(e.text, a), ...pending, [prop]: value } };
 		inlineChanged();
 		return;

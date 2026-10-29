@@ -6,7 +6,7 @@
 
 export class BarcodeError extends Error {}
 
-export const SYMBOLOGIES = {
+const SYMBOLOGIES = {
 	CODE128: { label: "Code 128 (text & numbers)", quiet: 10 },
 	EAN13: { label: "EAN-13 (retail, 13 digits)", quiet: 11 },
 	UPCA: { label: "UPC-A (retail, 12 digits)", quiet: 9 },

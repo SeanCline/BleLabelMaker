@@ -19,7 +19,7 @@ const paper = $("#paper");
 
 // Zoom is a multiple of the size that fits the stage, so "fit" survives window resizes.
 // Steps of a quarter, from fit to eight times it.
-export const ZOOMS = Array.from({ length: 29 }, (_, i) => 1 + i / 4);
+const ZOOMS = Array.from({ length: 29 }, (_, i) => 1 + i / 4);
 let zoom = 1;
 const stage = $("#stage");
 

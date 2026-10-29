@@ -4,8 +4,8 @@ import { plainText } from "./layout.js";
 import { textOf } from "./richtext.js";
 
 export const HISTORY_FORMAT = `${STORAGE_ID}-history`;
-export const HISTORY_VERSION = 1;
-export const HISTORY_LIMIT = 300;
+const HISTORY_VERSION = 1;
+const HISTORY_LIMIT = 300;
 
 /**
  * An entry is { id, firstPrintedAt, lastPrintedAt, prints, copies, target, file } where
@@ -18,7 +18,7 @@ export const HISTORY_LIMIT = 300;
  * Same design → same key. Ids and editor state are ignored: two labels typed up separately
  * get different element ids but are the same label to the person printing them.
  */
-export const designKey = (doc) =>
+const designKey = (doc) =>
 	JSON.stringify({ label: doc.label, elements: doc.elements.map(({ id, ...rest }) => rest) });
 
 const toFile = (doc) => JSON.parse(serialize(doc, { selectedIds: [] }));
@@ -79,7 +79,7 @@ const isoOr = (v, fallback) =>
 const countOr = (v, fallback) => (Number.isInteger(v) && v > 0 ? v : fallback);
 
 /** Validates one stored or imported entry; throws LabelFileError if its design is invalid. */
-export const checkEntry = (raw, where = "entry") => {
+const checkEntry = (raw, where = "entry") => {
 	if (typeof raw !== "object" || raw === null)
 		throw new LabelFileError(`${where} is not an object.`);
 	let parsed;

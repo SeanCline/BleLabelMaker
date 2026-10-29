@@ -38,12 +38,6 @@ export class History {
 		this.lastGroup = null;
 	}
 
-	reset(state) {
-		this.stack = [snapshot(state)];
-		this.index = 0;
-		this.lastGroup = null;
-	}
-
 	get canUndo() {
 		return this.index > 0;
 	}

@@ -59,13 +59,11 @@ const ICONS = [
 	"square-dimensions",
 	"type-outline",
 	"pen-tool",
-	"grip",
 	"captions",
 	"image-up",
 	"crop",
 	"maximize-2",
 	"paint-bucket",
-	"stamp",
 	"circle-dot",
 ];
 
@@ -77,7 +75,25 @@ const textIn = (y) => `${BOX}<path d="M7 ${y}h10" /><path d="M9 ${y + 4}h6" />`;
 const A = '<path d="m8 10 3.453-7.648a.6.6 0 0 1 1.094 0L16 10" /><path d="M15 8H9" />';
 const B =
 	'<path d="M9 18h4a2 2 0 0 1 0 4H9.5a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5H12a2 2 0 0 1 0 4" />';
+// Dither and Threshold are one gradient, black at the top left to white at the bottom right,
+// each drawn as that way of printing it would. The dots are an ordered (2×2 Bayer) dither:
+// real error diffusion at this size looks like noise rather than a fade.
+const FILL = 'fill="currentColor" stroke="none"';
+/** Black squares filling the box's inside, from rows of "#" (black) and "." (white). */
+const pixels = (rows) => {
+	const cell = 16 / rows.length;
+	const at = (n) => +(4 + n * cell).toFixed(3);
+	let d = "";
+	rows.forEach((row, y) => {
+		for (const run of row.matchAll(/#+/g))
+			d += `M${at(run.index)} ${at(y)}H${at(run.index + run[0].length)}V${at(y + 1)}H${at(run.index)}z`;
+	});
+	return `${BOX}<path ${FILL} d="${d}" />`;
+};
+const SPLIT = "M4 20c5 0 6-3 8-8s3-8 8-8";
 const CUSTOM = {
+	dither: pixels(["##.#.#.", "#####.#", ".#.#.#.", "###.#.#", ".#.#...", "#.#.#..", ".#....."]),
+	threshold: `<path ${FILL} d="${SPLIT}L4 4z" />${BOX}<path d="${SPLIT}" />`,
 	"text-valign-top": textIn(8),
 	"text-valign-middle": textIn(10),
 	"text-valign-bottom": textIn(12),

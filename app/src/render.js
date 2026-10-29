@@ -74,6 +74,12 @@ export const QUARTER = [
 	(_w, h) => [0, -1, 1, 0, 0, h],
 ];
 
+/** An element's quarter turns, clockwise: 0 to 3. */
+export const quarterOf = (e) => ((e.rotation ?? 0) / 90) % 4;
+/** The element's own frame inside a box, which a quarter turn lays across it. */
+export const localSize = (quarter, box) =>
+	quarter % 2 ? { w: box.h, h: box.w } : { w: box.w, h: box.h };
+
 // Each element's drawing, keyed by everything that shapes it except where it sits, so a drag
 // (which only moves things) redraws nothing: barcodes aren't re-encoded and photos aren't
 // re-dithered every frame. Keys refer to images by a short id rather than the data URL.
@@ -156,8 +162,8 @@ export const renderLabel = async (doc, canvas, { dots = dotScale() } = {}) => {
 
 /** Draws one element into its own canvas the size of its box, rotated into place. */
 const drawElement = async (draw, e, box, dots) => {
-	const quarter = ((e.rotation ?? 0) / 90) % 4;
-	const local = quarter % 2 ? { w: box.h, h: box.w } : { w: box.w, h: box.h };
+	const quarter = quarterOf(e);
+	const local = localSize(quarter, box);
 	const canvas = makeCanvas(box.w, box.h);
 	const o = canvas.getContext("2d", { willReadFrequently: true });
 	o.setTransform(...QUARTER[quarter](box.w, box.h));

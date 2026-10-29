@@ -31,7 +31,7 @@ export const hasProblem = (st) => st.coverOpen === true || st.paper === false;
  * @param {import("./model.js").Doc} doc with its fields filled in
  * @param {import("./units.js").DotScale} dots
  */
-export const renderForPrint = async (doc, dots) => {
+const renderForPrint = async (doc, dots) => {
 	await ensureFontsFor(doc);
 	const canvas = document.createElement("canvas");
 	await renderLabel(withAutoLength(doc, dots), canvas, { dots });

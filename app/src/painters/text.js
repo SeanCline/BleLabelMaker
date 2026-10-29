@@ -1,7 +1,7 @@
 // Text: laid out the way the inline editor's caret expects (layoutTextBox), and drawn run by
 // run so formatted words, a larger first line and dithered emoji all line up with it.
 import { dotScale } from "../units.js";
-import { layoutText, stackLetters, graphemes, LINE_HEIGHT } from "../layout.js";
+import { alignOffset, layoutText, stackLetters, graphemes, LINE_HEIGHT } from "../layout.js";
 import { toOneBit } from "../raster.js";
 import { cssFont, hasEmoji } from "../fonts.js";
 import { textOf, unitStyles } from "../richtext.js";
@@ -161,7 +161,7 @@ export const drawText = (ctx, e, box, dots) => {
 		ctx.lineWidth = Math.max(1, Math.round(size / 24));
 		const from = offsets[i];
 		const width = measure(from, from + line.length, size);
-		const left = e.align === "left" ? 0 : e.align === "right" ? box.w - width : (box.w - width) / 2;
+		const left = alignOffset(e.align, box.w - width);
 		const parts = spans
 			.filter((s) => s.from < from + line.length && s.to > from)
 			.map((s) => ({
@@ -177,8 +177,8 @@ export const drawText = (ctx, e, box, dots) => {
 			if (parts.length === 1 && !(emojiLayer && hasEmoji(line))) {
 				ctx.font = font;
 				ctx.textAlign = e.align;
-				const x = e.align === "left" ? 0 : e.align === "right" ? box.w : box.w / 2;
-				paint(ctx, line, x, baseline);
+				// Anchored where textAlign measures from: the box's left, middle or right.
+				paint(ctx, line, alignOffset(e.align, box.w), baseline);
 			} else {
 				ctx.textAlign = "left";
 				let at = part.from;

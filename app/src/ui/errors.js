@@ -9,7 +9,7 @@ const QUIET_MS = 2000;
 let lastShown = 0;
 
 /** Tells the user something failed. The label itself is safe: it autosaves on every change. */
-export const reportUnexpected = (err) => {
+const reportUnexpected = (err) => {
 	const message = err?.message ?? String(err ?? "unknown error");
 	if (IGNORED.test(message)) return;
 	const now = Date.now();

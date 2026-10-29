@@ -22,14 +22,6 @@ let shown = loadJson(KEY) === true;
 /** @type {{x: number, y: number} | null} the pointer over the label, in mm */
 let pointer = null;
 
-/** An element's box as it appears, turned a quarter turn if it is. */
-const visualBox = (e) => {
-	if (e.rotation % 180 === 0) return e;
-	const cx = e.x + e.w / 2;
-	const cy = e.y + e.h / 2;
-	return { x: cx - e.h / 2, y: cy - e.w / 2, w: e.h, h: e.w };
-};
-
 /** The tick spacing that keeps ticks and numbers readable at this zoom. */
 const steps = (pxPerMm) => {
 	const minor = [1, 2, 5, 10].find((mm) => mm * pxPerMm >= 4) ?? 10;
@@ -122,7 +114,7 @@ const draw = (canvas, axis, lengthMm, pxPerMm, span, at) => {
 };
 
 /** Redraws both rulers for the current zoom, selection and pointer. */
-export const renderRulers = () => {
+const renderRulers = () => {
 	paper.parentElement.classList.toggle("with-ruler", shown);
 	button.setAttribute("aria-pressed", String(shown));
 	top.hidden = left.hidden = !shown;
@@ -131,7 +123,7 @@ export const renderRulers = () => {
 	const pxPerMm = label.getBoundingClientRect().width / widthMm;
 	if (!pxPerMm) return;
 	const selected = selectedElements();
-	const box = selected.length ? boundsOf(selected.map(visualBox)) : null;
+	const box = selected.length ? boundsOf(selected) : null;
 	const spanOf = (axis) =>
 		box && (axis === "x" ? { from: box.x, to: box.x + box.w } : { from: box.y, to: box.y + box.h });
 	draw(top, "x", widthMm, pxPerMm, spanOf("x"), pointer?.x ?? null);

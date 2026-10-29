@@ -21,7 +21,7 @@ import { graphemes } from "./layout.js";
 export const STYLE_PROPS = /** @type {const} */ (["fontWeight", "italic", "underline"]);
 
 /** @param {RichText} text @returns {Span[]} */
-export const spansOf = (text) =>
+const spansOf = (text) =>
 	typeof text === "string"
 		? [{ style: {}, text }]
 		: text.map((r) =>

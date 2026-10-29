@@ -93,6 +93,12 @@ test("toOneBit: threshold level, brightness bias and invert", () => {
 	const dark = blackCount(toOneBit(ramp(), { mode: "dither", level: 192 }));
 	assert.ok(light < 100 && dark > 156, `light=${light} dark=${dark}`);
 
+	// Darkening is for the picture: the clear paper around it stays blank, beside it too.
+	const framed = { width: 20, height: 20, data: new Uint8ClampedArray(20 * 20 * 4) };
+	for (let i = 0; i < 20 * 10; i++) framed.data.set([60, 60, 60, 255], i * 4);
+	toOneBit(framed, { mode: "dither", level: 200 });
+	assert.equal(blackCount({ data: framed.data.subarray(20 * 10 * 4) }), 0, "paper stays blank");
+
 	// Transparent pixels count as paper, and invert turns them black.
 	const clear = { width: 2, height: 1, data: new Uint8ClampedArray(8) };
 	assert.equal(blackCount(toOneBit(clear, { mode: "threshold" })), 0);

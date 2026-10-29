@@ -30,7 +30,13 @@
 			<img class="logo" src="icons/icon.svg" alt="" width="28" height="28" />
 			<h1 data-app="name">BLE Label Maker</h1>
 			<details class="menu" id="fileMenu">
-				<summary>File</summary>
+				<summary class="file-button" aria-label="File">
+					<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#file" /></svg
+					><span class="file-word">File</span
+					><svg class="icon chevron" aria-hidden="true">
+						<use href="icons/ui.svg#chevron-down" />
+					</svg>
+				</summary>
 				<div class="menu-list">
 					<button id="btnNew" title="Start a new label, blank or from a template">
 						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#file-plus" /></svg> New…
@@ -224,11 +230,18 @@
 						</div>
 					</details>
 					<div class="rail" aria-label="Add to the label">
-						<button id="addText" class="icon-button" title="Add text" aria-label="Add text">
+						<button
+							id="addText"
+							data-add="text"
+							class="icon-button"
+							title="Add text"
+							aria-label="Add text"
+						>
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#type" /></svg>
 						</button>
 						<button
 							id="addShape"
+							data-add="shape"
 							class="icon-button"
 							title="Add a box, circle or line"
 							aria-label="Add a shape"
@@ -237,17 +250,25 @@
 						</button>
 						<button
 							id="addBarcode"
+							data-add="barcode"
 							class="icon-button"
 							title="Add a barcode"
 							aria-label="Add a barcode"
 						>
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#barcode" /></svg>
 						</button>
-						<button id="addQr" class="icon-button" title="Add a QR code" aria-label="Add a QR code">
+						<button
+							id="addQr"
+							data-add="qr"
+							class="icon-button"
+							title="Add a QR code"
+							aria-label="Add a QR code"
+						>
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#qr-code" /></svg>
 						</button>
 						<button
 							id="addImage"
+							data-add="image"
 							class="icon-button"
 							title="Add a picture"
 							aria-label="Add a picture"
@@ -468,14 +489,14 @@
 					<span class="qb-group" data-qb="image">
 						<span class="segmented small" data-radio="mode" role="group" aria-label="Image style">
 							<button data-value="dither" title="Dither: shades as dots, best for photos">
-								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#grip" /></svg>
+								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#dither" /></svg>
 								<span class="qb-label">Dither</span>
 							</button>
 							<button
 								data-value="threshold"
 								title="Threshold: solid black and white, best for logos and line art"
 							>
-								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#stamp" /></svg>
+								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#threshold" /></svg>
 								<span class="qb-label">Threshold</span>
 							</button>
 						</span>
@@ -699,7 +720,7 @@
 									data-value="true"
 									title="Print emoji in colour, as dots like a photo, instead of as line art"
 								>
-									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#grip" /></svg>
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#dither" /></svg>
 									Dithered
 								</button>
 							</span>

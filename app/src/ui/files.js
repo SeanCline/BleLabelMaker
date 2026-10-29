@@ -7,7 +7,7 @@ import { addImageFile } from "./actions.js";
 import { keepStorage } from "./idb.js";
 import { textOf } from "../richtext.js";
 
-export const slugFor = (doc) => {
+const slugFor = (doc) => {
 	const text = doc.elements.find((e) => e.type === "text")?.text ?? "";
 	const first = textOf(text).split("\n")[0];
 	return (
@@ -46,7 +46,7 @@ export const openPicker = () => $("#fileInput").click();
 const LONG_LINK = 8000;
 
 /** Copies a link that opens this label, design and all. */
-export const shareLink = async () => {
+const shareLink = async () => {
 	const url = location.origin + location.pathname + (await encodeShare(currentFile()));
 	const note =
 		url.length > LONG_LINK

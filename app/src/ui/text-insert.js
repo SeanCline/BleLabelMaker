@@ -4,10 +4,9 @@ import { searchEmoji } from "../emoji.js";
 import { plainText } from "../layout.js";
 import { applyEdit, textOf } from "../richtext.js";
 import { $, el } from "./dom.js";
-import { state, history, updateElement } from "./store.js";
+import { state, history, selected, updateElement } from "./store.js";
 import { inlineEdit, startInlineEdit } from "./inline-editor.js";
 import { rememberCaret, takeCaret } from "./caret.js";
-import { targetFor } from "./panels.js";
 
 const emojiDialog = $("#emojiDialog");
 let emojiCallback = null;
@@ -44,7 +43,7 @@ emojiDialog.addEventListener("close", () => {
 const bar = $("#quickbar");
 const field = /** @type {HTMLTextAreaElement} */ ($("#designText"));
 field.addEventListener("blur", () => {
-	const e = targetFor(bar);
+	const e = selected();
 	if (e) rememberCaret(e.id, field, "panel");
 });
 const insert = (e, caret, value) => {
@@ -65,7 +64,7 @@ const insert = (e, caret, value) => {
 	} else startInlineEdit(e.id, at);
 };
 const target = () => {
-	const e = targetFor(bar);
+	const e = selected();
 	if (e?.type !== "text") return null;
 	const end = textOf(e.text).length;
 	// Still typing on the label (the menu needn't take the focus): its cursor, as it is now.

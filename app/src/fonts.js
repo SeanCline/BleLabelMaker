@@ -70,8 +70,11 @@ export const FONTS = [
 	{ family: "monospace", label: "System monospace", weights: [400, 700], italic: true },
 ];
 
-export const EMOJI_MONO_FONT = "Noto Emoji";
+const EMOJI_MONO_FONT = "Noto Emoji";
 export const EMOJI_MONO_GOOGLE = "Noto+Emoji:wght@300..700";
+
+// From semibold up a weight reads as bold, so B shows pressed and pressing it unbolds.
+export const BOLD = 600;
 
 export const WEIGHT_NAMES = {
 	100: "Thin",

@@ -2,7 +2,7 @@
 // a corner of a label, so this is plenty of detail while keeping .label files small.
 const MAX_SIDE = 800;
 
-export class ImageImportError extends Error {}
+class ImageImportError extends Error {}
 
 /**
  * Reads an image file, downscales it, and returns an embeddable data URL plus its size.

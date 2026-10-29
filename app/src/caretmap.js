@@ -1,7 +1,7 @@
 // Where caret positions fall on a text element as the label draws it. The inline editor draws
 // its caret and selection from this instead of letting a textarea lay the text out, so they
 // follow the label's own line breaks, sizes, rotation and stacking exactly.
-import { graphemes, LINE_HEIGHT } from "./layout.js";
+import { alignOffset, graphemes, LINE_HEIGHT } from "./layout.js";
 
 /**
  * @typedef {{index: number, x: number}} Stop a caret position and its x, in the box's dots
@@ -26,7 +26,7 @@ export const caretMap = ({ layout, width, align, measure }) => {
 		const start = layout.starts[i];
 		const from = layout.offsets[i];
 		const full = measure(from, from + line.length, size);
-		const left = align === "left" ? 0 : align === "right" ? width - full : (width - full) / 2;
+		const left = alignOffset(align, width - full);
 		const stops = [{ index: start, x: left }];
 		let prefix = 0;
 		for (const g of graphemes(line)) {

@@ -190,6 +190,22 @@ summary:has(> .icon) {
 .menu > summary {
 	padding: 5px 10px;
 }
+/* Looks like the bar's other buttons (Batch beside Print), with an arrow for its menu. */
+.menu > summary.file-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 6px 8px 6px 12px;
+	font-weight: 600;
+	background: var(--surface);
+	border-color: var(--border);
+	border-radius: 6px;
+}
+.file-button .chevron {
+	width: 14px;
+	height: 14px;
+	opacity: 0.6;
+}
 .menu > summary:hover,
 .menu[open] > summary,
 .layers-menu > summary:hover,
@@ -544,6 +560,32 @@ button[data-prop][aria-pressed="true"] {
 	background: var(--surface-2);
 }
 .rail .icon {
+	width: 18px;
+	height: 18px;
+}
+/* A finger dragging from the rail places what it's dragging, rather than scrolling. */
+.rail [data-add] {
+	touch-action: none;
+}
+/* What's being dragged from the rail, under the pointer: faint until it's over the label. */
+.rail-ghost {
+	position: fixed;
+	z-index: 40;
+	top: -15px;
+	left: -15px;
+	padding: 5px;
+	pointer-events: none;
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow);
+	opacity: 0.5;
+}
+.rail-ghost.over {
+	opacity: 1;
+}
+.rail-ghost .icon {
+	display: block;
 	width: 18px;
 	height: 18px;
 }
@@ -1423,15 +1465,7 @@ dialog form {
 		width: 100%;
 	}
 }
-.props > p.sr-only {
-	position: absolute;
-	width: 1px;
-	height: 1px;
-	margin: -1px;
-	overflow: hidden;
-	clip: rect(0 0 0 0);
-	white-space: nowrap;
-}
+
 .hint {
 	margin: 0;
 }
@@ -1525,6 +1559,9 @@ button.link {
 	border: 1px solid var(--border);
 	border-radius: var(--radius);
 	box-shadow: var(--shadow);
+	/* One height for everything in a row of the bar, whatever each control's own padding,
+	   font and border: a select's box comes out taller than a button's from the same padding. */
+	--control-height: 30px;
 }
 /* Nothing selected: a line of help in the bar's place, without the bar. */
 .quickbar.empty {
@@ -1547,11 +1584,6 @@ button.link {
 }
 .quickbar button {
 	padding: 5px 8px;
-}
-/* One height for everything in a row of the bar, whatever each control's own padding, font
-   and border: a select's box comes out taller than a button's from the same padding. */
-.quickbar {
-	--control-height: 30px;
 }
 .quickbar :is(button, select, input:not([type="range"]), .segmented, .field-picker) {
 	height: var(--control-height);
@@ -1753,6 +1785,7 @@ button.link {
 	}
 	#printerChipLabel,
 	.batch-word,
+	.file-word,
 	.print-connect,
 	.print-unit {
 		display: none;

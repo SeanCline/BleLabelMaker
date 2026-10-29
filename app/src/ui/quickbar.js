@@ -3,8 +3,8 @@
 // to the typing; several selected elements get aligning and spacing.
 // The bar is a [data-panel] like the settings' sections, so panels.js binds its fields.
 import { boundsOf } from "../model.js";
-import { fontInfo, nearestWeight, weightsFor } from "../fonts.js";
-import { clearStyle, stylesBetween, textOf } from "../richtext.js";
+import { BOLD, fontInfo, nearestWeight, weightsFor } from "../fonts.js";
+import { clearStyle } from "../richtext.js";
 import { $, $$ } from "./dom.js";
 import {
 	state,
@@ -22,6 +22,7 @@ import {
 	inlineEdit,
 	onInlineChange,
 	refocusInline,
+	selectedLooks,
 	startInlineEdit,
 	stopInlineEdit,
 	toggleStyle,
@@ -35,7 +36,6 @@ const more = $('[data-qb-action="more"]', bar);
 const layersMenu = /** @type {HTMLDetailsElement} */ ($("#layersMenu"));
 /** Menus that drop down from a button: File, the printer, Print's options, the label size. */
 const menus = /** @type {HTMLDetailsElement[]} */ ([...$$("details.menu"), layersMenu]);
-const BOLD = 600;
 const barKeys = rovingToolbar(bar);
 rovingToolbar($(".rail"), { vertical: true });
 
@@ -52,13 +52,9 @@ const targets = () => {
 
 /** How much of the text (the selection, or all of it) has a style: "true", "false", "mixed". */
 const pressed = (e, prop) => {
-	const editing = inlineEdit();
-	const from = editing?.from ?? 0;
-	const to = editing?.to ?? textOf(e.text).length;
-	const pending =
-		editing && from === to && editing.pending?.at === from ? editing.pending.style : {};
-	const looks = stylesBetween(e.text, from, to, e).map((s) => ({ ...s, ...pending }));
-	const on = looks.map((s) => (prop === "fontWeight" ? s.fontWeight >= BOLD : !!s[prop]));
+	const on = selectedLooks(e).map((s) =>
+		prop === "fontWeight" ? s.fontWeight >= BOLD : !!s[prop],
+	);
 	if (on.every(Boolean)) return "true";
 	return on.some(Boolean) ? "mixed" : "false";
 };
@@ -246,12 +242,12 @@ const openSettings = () => {
 	// So Tab goes on into it, and a screen reader says what opened.
 	settings.focus({ preventScroll: true });
 };
-function closeSettings() {
+const closeSettings = () => {
 	if (settings.hidden) return;
 	settings.hidden = true;
 	more.setAttribute("aria-expanded", "false");
 	if (settings.contains(document.activeElement)) more.focus();
-}
+};
 /** Under the bar, as far down the window as there's room for. */
 const placeSettings = () => {
 	const b = bar.getBoundingClientRect();

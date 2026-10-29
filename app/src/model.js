@@ -35,7 +35,7 @@ import { mapText, normalize } from "./richtext.js";
 // Continuous rolls are one long label, cut or torn off after printing, so the length is
 // whatever the design needs.
 export const CONTINUOUS_LENGTH_MM = 60;
-export const DEFAULT_LABEL = { ...DEFAULT_PRINTER.presets[0], continuous: false };
+const DEFAULT_LABEL = { ...DEFAULT_PRINTER.presets[0], continuous: false };
 
 // The unprintable edge of a label. Every model so far has the same
 // one; a model that needs another would carry its own.
@@ -77,7 +77,7 @@ export const printableArea = (label) => ({
 });
 
 let idCounter = 0;
-export const newId = (doc) => {
+const newId = (doc) => {
 	const taken = new Set(doc?.elements.map((e) => e.id) ?? []);
 	let id;
 	do id = `e${++idCounter}`;
@@ -86,7 +86,7 @@ export const newId = (doc) => {
 };
 
 /** @type {Omit<TextElement, keyof Box | "type">} */
-export const TEXT_DEFAULTS = {
+const TEXT_DEFAULTS = {
 	text: "Text",
 	fontFamily: "Inter",
 	fontSizePt: 12,
@@ -224,8 +224,6 @@ export const createImage = (doc, props = {}) => ({
 /**
  * Rotates an element to an absolute angle. Boxes are axis-aligned, so a quarter turn swaps
  * width and height around the centre; the content keeps its shape instead of squashing.
- */
-/**
  * @template {Element} E
  * @param {E} e
  * @param {0|90|180|270} rotation
@@ -249,12 +247,6 @@ export const createDocument = (label = DEFAULT_LABEL) => {
 	return { label: empty.label, elements: [text] };
 };
 
-// Elements keep their mm position on resize; clamp so nothing is stranded off the label.
-/**
- * @param {Doc} doc
- * @param {Label} label
- * @returns {Doc}
- */
 /**
  * One text box filling the printable area, as a new label has: it keeps filling the label
  * when the label changes size, and auto length sizes the label to its text.
@@ -274,20 +266,20 @@ export const textFillsLabel = (doc) => {
 };
 
 /**
- * The document on a label `widthMm` long. A text box that filled the label still fills it;
- * anything else stays where it is, kept on the label.
+ * The document on a label `widthMm` long, as resizeLabel places it.
  * @param {Doc} doc
  * @param {number} widthMm
  * @returns {Doc}
  */
-export const withLength = (doc, widthMm) => {
-	const label = { ...doc.label, widthMm };
-	if (textFillsLabel(doc)) {
-		return { label, elements: [{ ...doc.elements[0], ...printableArea(label) }] };
-	}
-	return resizeLabel(doc, label);
-};
+export const withLength = (doc, widthMm) => resizeLabel(doc, { ...doc.label, widthMm });
 
+/**
+ * The document on another label. A text box that filled the label still fills it; elements
+ * keep their place in mm, clamped so nothing is stranded off the label.
+ * @param {Doc} doc
+ * @param {Label} label
+ * @returns {Doc}
+ */
 export const resizeLabel = (doc, label) => {
 	if (textFillsLabel(doc))
 		return { label: { ...label }, elements: [{ ...doc.elements[0], ...printableArea(label) }] };

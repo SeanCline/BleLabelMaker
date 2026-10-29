@@ -3,7 +3,7 @@
  * @typedef {{bytesPerRow: number, rows: number, data: Uint8Array}} Raster
  */
 
-export const THRESHOLD = 128;
+const THRESHOLD = 128;
 
 const luminance = (d, i) => (d[i] * 299 + d[i + 1] * 587 + d[i + 2] * 114) / 1000;
 
@@ -133,6 +133,9 @@ export const threshold = (image, t = THRESHOLD) => {
  * - mode "threshold": hard cut at `level` (logos, line art).
  * - invert: flips the printed result (a negative). Transparent areas count as paper, so they
  *   turn black too; `level` keeps its meaning either way.
+ *
+ * Only the picture is darkened or lightened: what's transparent (around a fitted picture, or
+ * in a logo) stays blank paper, rather than a light grey that dithers into scattered dots.
  */
 export const toOneBit = (image, { mode = "dither", level = THRESHOLD, invert = false } = {}) => {
 	const { width, height, data: d } = image;
@@ -142,11 +145,16 @@ export const toOneBit = (image, { mode = "dither", level = THRESHOLD, invert = f
 	for (let p = 0; p < lum.length; p++) {
 		const i = p * 4;
 		const a = d[i + 3] / 255;
-		lum[p] = luminance(d, i) * a + 255 * (1 - a) + bias;
+		lum[p] = (luminance(d, i) + bias) * a + 255 * (1 - a);
 	}
 	for (let y = 0; y < height; y++) {
 		for (let x = 0; x < width; x++) {
 			const p = y * width + x;
+			// Paper takes no error from the picture beside it, so its edge stays clean.
+			if (d[p * 4 + 3] === 0) {
+				lum[p] = 255;
+				continue;
+			}
 			const old = lum[p];
 			const v = old < cut ? 0 : 255;
 			lum[p] = v;

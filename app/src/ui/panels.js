@@ -69,8 +69,7 @@ export const syncProps = (root, element) => {
 			continue;
 		}
 		if (input.classList.contains("font-select")) showFamily(input, element[prop]);
-		if (input.type === "checkbox") input.checked = !!element[prop];
-		else if (prop === "fontSizePt") input.value = String(shownSize(element));
+		if (prop === "fontSizePt") input.value = String(shownSize(element));
 		else if (prop === "text") input.value = textOf(element.text);
 		else
 			input.value =
@@ -130,13 +129,9 @@ const updateFittedSizes = () => {
 onDrawn(updateFittedSizes);
 
 const coerce = (input) => {
-	if (input.dataset.type === "bool") return input.checked;
 	if (input.dataset.type === "number") return input.valueAsNumber ?? Number(input.value);
 	return input.value;
 };
-
-/** The element a settings section (or the bar) edits: the one selected. */
-export const targetFor = (_root) => selected();
 
 /** What setting `prop` to `value` changes on `e`, with what has to change along with it. */
 const patchFor = (e, prop, value) => {
@@ -168,7 +163,7 @@ const patchFor = (e, prop, value) => {
 const onPropInput = (ev) => {
 	const input = ev.target.closest("[data-prop]");
 	if (!input) return;
-	const e = targetFor(input.closest("[data-panel]"));
+	const e = selected();
 	if (!e) return;
 	const prop = input.dataset.prop;
 	if (input.value === REQUEST_FONT) {
@@ -199,7 +194,7 @@ for (const root of $$("[data-panel]")) {
 	root.addEventListener("input", onPropInput);
 	root.addEventListener("change", () => history.seal());
 	root.addEventListener("click", (ev) => {
-		const e = targetFor(root);
+		const e = selected();
 		// A toggle: a button that names its property, on or off.
 		const toggle = ev.target.closest("button[data-prop]");
 		if (toggle && e) {

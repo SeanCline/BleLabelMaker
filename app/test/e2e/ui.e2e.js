@@ -63,6 +63,43 @@ test("a new label: webfont, fit, and virtual print matches the preview", async (
 	assert.deepEqual(page.errors, []);
 });
 
+test("drag from the rail to place an element; a click still centres it", async () => {
+	const page = await env.open();
+	const count = async () => (await appState(page)).doc.elements.length;
+	const label = await (await page.$("#overlay")).boundingBox();
+	const dragFrom = async (selector, x, y, { escape = false } = {}) => {
+		const b = await (await page.$(selector)).boundingBox();
+		await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+		await page.mouse.down();
+		await page.mouse.move(x, y, { steps: 6 });
+		if (escape) await page.keyboard.press("Escape");
+		await page.mouse.up();
+	};
+
+	await page.click("#addQr");
+	const clicked = (await appState(page)).doc.elements.at(-1);
+	const widthMm = (await appState(page)).doc.label.widthMm;
+	assert.ok(Math.abs(clicked.x + clicked.w / 2 - widthMm / 2) < 1, "a click centres it");
+
+	await dragFrom("#addQr", label.x + label.width * 0.25, label.y + label.height / 2);
+	const dropped = (await appState(page)).doc.elements.at(-1);
+	assert.equal(await count(), 3, "a drag adds one, not a second from the click after it");
+	assert.ok(
+		dropped.x + dropped.w / 2 < widthMm / 2 - 1,
+		`dropped left of centre: ${dropped.x} + ${dropped.w}`,
+	);
+	assert.deepEqual((await appState(page)).selectedIds, [dropped.id]);
+
+	await dragFrom("#addQr", label.x + label.width / 2, label.y - 40);
+	assert.equal(await count(), 3, "let go off the label adds nothing");
+	await dragFrom("#addQr", label.x + label.width / 2, label.y + label.height / 2, {
+		escape: true,
+	});
+	assert.equal(await count(), 3, "Escape drops nothing");
+	assert.equal(await page.$(".rail-ghost"), null);
+	assert.deepEqual(page.errors, []);
+});
+
 test("add an element, drag, resize, undo as one step", async () => {
 	const page = await env.open();
 	assert.equal((await appState(page)).doc.elements.length, 1, "a new label has one text");

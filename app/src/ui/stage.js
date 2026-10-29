@@ -1,5 +1,5 @@
 import { LIMITS, printableArea, boundsOf } from "../model.js";
-import { renderLabel, QUARTER } from "../render.js";
+import { renderLabel, localSize, quarterOf, QUARTER } from "../render.js";
 import { pictureFrame, pictureSize } from "../painters/image.js";
 import { fillDocument } from "../fields.js";
 import { ensureFontsFor } from "../fonts.js";
@@ -130,8 +130,8 @@ const boxEls = new Map();
 const panSpot = (e) => {
 	const size = e.type === "image" && e.fit !== "stretch" && pictureSize(e.src);
 	if (!size) return null;
-	const quarter = ((e.rotation ?? 0) / 90) % 4;
-	const local = quarter % 2 ? { w: e.h, h: e.w } : { w: e.w, h: e.h };
+	const quarter = quarterOf(e);
+	const local = localSize(quarter, e);
 	const f = pictureFrame(e, local, size);
 	const slack = { x: local.w - f.w, y: local.h - f.h };
 	if (Math.abs(slack.x) < 0.05 && Math.abs(slack.y) < 0.05) return null;
@@ -218,6 +218,13 @@ const overlayMm = (ev) => {
 	const rect = overlay.getBoundingClientRect();
 	const mmPerPx = state.doc.label.widthMm / rect.width;
 	return { x: (ev.clientX - rect.left) * mmPerPx, y: (ev.clientY - rect.top) * mmPerPx, mmPerPx };
+};
+
+/** Where a point on the screen falls on the label, in mm, or null when the label isn't there. */
+export const labelPointAt = (clientX, clientY) => {
+	// Hit-tested, so a part of the label scrolled out of view, or under the bar, doesn't count.
+	if (!overlay.contains(document.elementFromPoint(clientX, clientY))) return null;
+	return overlayMm({ clientX, clientY });
 };
 
 overlay.addEventListener("pointerdown", (ev) => {

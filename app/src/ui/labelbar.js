@@ -113,14 +113,9 @@ onPrinterChange(() => {
 
 const setLabel = (wanted) => {
 	const label = labelOf(wanted);
-	const ok =
-		Number.isFinite(label.widthMm) &&
-		Number.isFinite(label.heightMm) &&
-		label.widthMm >= LIMITS.labelWidthMm[0] &&
-		label.widthMm <= LIMITS.labelWidthMm[1] &&
-		label.heightMm >= LIMITS.labelHeightMm[0] &&
-		label.heightMm <= LIMITS.labelHeightMm[1];
-	if (!ok) return;
+	const within = (v, /** @type {number[]} */ [lo, hi]) => Number.isFinite(v) && v >= lo && v <= hi;
+	if (!within(label.widthMm, LIMITS.labelWidthMm) || !within(label.heightMm, LIMITS.labelHeightMm))
+		return;
 	remember(label);
 	const l = state.doc.label;
 	if (JSON.stringify(labelOf(l)) === JSON.stringify(label)) return;
