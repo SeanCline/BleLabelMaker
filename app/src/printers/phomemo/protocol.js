@@ -7,8 +7,8 @@ export const RASTER_PREFIX = Uint8Array.of(0x1d, 0x76, 0x30, 0x00);
 
 /**
  * There is one print sequence per paper type. On gapped label rolls the printer stops at the
- * next gap by itself; a trailing ESC d makes a real D30 keep
- * feeding blank labels, so only continuous paper gets one.
+ * next gap by itself; a trailing ESC d makes a real D30 keep feeding blank labels, so only
+ * continuous paper gets one.
  */
 export const PAPER = ["gaps", "continuous"];
 export const feed = (lines) => Uint8Array.of(0x1b, 0x64, lines & 0xff);
@@ -39,7 +39,8 @@ export const QUERY = {
 export const STATUS_QUERIES = [QUERY.firmware, QUERY.battery, QUERY.paper, QUERY.autoPowerOff];
 
 /**
- * Auto power-off, in the steps the D-series offers; 0 is never. The printer counts in 5-minute units. Not yet confirmed on hardware.
+ * Auto power-off, in the steps the D-series offers; 0 is never. The printer counts in 5-minute
+ * units. Not yet confirmed on hardware.
  */
 export const AUTO_POWER_OFF_MINUTES = [10, 30, 60, 180, 300, 600, 0];
 export const setAutoPowerOff = (minutes) =>

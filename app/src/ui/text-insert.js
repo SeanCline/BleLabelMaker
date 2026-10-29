@@ -4,7 +4,7 @@ import { searchEmoji } from "../emoji.js";
 import { plainText } from "../layout.js";
 import { applyEdit, textOf } from "../richtext.js";
 import { $, el } from "./dom.js";
-import { state, history, selected, updateElement } from "./store.js";
+import { history, selected, updateElement, elementById } from "./store.js";
 import { inlineEdit, startInlineEdit } from "./inline-editor.js";
 import { rememberCaret, takeCaret } from "./caret.js";
 
@@ -48,7 +48,7 @@ field.addEventListener("blur", () => {
 });
 const insert = (e, caret, value) => {
 	value = plainText(value);
-	const current = state.doc.elements.find((x) => x.id === e.id);
+	const current = elementById(e.id);
 	if (current?.type !== "text") return;
 	const length = textOf(current.text).length;
 	const start = Math.min(caret.start, length);
@@ -94,19 +94,16 @@ menu.addEventListener("change", () => {
 document.addEventListener(
 	"input",
 	(ev) => {
-		const field = ev.target;
-		if (
-			!(field instanceof HTMLTextAreaElement) ||
-			!field.matches('[data-prop="text"], .inline-edit')
-		)
+		const area = ev.target;
+		if (!(area instanceof HTMLTextAreaElement) || !area.matches('[data-prop="text"], .inline-edit'))
 			return;
-		const plain = plainText(field.value);
-		if (plain === field.value) return;
-		const removedBefore = (i) => i - plainText(field.value.slice(0, i)).length;
-		const start = field.selectionStart - removedBefore(field.selectionStart);
-		const end = field.selectionEnd - removedBefore(field.selectionEnd);
-		field.value = plain;
-		field.setSelectionRange(start, end);
+		const plain = plainText(area.value);
+		if (plain === area.value) return;
+		const removedBefore = (i) => i - plainText(area.value.slice(0, i)).length;
+		const start = area.selectionStart - removedBefore(area.selectionStart);
+		const end = area.selectionEnd - removedBefore(area.selectionEnd);
+		area.value = plain;
+		area.setSelectionRange(start, end);
 	},
 	{ capture: true },
 );

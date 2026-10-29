@@ -58,8 +58,9 @@ export class BluetoothPrinter extends Connection {
 	}
 
 	/**
-	 * A printer's BLE notify characteristic isn't always known for certain; subscribing to every notifying one in the service covers it.
-	 * Status is a nice-to-have, so failures here never block printing.
+	 * A printer's BLE notify characteristic isn't always known for certain; subscribing to
+	 * every notifying one in the service covers it. Status is a nice-to-have, so failures here
+	 * never block printing.
 	 */
 	async #listen(service) {
 		try {

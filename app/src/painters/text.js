@@ -210,11 +210,11 @@ export const drawText = (ctx, e, box, dots) => {
 		fittedPx: fontSize,
 		process: (image) => {
 			const { width, height } = image;
-			const dots = toOneBit(emojiLayer.getImageData(0, 0, width, height), { mode: "dither" });
+			const emoji = toOneBit(emojiLayer.getImageData(0, 0, width, height), { mode: "dither" });
 			// On white-on-black text the emoji print as a negative, like the letters.
 			const ink = e.invert ? 255 : 0;
-			for (let i = 0; i < dots.data.length; i += 4) {
-				if (dots.data[i + 3] === 0) continue;
+			for (let i = 0; i < emoji.data.length; i += 4) {
+				if (emoji.data[i + 3] === 0) continue;
 				image.data[i] = image.data[i + 1] = image.data[i + 2] = ink;
 				image.data[i + 3] = 255;
 			}

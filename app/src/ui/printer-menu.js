@@ -18,6 +18,7 @@ import {
 	onModelChange,
 	validFeed,
 } from "./settings.js";
+import { signal } from "./signal.js";
 
 /** Tells the user about problems the moment the printer reports them, not just on print. */
 const onPrinterStatus = (status, event) => {
@@ -48,9 +49,9 @@ export const hardware = () => ({ bluetooth: bt, serial })[settings.target] ?? nu
 /** Where a print goes: the real printer, or the virtual one. */
 export const connection = () => hardware() ?? virtual;
 
-const printerListeners = new Set();
+const printerChanged = signal();
 /** Called whenever the printer, its state or the choice of it changes. */
-export const onPrinterChange = (fn) => printerListeners.add(fn);
+export const onPrinterChange = printerChanged.on;
 
 /** The printer side of a bug report: what's selected, connected and last heard, right now. */
 export const printerInfo = () => {
@@ -96,7 +97,7 @@ export const renderPrinterStatus = () => {
 	// Show what the printer reports; until it says, the choice reads "as set on the printer".
 	renderAutoPower(t);
 	$("#virtualOut").hidden = !$("#tape").children.length;
-	for (const fn of printerListeners) fn();
+	printerChanged.emit();
 };
 
 /**

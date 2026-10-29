@@ -29,7 +29,7 @@ export const planLabels = (doc, { copies, batch, counterStart, now }) => {
 	const labels = [];
 	for (const [index, row] of (batch ? batch.rows : [null]).entries()) {
 		const line = batch?.lines?.[index];
-		const ctx = (n) => ({ now, n, row, line, columns: batch?.columns ?? null });
+		const ctx = (number) => ({ now, n: number, row, line, columns: batch?.columns ?? null });
 		const at = batch ? index : null;
 		if (used.counter) {
 			for (let i = 0; i < copies; i++) {

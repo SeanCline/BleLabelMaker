@@ -18,6 +18,13 @@
 	--guide: #e0457b;
 	--shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 4px 16px rgb(0 0 0 / 0.08);
 	--radius: 8px;
+	/* Spacing, named for what it separates, so the same kind of gap is the same size
+	   everywhere. */
+	--gap-tight: 2px; /* buttons clustered into one control */
+	--gap-small: 4px; /* a label and its field; the parts of one item */
+	--gap-control: 6px; /* controls side by side; an icon beside its word */
+	--gap-line: 8px; /* the lines of a form or a list */
+	--gap-section: 12px; /* sections of a panel, or of the page */
 	color-scheme: light;
 }
 
@@ -136,7 +143,7 @@ input[type="number"] {
 .topbar {
 	display: flex;
 	align-items: center;
-	gap: 12px;
+	gap: var(--gap-section);
 	padding: 10px 16px;
 	background: var(--surface);
 	border-bottom: 1px solid var(--border);
@@ -166,10 +173,34 @@ summary:has(> .icon) {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: 6px;
+	gap: var(--gap-control);
 }
 .icon-button {
 	padding: 6px;
+}
+
+/* Controls side by side, wrapping onto another line when there isn't room. The text is the
+   page's, even inside a muted label. */
+.row {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	gap: var(--gap-control);
+	color: var(--text);
+}
+/* Sections one above another. Not for a <dialog>: its display would show it while closed. */
+.stack {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap-section);
+}
+
+/* A card over the page: menus and popovers, the rail, the bar over the label, the settings. */
+.floating {
+	background: var(--surface);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow);
 }
 
 /* A menu that drops down from its button: File, and the list of elements. */
@@ -192,11 +223,7 @@ summary:has(> .icon) {
 }
 /* Looks like the bar's other buttons (Batch beside Print), with an arrow for its menu. */
 .menu > summary.file-button {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
 	padding: 6px 8px 6px 12px;
-	font-weight: 600;
 	background: var(--surface);
 	border-color: var(--border);
 	border-radius: 6px;
@@ -222,10 +249,6 @@ summary:has(> .icon) {
 	display: flex;
 	flex-direction: column;
 	padding: 4px;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: var(--radius);
-	box-shadow: var(--shadow);
 }
 .menu-list button {
 	justify-content: flex-start;
@@ -270,9 +293,6 @@ button[data-prop][aria-pressed="true"] {
 }
 
 .workspace {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
 	min-width: 0;
 }
 
@@ -288,18 +308,14 @@ button[data-prop][aria-pressed="true"] {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
-	gap: 10px;
+	gap: var(--gap-line);
 	padding: 12px;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: var(--radius);
-	box-shadow: var(--shadow);
 	font-weight: normal;
 }
 .menu-panel label {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--gap-control);
 }
 .menu-panel input[type="number"] {
 	width: 4.5em;
@@ -309,7 +325,7 @@ button[data-prop][aria-pressed="true"] {
 .menu > .printer-chip {
 	display: inline-flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--gap-control);
 	max-width: 260px;
 	padding: 6px 12px;
 	border-color: var(--border);
@@ -338,10 +354,8 @@ button[data-prop][aria-pressed="true"] {
 }
 
 /* Batch, beside Print: a feature of its own, which says how many labels its list makes. */
-.batch-button {
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
+/* A word beside its icon on the top bar, as Batch and File are. */
+.bar-button {
 	padding: 6px 12px;
 	font-weight: 600;
 }
@@ -401,7 +415,7 @@ button[data-prop][aria-pressed="true"] {
 .label-menu > summary {
 	background: var(--surface);
 	border-color: var(--border);
-	gap: 8px;
+	gap: var(--gap-control);
 }
 .label-menu > .menu-panel {
 	top: auto;
@@ -419,12 +433,9 @@ button[data-prop][aria-pressed="true"] {
 	transform: translateX(-50%);
 	display: flex;
 	align-items: center;
-	gap: 2px;
+	gap: var(--gap-tight);
 	padding: 2px;
-	background: var(--surface);
-	border: 1px solid var(--border);
 	border-radius: 999px;
-	box-shadow: var(--shadow);
 }
 /* The first-visit hint moves up out of its way. */
 .batch-nav:not([hidden]) ~ .coach {
@@ -438,7 +449,7 @@ button[data-prop][aria-pressed="true"] {
 }
 .batch-nav #batchEdit {
 	display: inline-flex;
-	gap: 6px;
+	gap: var(--gap-control);
 	color: inherit;
 	text-decoration: none;
 }
@@ -452,14 +463,11 @@ button[data-prop][aria-pressed="true"] {
 	width: min(420px, calc(100vw - 32px));
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: var(--gap-line);
 	padding: 12px 14px 14px;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: var(--radius);
-	box-shadow: var(--shadow);
 }
-.sheet-head {
+/* A heading with its controls at the far end: the batch list's and the virtual printer's. */
+.title-row {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
@@ -481,7 +489,8 @@ button[data-prop][aria-pressed="true"] {
 	clip: rect(0 0 0 0);
 	white-space: nowrap;
 }
-.hint {
+.hint,
+.status {
 	color: var(--muted);
 	font-size: 12.5px;
 }
@@ -511,7 +520,7 @@ button[data-prop][aria-pressed="true"] {
 	grid-template-areas: ". top" "left paper";
 	grid-template-columns: 20px auto;
 	grid-template-rows: 20px auto;
-	gap: 4px;
+	gap: var(--gap-small);
 }
 .ruler {
 	display: block;
@@ -542,12 +551,8 @@ button[data-prop][aria-pressed="true"] {
 	left: 8px;
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--gap-tight);
 	padding: 4px;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: var(--radius);
-	box-shadow: var(--shadow);
 }
 .rail .icon-button,
 .rail summary {
@@ -575,10 +580,6 @@ button[data-prop][aria-pressed="true"] {
 	left: -15px;
 	padding: 5px;
 	pointer-events: none;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: var(--radius);
-	box-shadow: var(--shadow);
 	opacity: 0.5;
 }
 .rail-ghost.over {
@@ -601,7 +602,7 @@ button[data-prop][aria-pressed="true"] {
 	right: 10px;
 	bottom: 10px;
 	display: flex;
-	gap: 6px;
+	gap: var(--gap-control);
 }
 .canvas-tools button {
 	background: var(--surface);
@@ -613,7 +614,7 @@ button[data-prop][aria-pressed="true"] {
 }
 .zoom {
 	display: inline-flex;
-	gap: 2px;
+	gap: var(--gap-tight);
 }
 #zoomFit {
 	min-width: 3.5em;
@@ -643,7 +644,7 @@ button[data-prop][aria-pressed="true"] {
 	transform: translateX(-50%);
 	display: flex;
 	align-items: center;
-	gap: 8px;
+	gap: var(--gap-control);
 	margin: 0;
 	padding: 6px 6px 6px 14px;
 	border-radius: 999px;
@@ -905,10 +906,6 @@ button[data-prop][aria-pressed="true"] {
 .status:empty {
 	display: none;
 }
-.status {
-	font-size: 12.5px;
-	color: var(--muted);
-}
 .status.ok::before {
 	content: "● ";
 	color: #2a9d4b;
@@ -933,15 +930,9 @@ progress {
 .advanced-body {
 	display: flex;
 	flex-direction: column;
-	gap: 8px;
+	gap: var(--gap-line);
 	align-items: flex-start;
 	padding: 8px 0 0 14px;
-}
-.advanced-body label {
-	display: flex;
-	align-items: center;
-	flex-wrap: wrap;
-	gap: 6px;
 }
 .advanced-body > .hint {
 	margin: 0;
@@ -959,21 +950,16 @@ progress {
 	border-radius: var(--radius);
 	padding: 12px;
 }
-.virtual-head {
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-}
 .tape {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: var(--gap-line);
 	margin-top: 8px;
 }
 .printed {
 	display: flex;
 	align-items: center;
-	gap: 12px;
+	gap: var(--gap-section);
 	flex-wrap: wrap;
 }
 .printed canvas {
@@ -990,32 +976,15 @@ progress {
 	z-index: 25;
 	width: min(340px, calc(100vw - 16px));
 	overflow: auto;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: var(--radius);
-	box-shadow: var(--shadow);
 	padding: 14px;
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
 }
 .settings:focus {
 	outline: none;
 }
-.props {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
-#designPanel {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
 .field {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: var(--gap-small);
 	font-size: 12.5px;
 	color: var(--muted);
 }
@@ -1027,7 +996,7 @@ progress {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: 4px;
+	gap: var(--gap-small);
 	background: var(--surface);
 	border: 1px solid var(--border);
 	border-radius: 6px;
@@ -1051,32 +1020,19 @@ progress {
 .props > textarea {
 	font-size: 14px;
 }
-.row {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	flex-wrap: wrap;
-	color: var(--text);
-}
 .check {
 	display: inline-flex;
 	align-items: center;
-	gap: 5px;
+	gap: var(--gap-control);
 	font-size: 13px;
 	color: var(--text);
 }
 .unit {
 	color: var(--muted);
 }
-.toolbar {
-	display: flex;
-	gap: 6px;
-	align-items: center;
-	flex-wrap: wrap;
-}
 .toolbar-group {
 	display: inline-flex;
-	gap: 6px;
+	gap: var(--gap-control);
 }
 .section {
 	color: var(--muted);
@@ -1101,7 +1057,7 @@ h3.section {
 .section-head {
 	display: flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--gap-control);
 }
 .section-head > h3 {
 	margin-right: auto;
@@ -1109,7 +1065,7 @@ h3.section {
 .section-head button {
 	display: inline-flex;
 	align-items: center;
-	gap: 4px;
+	gap: var(--gap-small);
 	padding: 2px 8px;
 	font-size: 12px;
 }
@@ -1118,7 +1074,7 @@ h3.section {
 	display: grid;
 	grid-template-columns: 5.5em minmax(0, 1fr);
 	align-items: center;
-	gap: 8px;
+	gap: var(--gap-line);
 	font-size: 12.5px;
 	color: var(--muted);
 }
@@ -1131,7 +1087,7 @@ h3.section {
 .with-unit {
 	display: inline-flex;
 	align-items: center;
-	gap: 6px;
+	gap: var(--gap-control);
 }
 /* The bar's button groups, across the room they have, each choice an equal share. */
 .segmented.fill {
@@ -1143,7 +1099,7 @@ h3.section {
 	display: inline-flex;
 	align-items: center;
 	justify-content: center;
-	gap: 5px;
+	gap: var(--gap-control);
 	padding: 0 6px;
 	font-size: 12.5px;
 	white-space: nowrap;
@@ -1162,14 +1118,19 @@ h3.section {
 .sample.s3 {
 	font-size: 17px;
 }
-.layers {
+/* Lists of rows drawn by the page, not bullets. */
+.layers,
+.history-list,
+.template-list {
 	list-style: none;
 	margin: 0;
 	padding: 0;
+	overflow: auto;
+}
+.layers {
 	border: 1px solid var(--border);
 	border-radius: 6px;
 	max-height: 180px;
-	overflow: auto;
 }
 .layers li {
 	padding: 5px 9px;
@@ -1226,7 +1187,7 @@ input[type="range"] {
 .grid4 {
 	display: grid;
 	grid-template-columns: repeat(4, 1fr);
-	gap: 6px;
+	gap: var(--gap-control);
 }
 .grid4 label {
 	display: flex;
@@ -1249,7 +1210,7 @@ input[type="range"] {
 	padding-left: 18px;
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: var(--gap-small);
 }
 .warning {
 	margin: 0;
@@ -1281,15 +1242,10 @@ dialog {
 dialog::backdrop {
 	background: rgb(0 0 0 / 0.35);
 }
-dialog form {
-	display: flex;
-	flex-direction: column;
-	gap: 12px;
-}
 .emoji-grid {
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-	gap: 4px;
+	gap: var(--gap-small);
 	max-height: 300px;
 	overflow: auto;
 }
@@ -1299,10 +1255,7 @@ dialog form {
 	line-height: 1.2;
 }
 .dialog-actions {
-	display: flex;
-	flex-wrap: wrap;
 	justify-content: flex-end;
-	gap: 8px;
 }
 #printedDialog h2,
 #printedDialog p {
@@ -1334,7 +1287,7 @@ dialog form {
 	z-index: 25;
 	display: flex;
 	align-items: center;
-	gap: 12px;
+	gap: var(--gap-section);
 }
 .toast.with-action button {
 	background: none;
@@ -1351,15 +1304,8 @@ dialog form {
 .history-dialog[open] {
 	display: flex;
 	flex-direction: column;
-	gap: 10px;
+	gap: var(--gap-section);
 	max-height: calc(100vh - 64px);
-}
-.history-head,
-.history-tools {
-	display: flex;
-	align-items: center;
-	gap: 8px;
-	flex-wrap: wrap;
 }
 .history-head form {
 	display: contents;
@@ -1373,31 +1319,23 @@ dialog form {
 	padding: 4px 8px;
 }
 .history-list {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-	overflow: auto;
 	display: flex;
 	flex-direction: column;
-	gap: 6px;
+	gap: var(--gap-line);
 }
 .history-list li {
 	display: grid;
 	grid-template-columns: 132px minmax(0, 1fr) auto;
 	align-items: center;
-	gap: 12px;
+	gap: var(--gap-section);
 	padding: 8px;
 	border: 1px solid var(--border);
 	border-radius: 8px;
 }
 .template-list {
-	list-style: none;
-	margin: 0;
-	padding: 0;
-	overflow: auto;
 	display: grid;
 	grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-	gap: 8px;
+	gap: var(--gap-line);
 }
 .template {
 	width: 100%;
@@ -1405,7 +1343,7 @@ dialog form {
 	display: flex;
 	flex-direction: column;
 	align-items: flex-start;
-	gap: 4px;
+	gap: var(--gap-small);
 	padding: 8px;
 	text-align: left;
 }
@@ -1437,17 +1375,13 @@ dialog form {
 .entry-meta {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--gap-tight);
 	min-width: 0;
 }
 .entry-meta strong {
 	white-space: nowrap;
 	overflow: hidden;
 	text-overflow: ellipsis;
-}
-.entry-actions {
-	display: flex;
-	gap: 6px;
 }
 .tag {
 	margin-left: 6px;
@@ -1487,7 +1421,7 @@ dialog form {
 	flex-wrap: wrap;
 	justify-content: center;
 	align-items: center;
-	gap: 4px 18px;
+	gap: var(--gap-small) var(--gap-section);
 }
 .site-footer a,
 .site-footer button.link,
@@ -1550,15 +1484,7 @@ button.link {
 	z-index: 20;
 	/* As wide as its controls (up to the max-width quickbar.js sets), wherever it's placed. */
 	width: max-content;
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 6px;
 	padding: 4px 6px;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: var(--radius);
-	box-shadow: var(--shadow);
 	/* One height for everything in a row of the bar, whatever each control's own padding,
 	   font and border: a select's box comes out taller than a button's from the same padding. */
 	--control-height: 30px;
@@ -1570,12 +1496,6 @@ button.link {
 	box-shadow: none;
 	color: var(--muted);
 	font-size: 13px;
-}
-.quickbar .qb-group {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 6px;
 }
 .quickbar .qb-common {
 	flex-wrap: nowrap;
@@ -1657,7 +1577,7 @@ button.link {
 @media (min-width: 601px) {
 	.quickbar.compact,
 	.quickbar.compact .qb-group {
-		gap: 3px;
+		gap: var(--gap-tight);
 	}
 	.quickbar.compact button {
 		padding: 5px;
@@ -1746,7 +1666,7 @@ button.link {
 		top: 8px;
 		bottom: auto;
 		right: 8px;
-		gap: 2px;
+		gap: var(--gap-tight);
 	}
 	.label-menu {
 		top: 8px;
@@ -1798,11 +1718,11 @@ button.link {
 		padding: 6px 8px;
 	}
 	.topbar {
-		gap: 4px;
+		gap: var(--gap-small);
 		padding: 8px 10px;
 	}
 	.topbar .toolbar-group {
-		gap: 2px;
+		gap: var(--gap-tight);
 	}
 	.batch-nav {
 		bottom: 60px;

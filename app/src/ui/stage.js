@@ -24,6 +24,7 @@ import {
 	elementById,
 	subscribe,
 } from "./store.js";
+import { signal } from "./signal.js";
 
 export const SNAP_MM = 0.25;
 // Guides grab within this many screen pixels, whatever the zoom.
@@ -39,13 +40,13 @@ const overlay = $("#overlay");
 let renderToken = 0;
 let fitted = new Map();
 let warnings = new Map();
-const drawnListeners = new Set();
+const drawn = signal();
 
 /** Font sizes (pt) chosen by fit-to-box in the last render, keyed by element id. */
 export const fittedSizes = () => fitted;
 /** Per-element problems from the last render (e.g. a barcode too narrow to scan). */
 export const renderWarnings = () => warnings;
-export const onDrawn = (fn) => drawnListeners.add(fn);
+export const onDrawn = drawn.on;
 export const labelCanvas = () => canvas;
 
 /** @type {() => import("../fields.js").FieldContext} */
@@ -93,7 +94,7 @@ const render = async () => {
 	// The editor was laid out when the text changed, perhaps before a newly picked font had
 	// loaded or before the label's new length set its scale; now both are settled.
 	relayoutInline();
-	for (const fn of drawnListeners) fn();
+	drawn.emit();
 };
 
 let queued = false;
@@ -115,6 +116,8 @@ const HANDLES = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
 // Overlay layers are created once. Boxes are updated in place, keyed by id: replacing the
 // element under the pointer mid-gesture makes Chrome drop the click/dblclick that follows.
+// The snap lines shown while dragging.
+let activeGuides = [];
 const guideEl = el("div", { className: "guide", title: "Printable area" });
 const snapLayer = el("div", { className: "layer" });
 const boxLayer = el("div", { className: "layer boxes" });
@@ -210,7 +213,6 @@ const renderOverlay = () => {
 
 let drag = null;
 let dragSeq = 0;
-let activeGuides = [];
 const marqueeEl = el("div", { className: "marquee", hidden: true });
 overlay.append(marqueeEl);
 
@@ -365,22 +367,8 @@ const panPicture = (dx, dy, free, threshold) => {
 	);
 };
 
-overlay.addEventListener("pointermove", (ev) => {
-	if (!drag) return;
-	if (drag.kind === "marquee") return updateMarquee(ev);
-	// A few pixels of slack, so a tap or click doesn't shift what it lands on.
-	if (!drag.moved && Math.hypot(ev.clientX - drag.startX, ev.clientY - drag.startY) < DRAG_SLACK_PX)
-		return;
-	drag.moved = true;
-	// Alt turns off all snapping, for fine placement.
-	const free = ev.altKey;
-	const grid = (v) => (free ? round(v, 3) : Math.round(v / SNAP_MM) * SNAP_MM);
-	const dx = (ev.clientX - drag.startX) * drag.mmPerPx;
-	const dy = (ev.clientY - drag.startY) * drag.mmPerPx;
-	const threshold = GUIDE_PX * drag.mmPerPx;
-	if (drag.kind === "move") return moveSelection(dx, dy, free, grid, threshold);
-	if (drag.kind === "pan") return panPicture(dx, dy, free, threshold);
-
+/** Resizes the lone selection by its dragged handle, snapping each moved edge. */
+const resizeElement = (dx, dy, free, grid, threshold) => {
 	const o = drag.orig[drag.id];
 	const min = LIMITS.elementMinMm;
 	let { x, y, w, h } = o;
@@ -420,6 +408,24 @@ overlay.addEventListener("pointermove", (ev) => {
 		{ x: round(x, 3), y: round(y, 3), w: round(w, 3), h: round(h, 3) },
 		drag.group,
 	);
+};
+
+overlay.addEventListener("pointermove", (ev) => {
+	if (!drag) return;
+	if (drag.kind === "marquee") return updateMarquee(ev);
+	// A few pixels of slack, so a tap or click doesn't shift what it lands on.
+	if (!drag.moved && Math.hypot(ev.clientX - drag.startX, ev.clientY - drag.startY) < DRAG_SLACK_PX)
+		return;
+	drag.moved = true;
+	// Alt turns off all snapping, for fine placement.
+	const free = ev.altKey;
+	const grid = (v) => (free ? round(v, 3) : Math.round(v / SNAP_MM) * SNAP_MM);
+	const dx = (ev.clientX - drag.startX) * drag.mmPerPx;
+	const dy = (ev.clientY - drag.startY) * drag.mmPerPx;
+	const threshold = GUIDE_PX * drag.mmPerPx;
+	if (drag.kind === "move") return moveSelection(dx, dy, free, grid, threshold);
+	if (drag.kind === "pan") return panPicture(dx, dy, free, threshold);
+	resizeElement(dx, dy, free, grid, threshold);
 });
 
 const endDrag = () => {
@@ -457,12 +463,10 @@ overlay.addEventListener("dblclick", (ev) => {
 	}
 });
 
-subscribe(() => {
+const redraw = () => {
 	renderOverlay();
 	scheduleCanvas();
-});
+};
+subscribe(redraw);
 // Typing starts with the fields in that text shown as typed, and ends with them filled in.
-onEditingChange(() => {
-	renderOverlay();
-	scheduleCanvas();
-});
+onEditingChange(redraw);

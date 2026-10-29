@@ -188,7 +188,7 @@ rail.addEventListener("pointermove", (ev) => {
 	if (!railDrag.ghost) {
 		if (Math.hypot(ev.clientX - railDrag.startX, ev.clientY - railDrag.startY) < DRAG_SLACK_PX)
 			return;
-		railDrag.ghost = el("div", { className: "rail-ghost" });
+		railDrag.ghost = el("div", { className: "rail-ghost floating" });
 		railDrag.ghost.append($("svg", railDrag.button).cloneNode(true));
 		document.body.append(railDrag.ghost);
 	}

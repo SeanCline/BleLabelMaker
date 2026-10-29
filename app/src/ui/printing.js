@@ -17,11 +17,12 @@ import {
 	renderPrinterStatus,
 	reportPrintError,
 } from "./printer-menu.js";
+import { signal } from "./signal.js";
 
 let busy = false;
-const printListeners = new Set();
+const printed = signal();
 /** Called after every print that got labels out, with { copies, target, image }. */
-export const onPrinted = (fn) => printListeners.add(fn);
+export const onPrinted = printed.on;
 
 const currentCopies = () => clamp(Math.round(Number($("#copies").valueAsNumber) || 1), 1, 99);
 
@@ -79,7 +80,7 @@ const finishPrint = ({ labels, nextCounter, image }) => {
 		renderPrintBar();
 		refreshPreview();
 	}
-	for (const fn of printListeners) fn({ copies: labels, target: settings.target, image });
+	printed.emit({ copies: labels, target: settings.target, image });
 };
 
 /**

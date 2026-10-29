@@ -4,6 +4,7 @@ import { parse, serialize } from "../fileformat.js";
 import { History } from "../history.js";
 import { loadText, storeJson } from "./dom.js";
 import { storageKey } from "../app-info.js";
+import { signal } from "./signal.js";
 
 const AUTOSAVE_KEY = storageKey("autosave");
 
@@ -41,11 +42,11 @@ state.selectedIds = orFirst(state.selectedIds, state.doc);
 const snapshot = () => ({ doc: state.doc });
 export const history = new History(snapshot());
 
-const listeners = new Set();
+const changed = signal();
 /** Listeners run after every state change; they re-render whatever they own. */
-export const subscribe = (fn) => listeners.add(fn);
+export const subscribe = changed.on;
 export const notify = () => {
-	for (const fn of listeners) fn(state);
+	changed.emit(state);
 	scheduleAutosave();
 };
 

@@ -29,7 +29,8 @@ const model = (name, more = {}) => ({
 /** @type {import("../index.js").PrinterModel[]} */
 export const MODELS = [
 	model("D30", { tested: true }),
-	// These print exactly like the D30. What each calls itself over Bluetooth is a guess from its name.
+	// These print exactly like the D30. What each calls itself over Bluetooth is a guess from
+	// its name.
 	...["D10", "D20", "D30 Pro", "D30s", "D35", "Q30", "V30D"].map((name) => model(name)),
 	// The D30's print sequence with different continuous-paper feeds.
 	model("A30", { feedLines: 12, feedAfter: "last", presets: D_SERIES_ALL }),

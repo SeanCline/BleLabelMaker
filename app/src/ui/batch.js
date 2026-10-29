@@ -5,15 +5,15 @@
 import { parseBatch } from "../batch.js";
 import { $, loadJson, storeJson, toast } from "./dom.js";
 import { storageKey } from "../app-info.js";
+import { signal } from "./signal.js";
 
 const KEY = storageKey("batch");
 const saved = { text: "", headings: false, csv: false, ...loadJson(KEY) };
 let preview = 0;
 let parsed = parseBatch(saved.text, saved);
-const listeners = new Set();
-
+const batchChanged = signal();
 /** Called when the list or the previewed row changes. */
-export const onBatchChange = (fn) => listeners.add(fn);
+export const onBatchChange = batchChanged.on;
 
 /** The rows to print, or null when the list is empty (a normal print). */
 export const batchData = () => (parsed.rows.length ? parsed : null);
@@ -24,7 +24,7 @@ const changed = () => {
 	parsed = parseBatch(saved.text, saved);
 	storeJson(KEY, saved);
 	render();
-	for (const fn of listeners) fn();
+	batchChanged.emit();
 };
 
 const render = () => {
@@ -95,7 +95,7 @@ $("#batchFile").addEventListener("change", async (ev) => {
 const step = (d) => {
 	preview = Math.max(0, Math.min(parsed.rows.length - 1, previewRow() + d));
 	render();
-	for (const fn of listeners) fn();
+	batchChanged.emit();
 };
 $("#batchPrev").addEventListener("click", () => step(-1));
 $("#batchNext").addEventListener("click", () => step(1));

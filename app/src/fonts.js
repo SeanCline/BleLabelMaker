@@ -92,7 +92,10 @@ const GENERIC = new Set(["sans-serif", "serif", "monospace"]);
 
 export const fontInfo = (family) => FONTS.find((f) => f.family === family);
 
-/** Families saved in a file may not be in our list (hand-edited, or removed later); treat as system fonts. */
+/**
+ * Families saved in a file may not be in our list (hand-edited, or removed later); treat as
+ * system fonts.
+ */
 export const weightsFor = (family) => fontInfo(family)?.weights ?? [400, 700];
 
 export const nearestWeight = (family, weight) =>

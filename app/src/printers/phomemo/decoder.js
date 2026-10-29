@@ -2,8 +2,9 @@
 /** @typedef {{type: string, [detail: string]: any}} PrinterEvent */
 
 /**
- * Streaming parser for the subset of ESC/POS Phomemo D-series printers understand. It is fed BLE packets
- * exactly as the printer would receive them, so commands may straddle packet boundaries.
+ * Streaming parser for the subset of ESC/POS Phomemo D-series printers understand. It is fed
+ * BLE packets exactly as the printer would receive them, so commands may straddle packet
+ * boundaries.
  */
 export class PrinterDecoder {
 	/**

@@ -30,14 +30,14 @@
 			<img class="logo" src="icons/icon.svg" alt="" width="28" height="28" />
 			<h1 data-app="name">BLE Label Maker</h1>
 			<details class="menu" id="fileMenu">
-				<summary class="file-button" aria-label="File">
+				<summary class="file-button bar-button" aria-label="File">
 					<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#file" /></svg
 					><span class="file-word">File</span
 					><svg class="icon chevron" aria-hidden="true">
 						<use href="icons/ui.svg#chevron-down" />
 					</svg>
 				</summary>
-				<div class="menu-list">
+				<div class="menu-list floating">
 					<button id="btnNew" title="Start a new label, blank or from a template">
 						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#file-plus" /></svg> New…
 					</button>
@@ -71,7 +71,7 @@
 					<span class="chip-dot" aria-hidden="true"></span
 					><span id="printerChipLabel">Printer</span>
 				</summary>
-				<div class="menu-panel">
+				<div class="menu-panel floating">
 					<label>
 						Printer
 						<select id="target">
@@ -105,28 +105,31 @@
 						<summary>More printer settings</summary>
 
 						<div class="advanced-body">
-							<label
+							<label class="row"
 								><input type="checkbox" id="setFlip" /> Flip 180° (use if labels print upside
 								down)</label
 							>
-							<label id="setPrinterRow" title="Picked up from the printer's name when one connects"
+							<label
+								class="row"
+								id="setPrinterRow"
+								title="Picked up from the printer's name when one connects"
 								>Printer model
 								<select id="setPrinter"></select
 							></label>
-							<label
+							<label class="row"
 								>Feed after continuous label
 								<input type="number" id="setFeed" min="0" max="255" step="1" /> dot lines
 								<span class="hint" id="setFeedDefault"></span>
 								<button type="button" id="setFeedReset" hidden>Reset</button></label
 							>
-							<label id="setAutoPowerRow"
+							<label class="row" id="setAutoPowerRow"
 								>Turn the printer off after
 								<select id="setAutoPower">
 									<option value="">(as set on the printer)</option>
 								</select>
 								<span class="hint">experimental</span></label
 							>
-							<label
+							<label class="row"
 								><input type="checkbox" id="setAllDevices" /> Show all Bluetooth devices in
 								picker</label
 							>
@@ -143,7 +146,11 @@
 				</div>
 			</details>
 			<!-- A label for each line of a list: beside Print, since it's what a print makes. -->
-			<button id="btnBatch" class="batch-button" title="Print a label for each line of a list">
+			<button
+				id="btnBatch"
+				class="batch-button bar-button"
+				title="Print a label for each line of a list"
+			>
 				<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#table" /></svg
 				><span class="batch-word">Batch</span
 				><span class="batch-count" id="batchCount" hidden></span>
@@ -159,7 +166,7 @@
 						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#chevron-down" /></svg
 						><span class="sr-only">Print options</span>
 					</summary>
-					<div class="menu-panel">
+					<div class="menu-panel floating">
 						<label>
 							Copies
 							<input type="number" id="copies" min="1" max="99" value="1" />
@@ -179,14 +186,14 @@
 		</header>
 
 		<main class="layout">
-			<section class="workspace">
+			<section class="workspace stack">
 				<div class="canvas-area">
 					<details class="menu label-menu" id="labelMenu">
 						<summary id="labelChip" title="Label size">
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#tag" /></svg
 							><span id="labelChipText"></span>
 						</summary>
-						<div class="menu-panel">
+						<div class="menu-panel floating">
 							<label>
 								Label
 								<select id="labelPreset"></select>
@@ -229,7 +236,7 @@
 							<span class="hint" id="labelInfo"></span>
 						</div>
 					</details>
-					<div class="rail" aria-label="Add to the label">
+					<div class="rail floating" aria-label="Add to the label">
 						<button
 							id="addText"
 							data-add="text"
@@ -333,7 +340,7 @@
 							</button>
 						</span>
 					</div>
-					<div class="batch-nav" id="batchNav" hidden>
+					<div class="batch-nav floating" id="batchNav" hidden>
 						<button id="batchEdit" class="link" title="Edit the batch list">
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#table" /></svg
 							><span id="batchPos" aria-live="polite"></span>
@@ -356,17 +363,17 @@
 				</div>
 				<!-- The selected element's essentials, above it on the label; "More…" opens the rest. -->
 				<div
-					class="quickbar"
+					class="quickbar floating row"
 					id="quickbar"
 					data-panel="quick"
 					role="toolbar"
 					aria-label="Quick settings"
 					hidden
 				>
-					<span class="qb-group qb-empty" data-qb="empty">
+					<span class="qb-group qb-empty row" data-qb="empty">
 						<span id="barHint"></span>
 					</span>
-					<span class="qb-group" data-qb="text">
+					<span class="qb-group row" data-qb="text">
 						<span class="segmented small" role="group" aria-label="Text style">
 							<button data-style="fontWeight" title="Bold (Ctrl+B)" aria-label="Bold">
 								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#bold" /></svg>
@@ -432,7 +439,7 @@
 							<span class="qb-label">Done</span>
 						</button>
 					</span>
-					<span class="qb-group" data-qb="shape">
+					<span class="qb-group row" data-qb="shape">
 						<span class="segmented small" data-radio="shape" role="group" aria-label="Shape">
 							<button data-value="rect">Box</button>
 							<button data-value="ellipse">Circle</button>
@@ -453,7 +460,7 @@
 							<span class="qb-label">Filled</span>
 						</button>
 					</span>
-					<span class="qb-group" data-qb="barcode">
+					<span class="qb-group row" data-qb="barcode">
 						<input
 							type="text"
 							data-prop="data"
@@ -467,7 +474,7 @@
 							<option value="UPCA">UPC-A</option>
 						</select>
 					</span>
-					<span class="qb-group" data-qb="qr">
+					<span class="qb-group row" data-qb="qr">
 						<input
 							type="text"
 							data-prop="data"
@@ -486,7 +493,7 @@
 							<option value="H">High</option>
 						</select>
 					</span>
-					<span class="qb-group" data-qb="image">
+					<span class="qb-group row" data-qb="image">
 						<span class="segmented small" data-radio="mode" role="group" aria-label="Image style">
 							<button data-value="dither" title="Dither: shades as dots, best for photos">
 								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#dither" /></svg>
@@ -511,7 +518,7 @@
 							title="Darkness"
 						/>
 					</span>
-					<span class="qb-group" data-qb="multi">
+					<span class="qb-group row" data-qb="multi">
 						<span class="qb-count" id="multiCount"></span>
 						<span class="segmented small" role="group" aria-label="Align">
 							<button data-align="left" title="Line up left edges" aria-label="Line up left edges">
@@ -574,7 +581,7 @@
 							</button>
 						</span>
 					</span>
-					<span class="qb-group qb-common" data-qb="common">
+					<span class="qb-group qb-common row" data-qb="common">
 						<button
 							data-qb-action="duplicate"
 							class="icon-button"
@@ -638,7 +645,7 @@
 				</details>
 
 				<section class="virtual" id="virtualOut" hidden>
-					<div class="virtual-head">
+					<div class="title-row">
 						<h2>Virtual printer output</h2>
 						<button id="btnClearVirtual">Clear</button>
 					</div>
@@ -648,8 +655,14 @@
 			</section>
 
 			<!-- The batch list, opened from its button beside Print, or the field menu. -->
-			<aside class="sheet batch" id="batchSheet" role="dialog" aria-labelledby="batchTitle" hidden>
-				<div class="sheet-head">
+			<aside
+				class="sheet floating batch"
+				id="batchSheet"
+				role="dialog"
+				aria-labelledby="batchTitle"
+				hidden
+			>
+				<div class="sheet-head title-row">
 					<h2 id="batchTitle">Batch list <span class="hint" id="batchSummary"></span></h2>
 					<button id="batchClose" class="icon-button" aria-label="Close" title="Close">
 						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#x" /></svg>
@@ -685,17 +698,17 @@
 
 			<!-- Everything about the selected element, opened from the bar's "More…". -->
 			<aside
-				class="settings"
+				class="settings floating stack"
 				id="settings"
 				role="dialog"
 				aria-label="Settings"
 				tabindex="-1"
 				hidden
 			>
-				<div id="designPanel">
+				<div id="designPanel" class="stack">
 					<!-- Each setting is a row: its name, then its control, built from the bar's own
 					     pieces (button groups, icon toggles). A toggle is a button with data-prop. -->
-					<div id="textProps" class="props" data-panel="text" data-types="text" hidden>
+					<div id="textProps" class="props stack" data-panel="text" data-types="text" hidden>
 						<h3 class="section" id="textHeading">Text</h3>
 						<textarea
 							id="designText"
@@ -837,7 +850,7 @@
 						</div>
 					</div>
 
-					<div id="shapeProps" class="props" data-panel="shape" data-types="shape" hidden>
+					<div id="shapeProps" class="props stack" data-panel="shape" data-types="shape" hidden>
 						<h3 class="section">Shape</h3>
 						<label class="prop-row" data-show-for="rect">
 							Corners
@@ -857,7 +870,13 @@
 						<p class="hint" data-show-for="ellipse line">Its look is all on the bar.</p>
 					</div>
 
-					<div id="barcodeProps" class="props" data-panel="barcode" data-types="barcode" hidden>
+					<div
+						id="barcodeProps"
+						class="props stack"
+						data-panel="barcode"
+						data-types="barcode"
+						hidden
+					>
 						<h3 class="section">Barcode</h3>
 						<div class="prop-row">
 							<span id="captionLabel">Caption</span>
@@ -878,7 +897,7 @@
 						</p>
 					</div>
 
-					<div id="qrProps" class="props" data-panel="qr" data-types="qr" hidden>
+					<div id="qrProps" class="props stack" data-panel="qr" data-types="qr" hidden>
 						<h3 class="section" id="qrHeading">QR code</h3>
 						<textarea
 							data-prop="data"
@@ -893,7 +912,7 @@
 						</p>
 					</div>
 
-					<div id="imageProps" class="props" data-panel="image" data-types="image" hidden>
+					<div id="imageProps" class="props stack" data-panel="image" data-types="image" hidden>
 						<div class="section-head">
 							<h3 class="section">Picture</h3>
 							<button id="replaceImage" title="Choose another picture">
@@ -944,7 +963,7 @@
 
 					<p id="elementWarning" class="warning" role="status" hidden></p>
 
-					<div id="geomProps" class="props geom" data-panel="geom" data-types="*" hidden>
+					<div id="geomProps" class="props geom stack" data-panel="geom" data-types="*" hidden>
 						<div class="section-head">
 							<h3 class="section">Position &amp; size</h3>
 							<span class="unit">mm</span>
@@ -986,7 +1005,7 @@
 				<button type="button" class="link" id="btnReportProblem">Report a problem</button>
 				<details class="menu footer-menu">
 					<summary>Licenses</summary>
-					<div class="menu-list">
+					<div class="menu-list floating">
 						<a href="LICENSE.txt">This app</a>
 						<a href="fonts/LICENSE.txt">Fonts</a>
 						<a href="src/vendor/LICENSE.txt">QR code library</a>
@@ -1001,10 +1020,10 @@
 		</footer>
 
 		<dialog id="printedDialog" aria-labelledby="printedTitle">
-			<form method="dialog">
+			<form method="dialog" class="stack">
 				<h2 id="printedTitle">Did that print correctly?</h2>
 				<p id="printedText"></p>
-				<div class="dialog-actions">
+				<div class="dialog-actions row">
 					<button value="later">Not now</button>
 					<button value="problem">No, report a problem</button>
 					<button value="works" class="primary">Yes, confirm it works</button>
@@ -1013,7 +1032,7 @@
 		</dialog>
 
 		<dialog id="emojiDialog">
-			<form method="dialog">
+			<form method="dialog" class="stack">
 				<h2>Choose an emoji</h2>
 				<input
 					type="search"
@@ -1032,18 +1051,18 @@
 						<button value="custom" id="emojiCustomBtn">Use</button></span
 					>
 				</label>
-				<div class="dialog-actions"><button value="cancel">Cancel</button></div>
+				<div class="dialog-actions row"><button value="cancel">Cancel</button></div>
 			</form>
 		</dialog>
 
 		<dialog id="historyDialog" class="history-dialog" aria-labelledby="historyTitle">
-			<div class="history-head">
+			<div class="history-head row">
 				<h2 id="historyTitle">Print history</h2>
 				<span class="hint" id="historyCount"></span>
 				<span class="spacer"></span>
 				<form method="dialog"><button aria-label="Close">✕</button></form>
 			</div>
-			<div class="history-tools">
+			<div class="history-tools row">
 				<input
 					type="search"
 					id="historySearch"
@@ -1065,7 +1084,7 @@
 		</dialog>
 
 		<dialog id="newDialog" class="history-dialog" aria-labelledby="newTitle">
-			<div class="history-head">
+			<div class="history-head row">
 				<h2 id="newTitle">New label</h2>
 				<span class="hint" id="newLabelSize"></span>
 				<span class="spacer"></span>

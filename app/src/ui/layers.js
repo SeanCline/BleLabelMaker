@@ -2,7 +2,7 @@
 // for the keyboard) and, by each row's grip or Alt+arrows, to restack.
 import { $, $$, el, announce } from "./dom.js";
 import { contentOf, describeElement, typeName } from "./describe.js";
-import { state, history, commit, select, toggleSelected, subscribe } from "./store.js";
+import { state, history, commit, select, toggleSelected, subscribe, elementById } from "./store.js";
 
 const LAYER_KIND = { text: "T", shape: "▭", barcode: "║", qr: "▦", image: "▣" };
 
@@ -123,7 +123,7 @@ $("#layers").addEventListener("keydown", (ev) => {
 	ev.stopPropagation(); // arrows here pick an element; they don't nudge it
 	const target = items[Math.max(0, Math.min(items.length - 1, next))];
 	select(target.dataset.id);
-	announce(describeElement(state.doc.elements.find((e) => e.id === target.dataset.id)));
+	announce(describeElement(elementById(target.dataset.id)));
 });
 
 subscribe(renderLayers);

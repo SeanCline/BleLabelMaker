@@ -128,16 +128,20 @@ export const plainText = (s) => s.replace(/[\uFE0E\uFE0F]/g, "");
 export const layoutText = ({ text, width, height, fontSize, fit, measure, firstScale = 1 }) => {
 	const paragraphs = text.split("\n");
 	const paraStarts = [];
-	paragraphs.reduce((at, p) => (paraStarts.push(at), at + p.length + 1), 0);
+	let start = 0;
+	for (const p of paragraphs) {
+		paraStarts.push(start);
+		start += p.length + 1;
+	}
 	const sizeOf = (i, size) => (i === 0 ? size * firstScale : size);
-	const at = (size) => {
+	const layoutAt = (size) => {
 		const lines = [];
 		const sizes = [];
 		const starts = [];
 		paragraphs.forEach((p, i) => {
 			const s = sizeOf(i, size);
-			const at = paraStarts[i];
-			for (const line of wrapLines(p, width, (a, b) => measure(at + a, at + b, s))) {
+			const from = paraStarts[i];
+			for (const line of wrapLines(p, width, (a, b) => measure(from + a, from + b, s))) {
 				lines.push(line.text);
 				sizes.push(s);
 				starts.push(paraStarts[i] + line.start);
@@ -154,7 +158,7 @@ export const layoutText = ({ text, width, height, fontSize, fit, measure, firstS
 			height: total,
 		};
 	};
-	if (!fit) return at(fontSize);
+	if (!fit) return layoutAt(fontSize);
 
 	const fits = (size) => {
 		// A size that only fits by breaking words mid-word reads worse than a smaller one.
@@ -164,16 +168,16 @@ export const layoutText = ({ text, width, height, fontSize, fit, measure, firstS
 				return measure(from, from + w[0].length, sizeOf(i, size)) > width;
 			}),
 		);
-		return !broken && at(size).height <= height;
+		return !broken && layoutAt(size).height <= height;
 	};
 	// Binary search over size: fitting is monotonic enough in practice for wrapped text.
 	let lo = 1;
 	let hi = Math.max(2, height);
-	if (!fits(lo)) return at(lo);
+	if (!fits(lo)) return layoutAt(lo);
 	while (hi - lo > 0.25) {
 		const mid = (lo + hi) / 2;
 		if (fits(mid)) lo = mid;
 		else hi = mid;
 	}
-	return at(Math.floor(lo * 4) / 4);
+	return layoutAt(Math.floor(lo * 4) / 4);
 };

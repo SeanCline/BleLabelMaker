@@ -6,6 +6,7 @@ import { bluetoothAvailable, serialAvailable } from "../transport.js";
 import { dotScale } from "../units.js";
 import { loadJson, storeJson } from "./dom.js";
 import { storageKey } from "../app-info.js";
+import { signal } from "./signal.js";
 
 const KEY = storageKey("settings");
 const DENSITIES = ["light", "normal", "dark"];
@@ -35,9 +36,9 @@ if (!validFeed(settings.feedLines)) settings.feedLines = printerById(settings.pr
 
 export const saveSettings = () => storeJson(KEY, settings);
 
-const modelListeners = new Set();
+const modelChanged = signal();
 /** Called when the model being printed for changes. */
-export const onModelChange = (fn) => modelListeners.add(fn);
+export const onModelChange = modelChanged.on;
 
 /** The model being printed for: its label sizes, head, resolution and commands. */
 export const currentPrinter = () => printerById(settings.printer);
@@ -51,5 +52,5 @@ export const selectPrinter = (model) => {
 	settings.printer = model.id;
 	settings.feedLines = model.feedLines;
 	saveSettings();
-	for (const fn of modelListeners) fn(model);
+	modelChanged.emit(model);
 };

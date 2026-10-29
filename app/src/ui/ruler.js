@@ -93,8 +93,8 @@ const draw = (canvas, axis, lengthMm, pxPerMm, span, at) => {
 		const edgeLabel = (mm, side) => {
 			const text = String(round(mm, 1));
 			const width = ctx.measureText(text).width;
-			const at = mm * pxPerMm + (side < 0 ? -width - 3 : 3);
-			const x = Math.max(0, Math.min(along - width, at));
+			const wanted = mm * pxPerMm + (side < 0 ? -width - 3 : 3);
+			const x = Math.max(0, Math.min(along - width, wanted));
 			ctx.fillStyle = color("--surface");
 			ctx.fillRect(x - 1, SIZE - 12, width + 2, 12);
 			ctx.fillStyle = color("--select");

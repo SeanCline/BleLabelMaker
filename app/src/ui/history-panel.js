@@ -72,9 +72,9 @@ const setEntries = (next) => {
 
 onPrinted(async ({ copies, target }) => {
 	// Captured now: by the time the stored history has loaded, the design may have changed.
-	const print = { doc: state.doc, copies, target };
+	const printed = { doc: state.doc, copies, target };
 	await historyReady;
-	setEntries(recordPrint(entries, print));
+	setEntries(recordPrint(entries, printed));
 	keepStorage();
 	if (dialog.open) renderList();
 });
@@ -140,7 +140,7 @@ const renderList = () => {
 				),
 				el(
 					"div",
-					{ className: "entry-actions" },
+					{ className: "entry-actions row" },
 					el("button", { dataset: { action: "open" } }, "Open"),
 					el(
 						"button",
