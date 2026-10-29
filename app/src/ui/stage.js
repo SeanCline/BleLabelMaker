@@ -64,17 +64,23 @@ export const previewDocument = () =>
 	// The text being typed on the label stays as typed, so the caret lines up with it.
 	fillDocument(state.doc, fieldContext(), { except: inlineEdit()?.id });
 
+// The newest render. One that a newer render overtakes resolves with it instead, so waiting on
+// any render waits until the canvas shows the document as it is now.
+let latestRender = Promise.resolve();
+
 /** Resolves once the canvas shows the current document with its real fonts. */
-export const drawCanvas = async () => {
+export const drawCanvas = () => (latestRender = render());
+
+const render = async () => {
 	const token = ++renderToken;
 	const doc = previewDocument();
 	await ensureFontsFor(doc);
-	if (token !== renderToken) return;
+	if (token !== renderToken) return latestRender;
 	// Off-screen first: a render that waits on an image can overlap a newer one, and two
 	// renders sharing the visible canvas would leave pieces of the older label on it.
 	const scratch = document.createElement("canvas");
 	const result = await renderLabel(doc, scratch, { dots: currentScale() });
-	if (token !== renderToken) return;
+	if (token !== renderToken) return latestRender;
 	({ fittedSizes: fitted, warnings } = result);
 	if (canvas.width !== scratch.width) canvas.width = scratch.width;
 	if (canvas.height !== scratch.height) canvas.height = scratch.height;
