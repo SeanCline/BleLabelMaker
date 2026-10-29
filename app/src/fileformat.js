@@ -145,6 +145,8 @@ const OPTIONAL = Object.fromEntries(
 	}),
 );
 
+const EDGE = { left: 0, center: 0.5, right: 1, top: 0, middle: 0.5, bottom: 1 };
+
 /** @returns {import("./model.js").Element} */
 const checkElement = (raw, where) => {
 	if (!isObject(raw)) throw new LabelFileError(`${where} is not an object.`);
@@ -226,8 +228,9 @@ const checkElement = (raw, where) => {
 			level: Math.round(level),
 			invert: bool(e.invert, `${where} invert`),
 			fit: oneOf(e.fit, IMAGE_FITS, `${where} fit`),
-			align: oneOf(e.align, ALIGN, `${where} alignment`),
-			vAlign: oneOf(e.vAlign, VALIGN, `${where} vertical alignment`),
+			// Earlier files could only put a picture against an edge or in the middle.
+			panX: "panX" in raw ? num(raw.panX, `${where} position`, [0, 1]) : (EDGE[raw.align] ?? 0.5),
+			panY: "panY" in raw ? num(raw.panY, `${where} position`, [0, 1]) : (EDGE[raw.vAlign] ?? 0.5),
 		};
 	}
 	throw new LabelFileError(`${where} has unknown type “${e.type}”.`);

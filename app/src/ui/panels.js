@@ -57,6 +57,11 @@ const weightOptions = (sel, element) => {
 export const syncProps = (root, element) => {
 	for (const input of $$("[data-prop]", root)) {
 		const prop = input.dataset.prop;
+		// A toggle has no cursor to fight, and keeps the focus once pressed.
+		if (input instanceof HTMLButtonElement) {
+			input.setAttribute("aria-pressed", String(!!element[prop]));
+			continue;
+		}
 		// Don't fight the user's cursor, or a slider a finger is dragging (it doesn't take focus).
 		if (document.activeElement === input || input.matches(":active")) continue;
 		if (prop === "fontWeight") {
@@ -79,8 +84,6 @@ export const syncProps = (root, element) => {
 			);
 		}
 	}
-	const italic = $('[data-prop="italic"]', root);
-	if (italic) italic.disabled = !(fontInfo(element.fontFamily)?.italic ?? true);
 	for (const node of $$("[data-show-for]", root)) {
 		node.hidden = !node.dataset.showFor.split(" ").includes(element.shape);
 	}
@@ -88,6 +91,11 @@ export const syncProps = (root, element) => {
 	// Only worth offering while there's an emoji to print.
 	for (const node of $$("[data-show-if-emoji]", root))
 		node.hidden = !hasEmoji(textOf(element.text ?? ""));
+	// A stretched picture fills its box both ways, so it has nowhere to move to. Disabled
+	// rather than hidden, so the panel doesn't jump while trying Fit, Fill and Stretch.
+	if (element.type === "image")
+		$("#centreImage").disabled =
+			element.fit === "stretch" || (element.panX === 0.5 && element.panY === 0.5);
 };
 
 /** A family from a loaded file that the list doesn't have is shown, not silently switched. */
@@ -130,6 +138,33 @@ const coerce = (input) => {
 /** The element a settings section (or the bar) edits: the one selected. */
 export const targetFor = (_root) => selected();
 
+/** What setting `prop` to `value` changes on `e`, with what has to change along with it. */
+const patchFor = (e, prop, value) => {
+	const patch = { [prop]: value };
+	// Typing a size means that size, so it stops fitting.
+	if (prop === "fontSizePt")
+		Object.assign(patch, { fontSizePt: clamp(value, ...LIMITS.fontSizePt), fit: false });
+	if (prop === "letterSpacingPt") patch.letterSpacingPt = clamp(value, ...LIMITS.letterSpacingPt);
+	if (prop === "w" || prop === "h") patch[prop] = Math.max(LIMITS.elementMinMm, value);
+	if (prop === "fontFamily" && e.type === "text") {
+		patch.fontWeight = nearestWeight(value, e.fontWeight);
+		const italic = fontInfo(value)?.italic ?? true;
+		if (!italic) patch.italic = false;
+		// Formatted words too: a bold word stays as bold as the new face allows.
+		patch.text = mapStyles(e.text, ({ fontWeight, italic: slanted, ...rest }) => ({
+			...rest,
+			...(fontWeight !== undefined && { fontWeight: nearestWeight(value, fontWeight) }),
+			...(italic && slanted !== undefined && { italic: slanted }),
+		}));
+	}
+	// Setting it for the whole box sets it for every word in it.
+	if (STYLE_PROPS.includes(prop) && e.type === "text") patch.text = clearStyle(e.text, prop);
+	// Turning fit off should keep what the user was looking at, not jump back to an old size.
+	if (prop === "fit" && !value && fittedSizes().has(e.id))
+		patch.fontSizePt = round(fittedSizes().get(e.id), 1);
+	return patch;
+};
+
 const onPropInput = (ev) => {
 	const input = ev.target.closest("[data-prop]");
 	if (!input) return;
@@ -144,55 +179,41 @@ const onPropInput = (ev) => {
 	const value = coerce(input);
 	if (typeof value === "number" && !Number.isFinite(value)) return; // mid-typing, e.g. "-"
 
-	const patch = { [prop]: value };
-	// Typing a size means that size, so it stops fitting.
-	if (prop === "fontSizePt")
-		Object.assign(patch, { fontSizePt: clamp(value, ...LIMITS.fontSizePt), fit: false });
-	if (prop === "letterSpacingPt") patch.letterSpacingPt = clamp(value, ...LIMITS.letterSpacingPt);
-	if (prop === "w" || prop === "h") patch[prop] = Math.max(LIMITS.elementMinMm, value);
-	if (prop === "text" && e.type === "text")
-		patch.text = retext(e.text, String(value), { caret: input.selectionEnd });
-	if (prop === "fontFamily" && e.type === "text") {
-		patch.fontWeight = nearestWeight(value, e.fontWeight);
-		const italic = fontInfo(value)?.italic ?? true;
-		if (!italic) patch.italic = false;
-		// Formatted words too: a bold word stays as bold as the new face allows.
-		patch.text = mapStyles(e.text, ({ fontWeight, italic: slanted, ...rest }) => ({
-			...rest,
-			...(fontWeight !== undefined && { fontWeight: nearestWeight(value, fontWeight) }),
-			...(italic && slanted !== undefined && { italic: slanted }),
-		}));
-	}
-	// Setting it for the whole box sets it for every word in it.
-	if (STYLE_PROPS.includes(prop) && e.type === "text") patch.text = clearStyle(e.text, prop);
-	// …but while typing, the words selected get it, as with the bar's B.
+	// While typing, the words selected get a weight picked, as with the bar's B.
 	const words = prop === "fontWeight" && e.type === "text" && typedSelection(e);
 	if (words) {
 		updateElement(e.id, { text: setStyle(e.text, words.from, words.to, prop, value) });
 		history.seal();
 		return;
 	}
-	// Turning fit off should keep what the user was looking at, not jump back to an old size.
-	if (prop === "fit" && !value && fittedSizes().has(e.id))
-		patch.fontSizePt = round(fittedSizes().get(e.id), 1);
+	const patch = patchFor(e, prop, value);
+	if (prop === "text" && e.type === "text")
+		patch.text = retext(e.text, String(value), { caret: input.selectionEnd });
 	updateElement(e.id, patch, `${e.id}:${prop}`);
 };
 
-const radioValue = (group, raw) => (group.dataset.radioType === "number" ? Number(raw) : raw);
+const radioValue = (group, raw) =>
+	({ number: Number(raw), bool: raw === "true" })[group.dataset.radioType] ?? raw;
 
 for (const root of $$("[data-panel]")) {
 	root.addEventListener("input", onPropInput);
 	root.addEventListener("change", () => history.seal());
 	root.addEventListener("click", (ev) => {
-		const b = ev.target.closest("[data-radio] button");
-		if (!b) return;
-		const group = b.closest("[data-radio]");
 		const e = targetFor(root);
-		if (!e) return;
+		// A toggle: a button that names its property, on or off.
+		const toggle = ev.target.closest("button[data-prop]");
+		if (toggle && e) {
+			updateElement(e.id, patchFor(e, toggle.dataset.prop, !e[toggle.dataset.prop]));
+			history.seal();
+			return;
+		}
+		const b = ev.target.closest("[data-radio] button");
+		if (!b || !e) return;
+		const group = b.closest("[data-radio]");
 		const prop = group.dataset.radio;
 		const value = radioValue(group, b.dataset.value);
 		if (prop === "rotation") rotateElement(e, value);
-		else updateElement(e.id, { [prop]: value });
+		else updateElement(e.id, patchFor(e, prop, value));
 		history.seal();
 	});
 }

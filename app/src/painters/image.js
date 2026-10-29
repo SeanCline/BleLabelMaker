@@ -4,21 +4,49 @@ import { drawUnavailable } from "./common.js";
 
 // Decoded images, keyed by data URL, so dragging an image doesn't re-decode it every frame.
 const imageCache = new Map();
+// Their sizes once decoded, for placing the handle that pans one, which can't wait.
+const sizes = new Map();
 const IMAGE_CACHE_SIZE = 24;
 const loadImage = (src) => {
 	let p = imageCache.get(src);
 	if (!p) {
 		p = new Promise((resolve, reject) => {
 			const img = new Image();
-			img.onload = () => resolve(img);
+			img.onload = () => {
+				sizes.set(src, { w: img.naturalWidth, h: img.naturalHeight });
+				resolve(img);
+			};
 			img.onerror = () => reject(new Error("This image couldn't be read."));
 			img.src = src;
 		});
 		imageCache.set(src, p);
-		if (imageCache.size > IMAGE_CACHE_SIZE) imageCache.delete(imageCache.keys().next().value);
+		if (imageCache.size > IMAGE_CACHE_SIZE) {
+			const oldest = imageCache.keys().next().value;
+			imageCache.delete(oldest);
+			sizes.delete(oldest);
+		}
 	}
 	return p;
 };
+
+/**
+ * Where the picture goes in its box (in the box's own, unrotated frame), whatever units the box
+ * is in: fitted by `fit`, then placed by `panX` and `panY`.
+ * @param {{w: number, h: number}} box
+ * @param {{w: number, h: number}} size the picture's own
+ */
+export const pictureFrame = (e, box, size) => {
+	const sx = box.w / size.w;
+	const sy = box.h / size.h;
+	// contain keeps the whole picture, cover fills the box and crops; both keep proportions.
+	const scale = e.fit === "cover" ? Math.max(sx, sy) : Math.min(sx, sy);
+	const w = e.fit === "stretch" ? box.w : size.w * scale;
+	const h = e.fit === "stretch" ? box.h : size.h * scale;
+	return { x: (box.w - w) * e.panX, y: (box.h - h) * e.panY, w, h };
+};
+
+/** The picture's size, once it has been drawn; null before then. */
+export const pictureSize = (src) => sizes.get(src) ?? null;
 
 export const drawImageElement = async (ctx, e, box) => {
 	let img;
@@ -29,17 +57,7 @@ export const drawImageElement = async (ctx, e, box) => {
 		// Not cached: the next render tries loading the image again.
 		return { ...drawUnavailable(ctx, box, err.message), retry: true };
 	}
-	const { naturalWidth: iw, naturalHeight: ih } = img;
-	const sx = box.w / iw;
-	const sy = box.h / ih;
-	// contain keeps the whole picture, cover fills the box and crops; both keep proportions.
-	const scale = e.fit === "cover" ? Math.max(sx, sy) : Math.min(sx, sy);
-	const w = e.fit === "stretch" ? box.w : iw * scale;
-	const h = e.fit === "stretch" ? box.h : ih * scale;
-	// The anchor places a letterboxed picture, or picks which part of a cropped one shows.
-	const at = { left: 0, top: 0, center: 0.5, middle: 0.5, right: 1, bottom: 1 };
-	const x = (box.w - w) * at[e.align ?? "center"];
-	const y = (box.h - h) * at[e.vAlign ?? "middle"];
+	const { x, y, w, h } = pictureFrame(e, box, { w: img.naturalWidth, h: img.naturalHeight });
 	ctx.imageSmoothingEnabled = true;
 	ctx.imageSmoothingQuality = "high";
 	ctx.save();

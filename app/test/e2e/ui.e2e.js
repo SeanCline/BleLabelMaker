@@ -133,7 +133,7 @@ test("emoji in text: the picker inserts at the cursor, and emoji print as crisp 
 		t.focus();
 		t.setSelectionRange(2, 2);
 	});
-	await page.click("#textProps .insert-emoji");
+	await page.click("#quickbar .insert-emoji");
 	// The picker's emoji carry U+FE0F, so they show in colour there; the text doesn't keep it.
 	await pick("❄\uFE0F");
 	assert.equal(await text(), "Te❄xt");
@@ -153,7 +153,7 @@ test("emoji in text: the picker inserts at the cursor, and emoji print as crisp 
 		t.focus();
 		t.setSelectionRange(0, 0);
 	});
-	await page.click("#textProps .insert-emoji");
+	await page.click("#quickbar .insert-emoji");
 	await page.type("#emojiSearch", "jar");
 	assert.equal(await page.$$eval("#emojiGrid button", (b) => b.length), 1);
 	await page.keyboard.press("Enter");
@@ -499,7 +499,7 @@ test("letter spacing, underline, outline, stacked and image fit each change the 
 	};
 	await typeInto(page, "#designText", "Ab");
 	await openSettings(page);
-	await page.click('#textProps [data-prop="fit"]'); // fixed size, so spacing shows as width
+	await page.click('#textProps [data-radio="fit"] [data-value="false"]'); // spacing shows as width
 	await typeInto(page, '#quickbar [data-prop="fontSizePt"]', "24");
 	const plain = await pixels();
 	await typeInto(page, '#textProps [data-prop="letterSpacingPt"]', "6");
@@ -509,6 +509,11 @@ test("letter spacing, underline, outline, stacked and image fit each change the 
 	assert.ok((await pixels()).black > plain.black, "underline adds ink");
 	await page.click('#quickbar [data-style="underline"]');
 	await page.click('#textProps [data-prop="outline"]');
+	assert.equal(
+		await page.$eval('#textProps [data-prop="outline"]', (b) => b.getAttribute("aria-pressed")),
+		"true",
+		"the toggle shows it's on, though it has the focus",
+	);
 	const outlined = await pixels();
 	assert.notEqual(outlined.hash, plain.hash, "outline draws differently");
 	assert.ok(Math.abs(outlined.width - plain.width) <= 4, "and at the same size");
@@ -594,7 +599,8 @@ test("fit to label shows the fitted size in the size box; typing a size stops fi
 	const page = await env.open();
 	const size = '#quickbar [data-prop="fontSizePt"]';
 	await typeInto(page, "#designText", "Hi");
-	await typeInto(page, '#textProps [data-prop="fit"]', true);
+	await openSettings(page);
+	await page.click('#textProps [data-radio="fit"] [data-value="true"]');
 	await redraw(page);
 	const stored = (await appState(page)).doc.elements[0].fontSizePt;
 	const shown = Number(await page.$eval(size, (i) => i.value));
@@ -605,7 +611,8 @@ test("fit to label shows the fitted size in the size box; typing a size stops fi
 	await typeInto(page, size, "10");
 	const text = (await appState(page)).doc.elements[0];
 	assert.deepEqual([text.fit, text.fontSizePt], [false, 10]);
-	assert.equal(await page.$eval('#textProps [data-prop="fit"]', (c) => c.checked), false);
+	const fixed = '#textProps [data-radio="fit"] [data-value="false"]';
+	assert.equal(await page.$eval(fixed, (b) => b.getAttribute("aria-pressed")), "true");
 	assert.deepEqual(page.errors, []);
 });
 
@@ -658,7 +665,7 @@ test("dithered emoji: offered only with an emoji in the text, and printed as pre
 	await typeInto(page, "#designText", "Hot 🔥");
 	assert.equal(await page.$eval(option, (l) => l.hidden), false);
 	await openSettings(page);
-	await page.click('#textProps [data-prop="ditherEmoji"]');
+	await page.click('#textProps [data-radio="ditherEmoji"] [data-value="true"]');
 	assert.equal((await appState(page)).doc.elements[0].ditherEmoji, true);
 	await printVirtual(page);
 	assert.equal(await previewMatchesPrint(page), true);

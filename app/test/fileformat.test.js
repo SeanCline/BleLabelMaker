@@ -146,6 +146,25 @@ test("images must be embedded data, never URLs", () => {
 	}
 });
 
+test("a picture's position is anywhere in its box; older files' edges and middle carry over", () => {
+	const doc = sampleDoc();
+	const png =
+		"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+	doc.elements.push(createImage(doc, { src: png, fit: "cover", panX: 0.25, panY: 1 }));
+	assert.deepEqual(parse(serialize(doc)).doc, doc);
+	const raw = JSON.parse(serialize(doc));
+	const image = raw.elements[3];
+	delete image.panX;
+	delete image.panY;
+	Object.assign(image, { align: "right", vAlign: "top" });
+	const loaded = /** @type {import("../src/model.js").ImageElement} */ (
+		parse(JSON.stringify(raw)).doc.elements[3]
+	);
+	assert.deepEqual([loaded.panX, loaded.panY, "align" in loaded], [1, 0, false]);
+	image.panX = 1.5;
+	assert.throws(() => parse(JSON.stringify(raw)), /position/);
+});
+
 test("copied elements round-trip through the clipboard format; other text is left alone", () => {
 	const doc = sampleDoc();
 	assert.deepEqual(parseElements(serializeElements(doc.elements)), doc.elements);

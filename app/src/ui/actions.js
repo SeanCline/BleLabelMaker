@@ -125,6 +125,12 @@ $("#replaceImage").addEventListener("click", () => {
 	replacing = selected()?.id ?? null;
 	$("#imageFile").click();
 });
+$("#centreImage").addEventListener("click", () => {
+	const e = selected();
+	if (e?.type !== "image") return;
+	updateElement(e.id, { panX: 0.5, panY: 0.5 });
+	history.seal();
+});
 $("#imageFile").addEventListener("change", async (ev) => {
 	const file = ev.target.files[0];
 	ev.target.value = "";

@@ -1,5 +1,6 @@
 import { LIMITS, printableArea, boundsOf } from "../model.js";
-import { renderLabel } from "../render.js";
+import { renderLabel, QUARTER } from "../render.js";
+import { pictureFrame, pictureSize } from "../painters/image.js";
 import { fillDocument } from "../fields.js";
 import { ensureFontsFor } from "../fonts.js";
 import { clamp, round } from "../units.js";
@@ -79,6 +80,9 @@ export const drawCanvas = async () => {
 	if (canvas.height !== scratch.height) canvas.height = scratch.height;
 	canvas.getContext("2d", { willReadFrequently: true }).drawImage(scratch, 0, 0);
 	canvas.setAttribute("aria-label", describeLabel(doc));
+	// A picture's size is known once it's drawn, and with it where its pan handle goes.
+	const picked = elementById(state.selectedId);
+	if (picked?.type === "image") syncBox(picked, state.doc.label);
 	sizeStage();
 	// The editor was laid out when the text changed, perhaps before a newly picked font had
 	// loaded or before the label's new length set its scale; now both are settled.
@@ -111,6 +115,26 @@ const boxLayer = el("div", { className: "layer boxes" });
 overlay.append(guideEl, snapLayer, boxLayer);
 const boxEls = new Map();
 
+/**
+ * Where a picture's pan handle goes: on the picture's centre, kept inside the box, in mm from
+ * the box's corner. Null when there's no room to pan it, or its size isn't known yet. `slack`
+ * is the room in the picture's own frame (negative when it's cropped), and `turn` maps a
+ * movement on the label into that frame.
+ */
+const panSpot = (e) => {
+	const size = e.type === "image" && e.fit !== "stretch" && pictureSize(e.src);
+	if (!size) return null;
+	const quarter = ((e.rotation ?? 0) / 90) % 4;
+	const local = quarter % 2 ? { w: e.h, h: e.w } : { w: e.w, h: e.h };
+	const f = pictureFrame(e, local, size);
+	const slack = { x: local.w - f.w, y: local.h - f.h };
+	if (Math.abs(slack.x) < 0.05 && Math.abs(slack.y) < 0.05) return null;
+	const cx = clamp(f.x + f.w / 2, 0, local.w);
+	const cy = clamp(f.y + f.h / 2, 0, local.h);
+	const [a, b, c, d, tx, ty] = QUARTER[quarter](e.w, e.h);
+	return { x: a * cx + c * cy + tx, y: b * cx + d * cy + ty, slack, turn: [a, b, c, d] };
+};
+
 const syncBox = (e, label) => {
 	let box = boxEls.get(e.id);
 	if (!box) {
@@ -126,6 +150,18 @@ const syncBox = (e, label) => {
 	if (wantHandles && !hasHandles)
 		box.append(...HANDLES.map((dir) => el("div", { className: "handle", dataset: { dir } })));
 	if (!wantHandles && hasHandles) box.replaceChildren();
+	const spot = wantHandles && panSpot(e);
+	let pan = box.querySelector(".pan");
+	if (spot && !pan) {
+		pan = el("div", {
+			className: "pan",
+			title: "Drag to move the picture in its box",
+			dataset: { dir: "pan" },
+		});
+		box.append(pan);
+	}
+	if (spot) Object.assign(pan.style, { left: pct(spot.x, e.w), top: pct(spot.y, e.h) });
+	else pan?.remove();
 	return box;
 };
 
@@ -196,6 +232,26 @@ overlay.addEventListener("pointerdown", (ev) => {
 		return;
 	}
 	const id = boxEl.dataset.id;
+	if (ev.target.dataset.dir === "pan" && !additive) {
+		// The dot is only ever on a picture.
+		const e = /** @type {import("../model.js").ImageElement} */ (elementById(id));
+		const spot = panSpot(e);
+		drag = {
+			kind: "pan",
+			id,
+			startX: ev.clientX,
+			startY: ev.clientY,
+			mmPerPx: at.mmPerPx,
+			orig: { panX: e.panX, panY: e.panY },
+			slack: spot.slack,
+			turn: spot.turn,
+			group: `drag-${++dragSeq}`,
+			moved: false,
+		};
+		overlay.setPointerCapture(ev.pointerId);
+		ev.preventDefault();
+		return;
+	}
 	// A finger can't double-click comfortably: tapping text that's already selected types on it.
 	const tapToType =
 		ev.pointerType !== "mouse" &&
@@ -273,6 +329,29 @@ const moveSelection = (dx, dy, free, grid, threshold) => {
 	updateElements(patches, drag.group);
 };
 
+/**
+ * Moves a picture inside its box by as much as the pointer moved, as far as it goes, snapping
+ * to the middle and the edges.
+ */
+const panPicture = (dx, dy, free, threshold) => {
+	// Into the picture's own frame, which a rotated box turns.
+	const [a, b, c, d] = drag.turn;
+	const along = (p, delta, slack) => {
+		if (Math.abs(slack) < 0.05) return p;
+		let to = clamp(p + delta / slack, 0, 1);
+		if (!free) for (const t of [0, 0.5, 1]) if (Math.abs((to - t) * slack) < threshold) to = t;
+		return round(to, 4);
+	};
+	updateElement(
+		drag.id,
+		{
+			panX: along(drag.orig.panX, a * dx + b * dy, drag.slack.x),
+			panY: along(drag.orig.panY, c * dx + d * dy, drag.slack.y),
+		},
+		drag.group,
+	);
+};
+
 overlay.addEventListener("pointermove", (ev) => {
 	if (!drag) return;
 	if (drag.kind === "marquee") return updateMarquee(ev);
@@ -287,6 +366,7 @@ overlay.addEventListener("pointermove", (ev) => {
 	const dy = (ev.clientY - drag.startY) * drag.mmPerPx;
 	const threshold = GUIDE_PX * drag.mmPerPx;
 	if (drag.kind === "move") return moveSelection(dx, dy, free, grid, threshold);
+	if (drag.kind === "pan") return panPicture(dx, dy, free, threshold);
 
 	const o = drag.orig[drag.id];
 	const min = LIMITS.elementMinMm;

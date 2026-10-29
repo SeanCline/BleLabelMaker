@@ -1,9 +1,9 @@
-// Emoji and fields go into text where the cursor was: the emoji picker and the Field menu
-// next to each text field, and on the bar over the label.
+// Emoji and fields go into text where the cursor was, from the emoji picker and the Field menu
+// on the bar over the label.
 import { searchEmoji } from "../emoji.js";
 import { plainText } from "../layout.js";
 import { applyEdit, textOf } from "../richtext.js";
-import { $, $$, el } from "./dom.js";
+import { $, el } from "./dom.js";
 import { state, history, updateElement } from "./store.js";
 import { inlineEdit, startInlineEdit } from "./inline-editor.js";
 import { rememberCaret, takeCaret } from "./caret.js";
@@ -37,56 +37,57 @@ emojiDialog.addEventListener("close", () => {
 	emojiCallback = null;
 });
 
-// Emoji and fields go into text, where the cursor was. Using the picker or the field menu
-// takes focus from whichever editor was open, so the cursor is remembered on blur and that
-// editor is reopened afterwards with the cursor after what was inserted.
-for (const panel of $$("[data-panel]").filter((p) => $(".insert-emoji", p))) {
-	// The bar has no text field of its own: what it inserts goes in on the label.
-	const field = $('[data-prop="text"]', panel);
-	field?.addEventListener("blur", () => {
-		const e = targetFor(panel);
-		if (e) rememberCaret(e.id, field, "panel");
+// Emoji and fields go into text, where the cursor was: on the label, or in the settings' copy
+// of the text, which the bar stays over. Using the picker or the field menu takes focus from
+// that editor, so the cursor is remembered on blur and the editor is reopened afterwards with
+// the cursor after what was inserted.
+const bar = $("#quickbar");
+const field = /** @type {HTMLTextAreaElement} */ ($("#designText"));
+field.addEventListener("blur", () => {
+	const e = targetFor(bar);
+	if (e) rememberCaret(e.id, field, "panel");
+});
+const insert = (e, caret, value) => {
+	value = plainText(value);
+	const current = state.doc.elements.find((x) => x.id === e.id);
+	if (current?.type !== "text") return;
+	const length = textOf(current.text).length;
+	const start = Math.min(caret.start, length);
+	const end = Math.min(caret.end, length);
+	updateElement(e.id, {
+		text: applyEdit(current.text, { at: start, removed: end - start, inserted: value }),
 	});
-	const insert = (e, caret, value) => {
-		value = plainText(value);
-		const current = state.doc.elements.find((x) => x.id === e.id);
-		if (current?.type !== "text") return;
-		const length = textOf(current.text).length;
-		const start = Math.min(caret.start, length);
-		const end = Math.min(caret.end, length);
-		updateElement(e.id, {
-			text: applyEdit(current.text, { at: start, removed: end - start, inserted: value }),
-		});
-		history.seal();
-		const at = { start: start + value.length, end: start + value.length };
-		if (caret.source === "inline" || !field) startInlineEdit(e.id, at);
-		else {
-			field.focus();
-			field.setSelectionRange(at.start, at.end);
-		}
-	};
-	const target = () => {
-		const e = targetFor(panel);
-		if (e?.type !== "text") return null;
-		const end = textOf(e.text).length;
-		// Still typing on the label (the menu needn't take the focus): its cursor, as it is now.
-		const typing = inlineEdit();
-		const live = typing?.id === e.id && { start: typing.from, end: typing.to, source: "inline" };
-		const caret = live || (takeCaret(e.id) ?? { start: end, end, source: "panel" });
-		return { e, caret };
-	};
-	$(".insert-emoji", panel).addEventListener("click", () => {
-		const t = target();
-		if (t) pickEmoji((char) => insert(t.e, t.caret, char));
-	});
-	const menu = $(".insert-field", panel);
-	menu.addEventListener("change", () => {
-		const value = menu.value;
-		menu.value = "";
-		const t = target();
-		if (t && value) insert(t.e, t.caret, value);
-	});
-}
+	history.seal();
+	const at = { start: start + value.length, end: start + value.length };
+	if (caret.source === "panel") {
+		field.focus();
+		field.setSelectionRange(at.start, at.end);
+	} else startInlineEdit(e.id, at);
+};
+const target = () => {
+	const e = targetFor(bar);
+	if (e?.type !== "text") return null;
+	const end = textOf(e.text).length;
+	// Still typing on the label (the menu needn't take the focus): its cursor, as it is now.
+	const typing = inlineEdit();
+	const live = typing?.id === e.id && { start: typing.from, end: typing.to, source: "inline" };
+	// The settings' field only while it's showing: they may have closed since it was typed in.
+	const remembered = takeCaret(e.id);
+	const usable = remembered?.source === "inline" || field.getClientRects().length > 0;
+	const caret = live || (remembered && usable ? remembered : { start: end, end, source: "inline" });
+	return { e, caret };
+};
+$(".insert-emoji", bar).addEventListener("click", () => {
+	const t = target();
+	if (t) pickEmoji((char) => insert(t.e, t.caret, char));
+});
+const menu = /** @type {HTMLSelectElement} */ ($(".insert-field", bar));
+menu.addEventListener("change", () => {
+	const value = menu.value;
+	menu.value = "";
+	const t = target();
+	if (t && value) insert(t.e, t.caret, value);
+});
 
 // Text fields keep their text plain as it's typed or pasted (see plainText), before the app
 // reads it: otherwise the field holds characters the label doesn't, and caret positions

@@ -82,7 +82,7 @@ test("dropping a picture on the page adds it as an image element", async () => {
 	assert.equal(last.type, "image");
 });
 
-test("fit, fill and stretch, and the position picks which part of a filled image shows", async () => {
+test("fit, fill and stretch, and dragging the dot picks which part of a filled image shows", async () => {
 	const page = await env.open();
 	await openElements(page);
 	await page.click("#layers li");
@@ -103,13 +103,37 @@ test("fit, fill and stretch, and the position picks which part of a filled image
 		looks[fit] = await signature();
 	}
 	assert.equal(new Set(Object.values(looks)).size, 3, "three different results");
+	const centreOff = () => page.$eval("#centreImage", (b) => b.disabled);
+	assert.equal(await page.$(".box .pan"), null, "a stretched picture has nowhere to move");
+	assert.equal(await centreOff(), true);
 
 	await page.click('#imageProps [data-radio="fit"] [data-value="cover"]');
-	await page.click('#imageProps [data-radio="vAlign"] [data-value="top"]');
-	const top = await signature();
-	await page.click('#imageProps [data-radio="vAlign"] [data-value="bottom"]');
-	assert.notEqual(await signature(), top, "top and bottom crops differ");
-	const img = (await appState(page)).doc.elements[0];
-	assert.deepEqual([img.fit, img.vAlign], ["cover", "bottom"]);
+	await page.click('#quickbar [data-qb-action="more"]'); // out of the way of the label
+	const pan = await page.waitForSelector(".box .pan");
+	const dragBy = async (dy) => {
+		const at = await pan.boundingBox();
+		const [x, y] = [at.x + at.width / 2, at.y + at.height / 2];
+		await page.mouse.move(x, y);
+		await page.mouse.down();
+		await page.mouse.move(x, y + dy / 2);
+		await page.mouse.move(x, y + dy);
+		await page.mouse.up();
+		return (await appState(page)).doc.elements[0];
+	};
+	// The cropped picture moves with the pointer: up shows more of its bottom.
+	let img = await dragBy(-12);
+	assert.ok(img.panY > 0.5 && img.panY < 1, `part way down (${img.panY})`);
+	assert.equal(img.panX, 0.5, "a picture as wide as its box doesn't move across");
+	const lower = await signature();
+	img = await dragBy(400);
+	assert.equal(img.panY, 0, "no further than its top edge");
+	assert.notEqual(await signature(), lower, "another part shows");
+
+	await openSettings(page);
+	assert.equal(await centreOff(), false);
+	await page.click("#centreImage");
+	img = (await appState(page)).doc.elements[0];
+	assert.deepEqual([img.panX, img.panY], [0.5, 0.5]);
+	assert.equal(await centreOff(), true);
 	assert.deepEqual(page.errors, []);
 });

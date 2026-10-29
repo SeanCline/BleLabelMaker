@@ -53,7 +53,36 @@ const ICONS = [
 	"x",
 	"grip-vertical",
 	"braces",
+	// The settings under More
+	"contrast",
+	"scaling",
+	"square-dimensions",
+	"type-outline",
+	"pen-tool",
+	"grip",
+	"captions",
+	"image-up",
+	"crop",
+	"maximize-2",
+	"paint-bucket",
+	"stamp",
+	"circle-dot",
 ];
+
+// Drawn here, in Lucide's style (24 grid, 2 px round strokes), where it has nothing that fits.
+const BOX = '<rect width="18" height="18" x="3" y="3" rx="2" />';
+/** Two centred lines of text in a box, at its top, middle or bottom. */
+const textIn = (y) => `${BOX}<path d="M7 ${y}h10" /><path d="M9 ${y + 4}h6" />`;
+// Lucide's "letters" A, with its B under it rather than beside it.
+const A = '<path d="m8 10 3.453-7.648a.6.6 0 0 1 1.094 0L16 10" /><path d="M15 8H9" />';
+const B =
+	'<path d="M9 18h4a2 2 0 0 1 0 4H9.5a.5.5 0 0 1-.5-.5v-7a.5.5 0 0 1 .5-.5H12a2 2 0 0 1 0 4" />';
+const CUSTOM = {
+	"text-valign-top": textIn(8),
+	"text-valign-middle": textIn(10),
+	"text-valign-bottom": textIn(12),
+	"letters-stacked": A + B,
+};
 
 const source = new URL("../node_modules/lucide-static/", import.meta.url);
 const { version } = JSON.parse(await readFile(new URL("package.json", source), "utf8"));
@@ -66,9 +95,11 @@ for (const name of ICONS) {
 		.replace(/\s*\n\s*/g, "");
 	symbols.push(`<symbol id="${name}" viewBox="0 0 24 24">${body}</symbol>`);
 }
+for (const [name, body] of Object.entries(CUSTOM))
+	symbols.push(`<symbol id="${name}" viewBox="0 0 24 24">${body}</symbol>`);
 await writeFile(
 	new URL("../icons/ui.svg", import.meta.url),
-	`<!-- Lucide v${version} (ISC; icons/LICENSE-lucide.txt). Made by tools/make-ui-icons.mjs. -->
+	`<!-- Lucide v${version} (ISC; icons/LICENSE-lucide.txt), and a few drawn in its style. Made by tools/make-ui-icons.mjs. -->
 <svg xmlns="http://www.w3.org/2000/svg">
 ${symbols.join("\n")}
 </svg>

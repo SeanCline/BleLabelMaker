@@ -236,7 +236,8 @@ summary:has(> .icon) {
 	border-left: 1px solid var(--border);
 }
 .segmented button[aria-selected="true"],
-.segmented button[aria-pressed="true"] {
+.segmented button[aria-pressed="true"],
+button[data-prop][aria-pressed="true"] {
 	background: var(--accent);
 	color: var(--accent-text);
 }
@@ -846,6 +847,18 @@ summary:has(> .icon) {
 	top: 100%;
 	cursor: ns-resize;
 }
+/* Grabs a picture to move it inside its box, from its centre. */
+.pan {
+	position: absolute;
+	width: 16px;
+	height: 16px;
+	margin: -8px 0 0 -8px;
+	border: 2px solid var(--select);
+	border-radius: 50%;
+	background: radial-gradient(circle, var(--select) 2px, #fff 2.5px);
+	box-shadow: 0 0 0 1px #fff;
+	cursor: move;
+}
 
 .status:empty {
 	display: none;
@@ -964,14 +977,6 @@ progress {
 	font-size: 12.5px;
 	color: var(--muted);
 }
-.field-head {
-	display: flex;
-	align-items: center;
-	gap: 6px;
-}
-.field-head > label {
-	margin-right: auto;
-}
 /* The Field menu looks like the buttons beside it: its icon (and word) in a button's frame,
    with the native list over it, unseen, so a click or a key opens it as any select (and a
    phone's own picker). */
@@ -993,10 +998,6 @@ progress {
 	outline: 2px solid var(--accent);
 	outline-offset: 1px;
 }
-.field-picker.small {
-	padding: 2px 8px;
-	font-size: 12px;
-}
 .field-picker > select {
 	position: absolute;
 	inset: 0;
@@ -1005,13 +1006,7 @@ progress {
 	opacity: 0;
 	cursor: pointer;
 }
-.insert-emoji {
-	padding: 2px 8px;
-	font-size: 12px;
-}
-.field > select,
-.field > textarea {
-	color: var(--text);
+.props > textarea {
 	font-size: 14px;
 }
 .row {
@@ -1020,12 +1015,6 @@ progress {
 	gap: 8px;
 	flex-wrap: wrap;
 	color: var(--text);
-}
-.row.two {
-	align-items: end;
-}
-.row.two .field {
-	flex: 1;
 }
 .check {
 	display: inline-flex;
@@ -1058,16 +1047,78 @@ h3.section {
 	font-weight: 600;
 }
 /* Each group in the settings starts with a rule, after the first. */
-.settings .props:not([hidden]) ~ .props h3.section:first-child {
+.settings .props:not([hidden]) ~ .props > :first-child:is(h3.section, .section-head) {
 	padding-top: 12px;
 	border-top: 1px solid var(--border);
 }
-.settings .geom h3.section ~ h3.section {
-	margin-top: 4px;
+/* A part of a group, such as a text box's Font, gets a little room above it. */
+.props > h3.section:not(:first-child) {
+	margin-top: 6px;
 }
-.section-label {
+/* A heading with what goes with it at the far end: the picture's Replace, a unit. */
+.section-head {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+}
+.section-head > h3 {
+	margin-right: auto;
+}
+.section-head button {
+	display: inline-flex;
+	align-items: center;
+	gap: 4px;
+	padding: 2px 8px;
+	font-size: 12px;
+}
+/* A setting: its name, then its control, so the controls line up down the settings. */
+.prop-row {
+	display: grid;
+	grid-template-columns: 5.5em minmax(0, 1fr);
+	align-items: center;
+	gap: 8px;
 	font-size: 12.5px;
 	color: var(--muted);
+}
+.prop-row :is(select, input, .segmented) {
+	color: var(--text);
+}
+.settings :is(select, input[type="number"], .segmented.fill) {
+	height: 30px;
+}
+.with-unit {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+/* The bar's button groups, across the room they have, each choice an equal share. */
+.segmented.fill {
+	display: flex;
+}
+.segmented.fill button {
+	flex: 1 1 0;
+	min-width: 0;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 5px;
+	padding: 0 6px;
+	font-size: 12.5px;
+	white-space: nowrap;
+}
+/* First line sizes, shown rather than named. */
+.sample {
+	line-height: 1;
+	font-weight: 600;
+}
+.sample.s1 {
+	font-size: 11px;
+}
+.sample.s2 {
+	font-size: 14px;
+}
+.sample.s3 {
+	font-size: 17px;
 }
 .layers {
 	list-style: none;
@@ -1562,9 +1613,6 @@ button.link {
 .quickbar [data-style][aria-pressed="mixed"] {
 	background: color-mix(in srgb, var(--accent) 30%, transparent);
 }
-.quickbar .qb-fill {
-	white-space: nowrap;
-}
 /* A text's controls wrap one by one, when the bar must, so Edit isn't left alone on a row of
    its own and the bar takes two rows, not three. Duplicate, Delete and More stay together. */
 @media (min-width: 601px) {
@@ -1740,6 +1788,9 @@ button.link {
 /* Fingers: bigger buttons where they're small, and handles that can be caught. */
 /* Finger-sized: 44px, the size phones' own guidelines ask for. */
 @media (pointer: coarse) {
+	.settings :is(select, input[type="number"], .segmented.fill) {
+		height: 40px;
+	}
 	/* Keyboard and mouse shortcuts, which a finger has no use for. */
 	.keys {
 		display: none;
@@ -1785,6 +1836,11 @@ button.link {
 		width: 18px;
 		height: 18px;
 		margin: -9px 0 0 -9px;
+	}
+	.pan {
+		width: 24px;
+		height: 24px;
+		margin: -12px 0 0 -12px;
 	}
 }
 /* The narrowest phones need the room for the controls. */

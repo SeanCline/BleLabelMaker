@@ -96,10 +96,12 @@ test("spreadsheet columns by heading, and the field menu inserts at the cursor",
 		t.focus();
 		t.setSelectionRange(4, 4);
 	});
-	await page.select("#textProps .insert-field", "{2}");
+	// The bar's menu, which stays over the settings: picking from it takes the focus.
+	await page.focus("#quickbar .insert-field");
+	await page.select("#quickbar .insert-field", "{2}");
 	assert.equal((await appState(page)).doc.elements[0].text, "Jar {2}");
 	assert.equal(await page.evaluate(() => document.activeElement.id), "designText");
-	assert.equal(await page.$eval("#textProps .insert-field", (s) => s.value), "", "menu resets");
+	assert.equal(await page.$eval("#quickbar .insert-field", (s) => s.value), "", "menu resets");
 	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Print 2 labels");
 	assert.deepEqual(page.errors, []);
 });

@@ -67,7 +67,7 @@ export const withAutoLength = (doc, dots = dotScale()) =>
  * that falls on a half pixel would smear one-dot lines, which matters for barcodes.
  * Each maps a local frame of size (lw, lh) onto a box of size (w, h).
  */
-const QUARTER = [
+export const QUARTER = [
 	() => [1, 0, 0, 1, 0, 0],
 	(w) => [0, 1, -1, 0, w, 0],
 	(w, h) => [-1, 0, 0, -1, w, h],

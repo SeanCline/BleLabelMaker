@@ -427,9 +427,10 @@
 							aria-label="Line thickness in mm"
 							title="Line thickness (mm)"
 						/>
-						<label class="check qb-fill"
-							><input type="checkbox" data-prop="fill" data-type="bool" /> Filled</label
-						>
+						<button data-prop="fill" title="Filled" aria-label="Filled">
+							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#paint-bucket" /></svg>
+							<span class="qb-label">Filled</span>
+						</button>
 					</span>
 					<span class="qb-group" data-qb="barcode">
 						<input
@@ -466,8 +467,17 @@
 					</span>
 					<span class="qb-group" data-qb="image">
 						<span class="segmented small" data-radio="mode" role="group" aria-label="Image style">
-							<button data-value="dither" title="Best for photos">Photo</button>
-							<button data-value="threshold" title="Best for logos and line art">Logo</button>
+							<button data-value="dither" title="Dither: shades as dots, best for photos">
+								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#grip" /></svg>
+								<span class="qb-label">Dither</span>
+							</button>
+							<button
+								data-value="threshold"
+								title="Threshold: solid black and white, best for logos and line art"
+							>
+								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#stamp" /></svg>
+								<span class="qb-label">Threshold</span>
+							</button>
 						</span>
 						<input
 							type="range"
@@ -662,111 +672,155 @@
 				hidden
 			>
 				<div id="designPanel">
+					<!-- Each setting is a row: its name, then its control, built from the bar's own
+					     pieces (button groups, icon toggles). A toggle is a button with data-prop. -->
 					<div id="textProps" class="props" data-panel="text" data-types="text" hidden>
-						<h3 class="section">Text box</h3>
-						<div class="field">
-							<span class="field-head"
-								><label for="designText">Text</label
-								><button
-									type="button"
-									class="insert-emoji small"
-									title="Insert an emoji where the cursor is"
-								>
-									😀 Emoji
+						<h3 class="section" id="textHeading">Text</h3>
+						<textarea
+							id="designText"
+							data-prop="text"
+							rows="3"
+							aria-labelledby="textHeading"
+						></textarea>
+						<div class="prop-row" data-show-if-emoji hidden>
+							<span id="emojiLabel">Emoji</span>
+							<span
+								class="segmented fill"
+								data-radio="ditherEmoji"
+								data-radio-type="bool"
+								role="group"
+								aria-labelledby="emojiLabel"
+							>
+								<button data-value="false" title="Print emoji as crisp line art">
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#pen-tool" /></svg>
+									Vector
 								</button>
-								<span class="field-picker small" title="Insert a field where the cursor is">
-									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#braces" /></svg>
-									Field
-									<select class="insert-field" aria-label="Insert a field">
-										<option value="" hidden disabled selected>Insert a field</option>
-										<option value="{date}">Today's date</option>
-										<option value="{date+30d}">Date in 30 days</option>
-										<option value="{date:iso}">Date as 2026-12-31</option>
-										<option value="{time}">Time</option>
-										<option value="{n}">Counter (1, 2, 3…)</option>
-										<option value="{n:000}">Counter (001, 002…)</option>
-										<option value="{1}">Batch column 1</option>
-										<option value="{2}">Batch column 2</option>
-										<option value="{0}">Batch line</option>
-									</select>
-								</span></span
-							>
-							<textarea id="designText" data-prop="text" rows="3"></textarea>
-							<label
-								class="check"
-								data-show-if-emoji
-								title="Print emoji in colour, as dots like a photo, instead of as line art"
-								hidden
-								><input type="checkbox" data-prop="ditherEmoji" data-type="bool" /> Dithered
-								emoji</label
-							>
+								<button
+									data-value="true"
+									title="Print emoji in colour, as dots like a photo, instead of as line art"
+								>
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#grip" /></svg>
+									Dithered
+								</button>
+							</span>
 						</div>
-						<label class="field">
+
+						<h3 class="section">Font</h3>
+						<label class="prop-row">
 							Weight
 							<select data-prop="fontWeight" data-type="number" class="weight-select"></select>
 						</label>
-						<label class="check" title="The largest size that fits the box"
-							><input type="checkbox" data-prop="fit" data-type="bool" /> Fit to box</label
-						>
-						<div class="field">
-							<span>Vertical justification</span>
-							<div class="row">
-								<div
-									class="segmented small"
-									data-radio="vAlign"
-									role="group"
-									aria-label="Vertical justification"
-								>
-									<button data-value="top">Top</button>
-									<button data-value="middle">Middle</button>
-									<button data-value="bottom">Bottom</button>
-								</div>
-							</div>
+						<div class="prop-row">
+							<span id="sizeLabel">Size</span>
+							<span
+								class="segmented fill"
+								data-radio="fit"
+								data-radio-type="bool"
+								role="group"
+								aria-labelledby="sizeLabel"
+							>
+								<button data-value="false" title="The size set on the bar">
+									<svg class="icon" aria-hidden="true">
+										<use href="icons/ui.svg#square-dimensions" />
+									</svg>
+									Fixed
+								</button>
+								<button data-value="true" title="The largest size that fits the box">
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#scaling" /></svg> Fit
+									to box
+								</button>
+							</span>
 						</div>
-						<div class="field">
-							<span>First line size</span>
-							<div
-								class="segmented small"
+						<div class="prop-row">
+							<span id="firstLineLabel">First line</span>
+							<span
+								class="segmented fill"
 								data-radio="firstLineScale"
 								data-radio-type="number"
 								role="group"
-								aria-label="First line size"
+								aria-labelledby="firstLineLabel"
 							>
-								<button data-value="1" title="Same size as the rest">Same</button>
-								<button data-value="1.5" title="One and a half times the rest">Larger</button>
-								<button data-value="2" title="Twice the rest">Much larger</button>
-							</div>
+								<button data-value="1" title="Same size as the rest" aria-label="Same size">
+									<span class="sample s1" aria-hidden="true">Aa</span>
+								</button>
+								<button data-value="1.5" title="One and a half times the rest" aria-label="Larger">
+									<span class="sample s2" aria-hidden="true">Aa</span>
+								</button>
+								<button data-value="2" title="Twice the rest" aria-label="Much larger">
+									<span class="sample s3" aria-hidden="true">Aa</span>
+								</button>
+							</span>
 						</div>
-						<label class="field">
-							Letter spacing (pt)
-							<input
-								type="number"
-								data-prop="letterSpacingPt"
-								data-type="number"
-								min="-5"
-								max="50"
-								step="0.5"
-							/>
+						<label class="prop-row">
+							Spacing
+							<span class="with-unit">
+								<input
+									type="number"
+									data-prop="letterSpacingPt"
+									data-type="number"
+									min="-5"
+									max="50"
+									step="0.5"
+									aria-label="Letter spacing in points"
+								/>
+								pt
+							</span>
 						</label>
-						<div class="row style-checks">
-							<label class="check"
-								><input type="checkbox" data-prop="outline" data-type="bool" /> Outline</label
+
+						<h3 class="section">Layout</h3>
+						<div class="prop-row">
+							<span id="vAlignLabel">Vertical</span>
+							<span
+								class="segmented fill"
+								data-radio="vAlign"
+								role="group"
+								aria-labelledby="vAlignLabel"
 							>
-							<label class="check" title="One letter per line, read top to bottom"
-								><input type="checkbox" data-prop="stacked" data-type="bool" /> Stacked</label
-							>
+								<button data-value="top" title="Top" aria-label="Top">
+									<svg class="icon" aria-hidden="true">
+										<use href="icons/ui.svg#text-valign-top" />
+									</svg>
+								</button>
+								<button data-value="middle" title="Middle" aria-label="Middle">
+									<svg class="icon" aria-hidden="true">
+										<use href="icons/ui.svg#text-valign-middle" />
+									</svg>
+								</button>
+								<button data-value="bottom" title="Bottom" aria-label="Bottom">
+									<svg class="icon" aria-hidden="true">
+										<use href="icons/ui.svg#text-valign-bottom" />
+									</svg>
+								</button>
+							</span>
 						</div>
-						<label class="check"
-							><input type="checkbox" data-prop="invert" data-type="bool" /> White text on
-							black</label
-						>
+						<div class="prop-row">
+							<span id="effectsLabel">Effects</span>
+							<span class="segmented fill" role="group" aria-labelledby="effectsLabel">
+								<button data-prop="outline" title="Outlined letters">
+									<svg class="icon" aria-hidden="true">
+										<use href="icons/ui.svg#type-outline" />
+									</svg>
+									Outline
+								</button>
+								<button data-prop="stacked" title="One letter per line, read top to bottom">
+									<svg class="icon" aria-hidden="true">
+										<use href="icons/ui.svg#letters-stacked" />
+									</svg>
+									Stacked
+								</button>
+								<button data-prop="invert" title="White text on black">
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#contrast" /></svg>
+									Invert
+								</button>
+							</span>
+						</div>
 					</div>
 
 					<div id="shapeProps" class="props" data-panel="shape" data-types="shape" hidden>
 						<h3 class="section">Shape</h3>
-						<div class="row">
-							<label class="field" data-show-for="rect">
-								Corner radius (mm)
+						<label class="prop-row" data-show-for="rect">
+							Corners
+							<span class="with-unit">
 								<input
 									type="number"
 									data-prop="radiusMm"
@@ -774,21 +828,28 @@
 									min="0"
 									max="20"
 									step="0.25"
+									aria-label="Corner radius in millimetres"
 								/>
-							</label>
-						</div>
+								mm
+							</span>
+						</label>
 						<p class="hint" data-show-for="ellipse line">Its look is all on the bar.</p>
 					</div>
 
 					<div id="barcodeProps" class="props" data-panel="barcode" data-types="barcode" hidden>
 						<h3 class="section">Barcode</h3>
-						<label class="check"
-							><input type="checkbox" data-prop="showText" data-type="bool" /> Show text under the
-							bars</label
-						>
-						<label class="field" data-show-if="showText">
-							Text font
-							<select data-prop="textFont" class="font-select"></select>
+						<div class="prop-row">
+							<span id="captionLabel">Caption</span>
+							<span class="segmented fill" role="group" aria-labelledby="captionLabel">
+								<button data-prop="showText" title="Show the code's text under the bars">
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#captions" /></svg>
+									Show text under barcode
+								</button>
+							</span>
+						</div>
+						<label class="prop-row" data-show-if="showText">
+							Font
+							<select data-prop="textFont" class="font-select" aria-label="Caption font"></select>
 						</label>
 						<p class="hint">
 							Scanners need blank space on both sides of the bars, about 2–3 mm. Keep other elements
@@ -797,11 +858,14 @@
 					</div>
 
 					<div id="qrProps" class="props" data-panel="qr" data-types="qr" hidden>
-						<h3 class="section">QR code</h3>
-						<label class="field">
-							Text or link
-							<textarea data-prop="data" rows="4" spellcheck="false"></textarea>
-						</label>
+						<h3 class="section" id="qrHeading">QR code</h3>
+						<textarea
+							data-prop="data"
+							rows="4"
+							spellcheck="false"
+							aria-labelledby="qrHeading"
+							placeholder="Text or link"
+						></textarea>
 						<p class="hint">
 							Error correction (on the bar): Low makes the smallest code, High still scans when
 							scratched. Medium suits most labels.
@@ -809,76 +873,61 @@
 					</div>
 
 					<div id="imageProps" class="props" data-panel="image" data-types="image" hidden>
-						<h3 class="section">Picture</h3>
-						<div class="field">
-							<span>Fit</span>
-							<div
-								class="segmented small"
+						<div class="section-head">
+							<h3 class="section">Picture</h3>
+							<button id="replaceImage" title="Choose another picture">
+								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#image-up" /></svg>
+								Replace…
+							</button>
+						</div>
+						<div class="prop-row">
+							<span id="imageFitLabel">Fit</span>
+							<span
+								class="segmented fill"
 								data-radio="fit"
 								role="group"
-								aria-label="Fit in the box"
+								aria-labelledby="imageFitLabel"
 							>
-								<button data-value="contain" title="Show the whole picture">Fit</button>
-								<button data-value="cover" title="Fill the box, cropping what doesn't fit">
-									Fill
+								<button data-value="contain" title="Show the whole picture">
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#scaling" /></svg> Fit
 								</button>
-								<button data-value="stretch" title="Stretch to the box's shape">Stretch</button>
-							</div>
+								<button data-value="cover" title="Fill the box, cropping what doesn't fit">
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#crop" /></svg> Fill
+								</button>
+								<button data-value="stretch" title="Stretch to the box's shape">
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#maximize-2" /></svg>
+									Stretch
+								</button>
+							</span>
 						</div>
-						<div class="field">
-							<span>Position (which part shows when filling)</span>
-							<div class="row">
-								<div
-									class="segmented small"
-									data-radio="align"
-									role="group"
-									aria-label="Horizontal position"
-								>
-									<button data-value="left">Left</button>
-									<button data-value="center">Centre</button>
-									<button data-value="right">Right</button>
-								</div>
-								<div
-									class="segmented small"
-									data-radio="vAlign"
-									role="group"
-									aria-label="Vertical position"
-								>
-									<button data-value="top">Top</button>
-									<button data-value="middle">Middle</button>
-									<button data-value="bottom">Bottom</button>
-								</div>
-							</div>
+						<!-- Where the picture sits in its box is dragged on the label, by the dot on it. -->
+						<div class="prop-row">
+							<span id="imagePosLabel">Position</span>
+							<span class="segmented fill" role="group" aria-labelledby="imagePosLabel">
+								<button id="centreImage" title="Put the picture back in the middle of its box">
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#circle-dot" /></svg>
+									Centre
+								</button>
+							</span>
 						</div>
-						<div class="row">
-							<label class="check"
-								><input type="checkbox" data-prop="invert" data-type="bool" /> Invert</label
-							>
-							<span class="spacer"></span>
-							<button id="replaceImage">Replace image…</button>
+						<div class="prop-row">
+							<span id="imageEffectsLabel">Effects</span>
+							<span class="segmented fill" role="group" aria-labelledby="imageEffectsLabel">
+								<button data-prop="invert" title="Black for white, white for black">
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#contrast" /></svg>
+									Invert
+								</button>
+							</span>
 						</div>
 					</div>
 
 					<p id="elementWarning" class="warning" role="status" hidden></p>
 
 					<div id="geomProps" class="props geom" data-panel="geom" data-types="*" hidden>
-						<h3 class="section">Position &amp; size</h3>
-						<div class="field">
-							<span>Rotation</span>
-							<div
-								class="segmented small"
-								data-radio="rotation"
-								data-radio-type="number"
-								role="group"
-								aria-label="Rotation"
-							>
-								<button data-value="0" title="Upright">0°</button>
-								<button data-value="90" title="Reads top to bottom">90°</button>
-								<button data-value="180" title="Upside down">180°</button>
-								<button data-value="270" title="Reads bottom to top">270°</button>
-							</div>
+						<div class="section-head">
+							<h3 class="section">Position &amp; size</h3>
+							<span class="unit">mm</span>
 						</div>
-						<span class="section-label">In millimetres</span>
 						<div class="grid4">
 							<label>X <input type="number" data-prop="x" data-type="number" step="0.25" /></label>
 							<label>Y <input type="number" data-prop="y" data-type="number" step="0.25" /></label>
@@ -888,6 +937,21 @@
 							<label
 								>H <input type="number" data-prop="h" data-type="number" step="0.25" min="1"
 							/></label>
+						</div>
+						<div class="prop-row">
+							<span id="rotationLabel">Rotation</span>
+							<span
+								class="segmented fill"
+								data-radio="rotation"
+								data-radio-type="number"
+								role="group"
+								aria-labelledby="rotationLabel"
+							>
+								<button data-value="0" title="Upright">0°</button>
+								<button data-value="90" title="Reads top to bottom">90°</button>
+								<button data-value="180" title="Upside down">180°</button>
+								<button data-value="270" title="Reads bottom to top">270°</button>
+							</span>
 						</div>
 					</div>
 				</div>
