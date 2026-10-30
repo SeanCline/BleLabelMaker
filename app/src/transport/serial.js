@@ -8,13 +8,14 @@ export const serialAvailable = () => typeof navigator !== "undefined" && "serial
 const SPP = "00001101-0000-1000-8000-00805f9b34fb";
 
 /**
- * The printer as a serial port (Web Serial; Chrome and Edge on desktop). On Windows a paired
- * printer shows up as "Standard Serial over Bluetooth link" COM ports, which gives a second
- * route if Bluetooth LE misbehaves. Same bytes, same status records as BLE. Experimental.
+ * The printer as a serial port (Web Serial; Chrome, Edge and Firefox on desktop). On Windows a
+ * paired printer shows up as "Standard Serial over Bluetooth link" COM ports, which gives a
+ * second route if Bluetooth LE misbehaves, and the only one in Firefox. Same bytes, same status
+ * records as BLE.
  */
 export class SerialPrinter extends Connection {
 	// No acknowledgements over a serial link, so writes are paced to stay under what the
-	// printer can buffer. A guess until tested on hardware: about 50 KB/s.
+	// printer can buffer: about 50 KB/s. Fine for one label; long batches are untested.
 	chunkSize = 512;
 	chunkGapMs = 10;
 	/** @type {any} */
@@ -34,7 +35,9 @@ export class SerialPrinter extends Connection {
 
 	async open() {
 		if (!serialAvailable())
-			throw new Error("This browser can't use serial ports. Use Chrome or Edge.");
+			throw new Error(
+				"This browser can't use serial ports. Use Chrome, Edge or Firefox on a computer.",
+			);
 		const serial = /** @type {any} */ (navigator).serial;
 		this.port ??= await serial.requestPort({ allowedBluetoothServiceClassIds: [SPP] });
 		this.onStatus("connecting");
@@ -78,14 +81,19 @@ export class SerialPrinter extends Connection {
 		return this.writer.write(bytes);
 	}
 
-	async forget() {
+	async disconnect() {
 		const { port, reader } = this;
+		// Cleared first, so the read loop ending doesn't report the link as lost a second time.
 		this.reader = null;
 		await reader?.cancel().catch(() => {});
 		this.writer?.releaseLock();
 		this.writer = null;
 		await port?.close().catch(() => {});
-		this.port = null;
 		this.lost();
+	}
+
+	async forget() {
+		await this.disconnect();
+		this.port = null;
 	}
 }

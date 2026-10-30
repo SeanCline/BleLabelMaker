@@ -10,6 +10,7 @@ import {
 	typeInto,
 	loaded,
 	FIREFOX,
+	choose,
 } from "./harness.js";
 import { installFakeBluetooth } from "./fake-bluetooth.js";
 
@@ -148,7 +149,7 @@ test("formatted text prints exactly as the preview shows it", async () => {
 	await selectText(page, 6, 11);
 	await ctrl(page, "u");
 	await page.keyboard.press("Escape");
-	await page.select("#target", "bluetooth");
+	await choose(page, "#target", "bluetooth");
 	await page.click("#btnPrint");
 	await page.waitForFunction(() => window.fakeD30.labels.length === 1);
 	await redraw(page);

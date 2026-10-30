@@ -24,8 +24,9 @@ node serve.js        # http://localhost:8080
 
 Open that URL in **Chrome or Edge** to print. Web Bluetooth only works on
 `https://` or `localhost` pages, so opening `index.html` as a file won't work.
-In Firefox and Safari you can still design, save, load and test-print with the
-virtual printer.
+Desktop Firefox can print through the serial port (below). Elsewhere in Firefox
+and in Safari you can still design, save, load and test-print with the virtual
+printer.
 
 It deploys to GitHub Pages from CI; see [Deploy](#deploy).
 
@@ -112,7 +113,7 @@ bottom of the font list asks for a Google Font to be added.
   its main settings (B, I and U work on a selection while typing); More… opens
   the rest. Text wraps inside its box. Text can
   have a larger first line (a title), letter spacing, an underline, an outline,
-  or be stacked one letter per line. Images can fit, fill (cropping) or stretch to their box.
+  or be stacked one letter per line. Images can fit, fill (cropping) or stretch to their box, and zoom in (the slider, Alt+scroll or a pinch).
   - Select several: Shift- or Ctrl-click, drag across empty space, or Ctrl+A.
     Drag one to move them all; the bar lines them up or spaces them evenly.
   - Copy / cut / paste: Ctrl+C / X / V, also between labels and tabs. Pasting
@@ -140,17 +141,18 @@ bottom of the font list asks for a Google Font to be added.
   a backup file. Import merges a backup in, for example on another computer.
 - **Print:** the printer chip at the top right says which printer is in use,
   its battery, and any problem (cover open, out of labels). Click it to choose
-  _Virtual printer_, _Bluetooth_ or _Serial port_ and set the darkness. The
+  _Virtual_, _Bluetooth_ or _Serial_ and set the darkness. Connect becomes
+  Disconnect once a printer is connected. The
   arrow beside Print sets the number of copies. Press Print or Ctrl+Enter. If
   prints come out upside down, turn on _Flip 180°_ under _More printer
   settings_ in the printer chip.
 - **Printer model:** picked up from the printer's name when it connects, or
   set under _More printer settings_, which also has the feed after a continuous label
   (each model has its own default).
-- **Serial port (experimental):** if Bluetooth LE won't connect, pair the
-  printer in Windows' Bluetooth settings and choose _Serial port_. It
-  shows up as a "Standard Serial over Bluetooth link" COM port; Chrome and Edge
-  can print through that.
+- **Serial port:** the way to print from Firefox, or if Bluetooth LE won't connect: pair the
+  printer in Windows' Bluetooth settings and choose _Serial_. It
+  shows up as a "Standard Serial over Bluetooth link" COM port (a D30's is
+  named `JL_SPP`); Chrome, Edge and Firefox on desktop can print through that.
 
 ## Develop
 

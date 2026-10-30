@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, printedMatchesPreview, clickInMenu } from "./harness.js";
+import { setup, typeInto, printedMatchesPreview, clickInMenu, choose, chosen } from "./harness.js";
 import { installFakeBluetooth } from "./fake-bluetooth.js";
 
 let env;
@@ -9,7 +9,7 @@ after(async () => env?.teardown());
 
 const openWithFakeD30 = async () => {
 	const page = await env.open({ beforeLoad: (p) => p.evaluateOnNewDocument(installFakeBluetooth) });
-	await page.select("#target", "bluetooth");
+	await choose(page, "#target", "bluetooth");
 	return page;
 };
 const fake = (page, expr) =>
@@ -21,7 +21,7 @@ test("a first visit starts on the Bluetooth printer, or the virtual one without 
 		printer: null,
 		beforeLoad: (p) => p.evaluateOnNewDocument(installFakeBluetooth),
 	});
-	assert.equal(await page.$eval("#target", (s) => s.value), "bluetooth");
+	assert.equal(await chosen(page, "#target"), "bluetooth");
 	assert.equal(await page.$eval("#btnPrint", (b) => b.textContent.trim()), "Connect & Print");
 	assert.equal(await page.$eval("#noBluetooth", (b) => b.hidden), true);
 	assert.equal(await page.$eval("#printerChipLabel", (l) => l.textContent), "Not connected");
@@ -30,12 +30,12 @@ test("a first visit starts on the Bluetooth printer, or the virtual one without 
 		printer: null,
 		beforeLoad: (p) => p.evaluateOnNewDocument(() => delete Navigator.prototype.bluetooth),
 	});
-	assert.equal(await without.$eval("#target", (s) => s.value), "virtual");
+	assert.equal(await chosen(without, "#target"), "virtual");
 	// The chip says what's connected; its menu says what the browser lacks, and what to do.
 	assert.equal(await without.$eval("#printerChipLabel", (l) => l.textContent), "Virtual printer");
-	assert.equal(
-		await without.$eval('#target option[value="bluetooth"]', (o) => o.textContent),
-		"Bluetooth (browser lacks support)",
+	assert.deepEqual(
+		await without.$eval('#target [data-value="bluetooth"]', (b) => [b.disabled, b.title]),
+		[true, "This browser can't use Bluetooth"],
 	);
 	assert.match(
 		await without.$eval("#noBluetooth a", (a) => a.href),
@@ -102,7 +102,7 @@ test("connect: picker filters for the D30, status arrives over notifications", a
 
 test("print over Bluetooth: chunked writes decode to the previewed label, one picker for many prints", async () => {
 	const page = await openWithFakeD30();
-	await page.select("#density", "light");
+	await choose(page, "#density", "light");
 	await page.click("#btnPrint");
 	await page.waitForFunction(() => window.fakeD30.labels.length === 1);
 	assert.match(await page.$eval("#toast", (t) => t.textContent), /Sent 1 label to D30-FAKE/);
@@ -145,6 +145,20 @@ test("disconnect and reconnect without re-picking; Forget asks again", async () 
 	await page.click("#btnPrint");
 	await page.waitForFunction(() => window.fakeD30.labels.length === 1);
 	assert.equal(await fake(page, "f.pickerCount"), 1, "reconnected to the remembered device");
+
+	// Where Connect was, Disconnect; and Connect again goes back to the same printer.
+	assert.equal(await page.$eval("#btnConnect", (b) => b.textContent.trim()), "Disconnect");
+	await clickInMenu(page, "#btnConnect");
+	await page.waitForFunction(() =>
+		/Not connected/.test(document.querySelector("#printerStatus").textContent),
+	);
+	assert.equal(await page.evaluate(() => window.fakeD30.device.gatt.connected), false);
+	assert.equal(await page.$eval("#btnConnect", (b) => b.textContent.trim()), "Connect");
+	await clickInMenu(page, "#btnConnect");
+	await page.waitForFunction(() =>
+		/Connected/.test(document.querySelector("#printerStatus").textContent),
+	);
+	assert.equal(await fake(page, "f.pickerCount"), 1, "Disconnect keeps the device");
 
 	await page.click(".advanced summary");
 	await clickInMenu(page, "#btnForget");

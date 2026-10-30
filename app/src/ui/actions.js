@@ -145,6 +145,12 @@ $("#replaceImage").addEventListener("click", () => {
 	replacing = selected()?.id ?? null;
 	$("#imageFile").click();
 });
+$("#resetImageZoom").addEventListener("click", () => {
+	const e = selected();
+	if (e?.type !== "image") return;
+	updateElement(e.id, { zoom: 1 });
+	history.seal();
+});
 $("#centreImage").addEventListener("click", () => {
 	const e = selected();
 	if (e?.type !== "image") return;

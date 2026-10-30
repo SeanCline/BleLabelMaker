@@ -97,9 +97,15 @@ export const syncProps = (root, element) => {
 		node.hidden = !hasEmoji(textOf(element.text ?? ""));
 	// A stretched picture fills its box both ways, so it has nowhere to move to. Disabled
 	// rather than hidden, so the panel doesn't jump while trying Fit, Fill and Stretch.
-	if (element.type === "image")
+	if (element.type === "image") {
 		$("#centreImage").disabled =
 			element.fit === "stretch" || (element.panX === 0.5 && element.panY === 0.5);
+		// Stretch fills the box exactly, so there's no zooming it.
+		$("#imageZoom").disabled = element.fit === "stretch";
+		const zoom = $("#resetImageZoom");
+		zoom.textContent = `${Math.round(element.zoom * 100)}%`;
+		zoom.disabled = element.fit === "stretch" || element.zoom === 1;
+	}
 };
 
 /** A family from a loaded file that the list doesn't have is shown, not silently switched. */
@@ -142,6 +148,7 @@ const patchFor = (e, prop, value) => {
 		Object.assign(patch, { fontSizePt: clamp(value, ...LIMITS.fontSizePt), fit: false });
 	if (prop === "letterSpacingPt") patch.letterSpacingPt = clamp(value, ...LIMITS.letterSpacingPt);
 	if (prop === "w" || prop === "h") patch[prop] = Math.max(LIMITS.elementMinMm, value);
+	if (prop === "zoom") patch.zoom = round(clamp(value, ...LIMITS.imageZoom), 3);
 	if (prop === "fontFamily" && e.type === "text") {
 		patch.fontWeight = nearestWeight(value, e.fontWeight);
 		const italic = fontInfo(value)?.italic ?? true;

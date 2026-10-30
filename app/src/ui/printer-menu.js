@@ -9,7 +9,7 @@ import {
 	bluetoothAvailable,
 	serialAvailable,
 } from "../transport.js";
-import { $, el, toast } from "./dom.js";
+import { $, $$, el, toast } from "./dom.js";
 import {
 	settings,
 	saveSettings,
@@ -77,19 +77,29 @@ export const reportPrintError = (err) => {
 export const renderPrinterStatus = () => {
 	const real = hardware();
 	const t = connection();
-	$("#target").value = settings.target;
+	showChoice($("#target"), settings.target);
+	showChoice($("#density"), settings.density);
+	$("#setFlip").setAttribute("aria-pressed", String(settings.flip180));
+	$("#setAllDevices").setAttribute("aria-pressed", String(settings.showAllDevices));
 	$("#setPrinter").value = $("#virtualModel").value = currentPrinter().id;
 	// The virtual printer's model is picked next to it; a real one names itself, so its model
 	// is only an override, under Advanced.
 	$("#virtualModelRow").hidden = !!real;
 	$("#setPrinterRow").hidden = !real;
 	renderFeed();
-	$("#btnConnect").hidden = !real || real.connected;
+	// One button that connects and disconnects, so the focus stays on it either way.
+	$("#btnConnect").hidden = !real;
+	$("#btnForget").disabled = !real;
+	$("#setAllDevices").disabled = settings.target !== "bluetooth";
+	$("#btnConnect use").setAttribute("href", `icons/ui.svg#${real?.connected ? "unplug" : "plug"}`);
+	$("#btnConnect span").textContent = real?.connected ? "Disconnect" : "Connect";
 	const s = $("#printerStatus");
 	const base = real ? (real.connected ? `Connected to ${real.name}` : "Not connected") : "";
 	// A virtual printer's battery is make-believe; only its simulated problems are worth showing.
 	const detail = t.connected ? describeStatus(t.status, { battery: !!real }) : "";
 	s.textContent = [base, detail].filter(Boolean).join(" · ");
+	// A virtual printer with nothing wrong has nothing to say, and no button to show.
+	$("#printerStatusRow").hidden = !real && !s.textContent;
 	s.title = t.status.firmware ? `Firmware ${t.status.firmware}` : "";
 	s.classList.toggle("ok", !!real && t.connected && !hasProblem(t.status));
 	s.classList.toggle("problem", t.connected && hasProblem(t.status));
@@ -151,25 +161,40 @@ const renderFeed = () => {
 	$("#setFeedReset").hidden = settings.feedLines === model.feedLines;
 };
 
-/** A setting that's saved as it changes, read from its control by `read`. */
-const bindSetting = (selector, key, read = (input) => input.value) => {
-	$(selector).addEventListener("change", (ev) => {
-		settings[key] = read(ev.target);
-		saveSettings();
-		renderPrinterStatus();
-	});
+/** A group of buttons, one per value of a setting: the setting's is pressed. */
+const showChoice = (group, value) => {
+	for (const b of $$("button", group))
+		b.setAttribute("aria-pressed", String(b.dataset.value === value));
 };
+const changeSetting = (key, value) => {
+	settings[key] = value;
+	saveSettings();
+	renderPrinterStatus();
+};
+for (const group of $$("[data-setting]")) {
+	group.addEventListener("click", (ev) => {
+		const b = ev.target.closest("button");
+		if (b) changeSetting(group.dataset.setting, b.dataset.value);
+	});
+}
+$("#setFlip").addEventListener("click", () => changeSetting("flip180", !settings.flip180));
+$("#setAllDevices").addEventListener("click", () =>
+	changeSetting("showAllDevices", !settings.showAllDevices),
+);
 
 const unsupported = (target, why) => {
-	const option = $(`#target option[value="${target}"]`);
-	option.disabled = true;
-	option.textContent = why;
+	const b = $(`#target [data-value="${target}"]`);
+	b.disabled = true;
+	b.title = why;
 };
 if (!bluetoothAvailable()) {
 	$("#noBluetooth").hidden = false;
-	unsupported("bluetooth", "Bluetooth (browser lacks support)");
+	// Firefox on a computer has serial ports but not Bluetooth, and a paired printer is one.
+	$("#noBluetoothSerial").hidden = !serialAvailable();
+	$("#noBluetoothOnly").hidden = serialAvailable();
+	unsupported("bluetooth", "This browser can't use Bluetooth");
 }
-if (!serialAvailable()) unsupported("serial", "Serial port (browser lacks support)");
+if (!serialAvailable()) unsupported("serial", "This browser can't use serial ports");
 
 const vendors = [...new Set(PRINTERS.map((p) => p.vendor))];
 for (const select of [$("#setPrinter"), $("#virtualModel")]) {
@@ -188,13 +213,6 @@ for (const select of [$("#setPrinter"), $("#virtualModel")]) {
 	});
 }
 
-$("#setFlip").checked = settings.flip180;
-$("#setAllDevices").checked = settings.showAllDevices;
-$("#density").value = settings.density;
-bindSetting("#target", "target");
-bindSetting("#density", "density");
-bindSetting("#setFlip", "flip180", (input) => input.checked);
-bindSetting("#setAllDevices", "showAllDevices", (input) => input.checked);
 $("#setFeed").addEventListener("change", (ev) => {
 	const v = ev.target.valueAsNumber;
 	if (validFeed(v)) {
@@ -226,9 +244,11 @@ $("#btnForget").addEventListener("click", () => {
 	hardware()?.forget();
 	toast("Printer forgotten. The next print will ask you to pick one.");
 });
-$("#btnConnect").addEventListener("click", () =>
-	hardware()?.connect({ showAllDevices: settings.showAllDevices }).catch(reportPrintError),
-);
+$("#btnConnect").addEventListener("click", () => {
+	const real = hardware();
+	if (real?.connected) real.disconnect();
+	else real?.connect({ showAllDevices: settings.showAllDevices }).catch(reportPrintError);
+});
 $("#btnClearVirtual").addEventListener("click", () => {
 	$("#tape").replaceChildren();
 	renderPrinterStatus();

@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, printedMatchesPreview, clickInMenu } from "./harness.js";
+import { setup, printedMatchesPreview, clickInMenu, choose } from "./harness.js";
 import { installFakeSerial } from "./fake-serial.js";
 
 let env;
@@ -9,7 +9,7 @@ after(async () => env?.teardown());
 
 const openWithFakeSerial = async () => {
 	const page = await env.open({ beforeLoad: (p) => p.evaluateOnNewDocument(installFakeSerial) });
-	await page.select("#target", "serial");
+	await choose(page, "#target", "serial");
 	return page;
 };
 const fake = (page, expr) =>
@@ -50,7 +50,7 @@ test("serial port: connect, status, and a print that decodes to the preview", as
 	assert.deepEqual(page.errors, []);
 });
 
-test("serial port: problems reported by the printer show up; Forget asks for the port again", async () => {
+test("serial port: problems reported by the printer show up; Disconnect keeps the port, Forget asks again", async () => {
 	const page = await openWithFakeSerial();
 	await clickInMenu(page, "#btnConnect");
 	await page.waitForFunction(() =>
@@ -65,6 +65,18 @@ test("serial port: problems reported by the printer show up; Forget asks for the
 	await page.waitForFunction(() =>
 		/cover open/.test(document.querySelector("#printerStatus").textContent),
 	);
+
+	// Disconnect closes the port; Connect reopens it without asking.
+	await clickInMenu(page, "#btnConnect");
+	await page.waitForFunction(() =>
+		/Not connected/.test(document.querySelector("#printerStatus").textContent),
+	);
+	assert.equal(await fake(page, "f.port.readable"), null, "the port is closed");
+	await clickInMenu(page, "#btnConnect");
+	await page.waitForFunction(() =>
+		/Connected/.test(document.querySelector("#printerStatus").textContent),
+	);
+	assert.equal(await fake(page, "f.pickerCount"), 1);
 
 	await page.click(".advanced summary");
 	await clickInMenu(page, "#btnForget");

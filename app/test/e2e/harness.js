@@ -188,6 +188,12 @@ export const clickInMenu = async (page, selector) => {
 	});
 	await page.click(selector);
 };
+/** Picks a value from a group of buttons, such as the printer's Connection, without opening its menu. */
+export const choose = (page, group, value) =>
+	page.$eval(`${group} [data-value="${value}"]`, (b) => b.click());
+/** The value pressed in a group of buttons. */
+export const chosen = (page, group) =>
+	page.$eval(`${group} [aria-pressed="true"]`, (b) => b.dataset.value);
 /** Opens the batch list, from its button beside Print. */
 export const openBatchList = (page) => page.click("#btnBatch");
 /** Picks an item from the File menu (New, Open, Save, Share, History). */

@@ -137,3 +137,57 @@ test("fit, fill and stretch, and dragging the dot picks which part of a filled i
 	assert.equal(await centreOff(), true);
 	assert.deepEqual(page.errors, []);
 });
+
+test("zoom: the slider, and Alt+scroll about the pointer as one undo step; none for a stretch", async () => {
+	const page = await env.open();
+	await openElements(page);
+	await page.click("#layers li");
+	await page.keyboard.press("Delete");
+	const [chooser] = await Promise.all([page.waitForFileChooser(), page.click("#addImage")]);
+	await chooser.accept([ICON]);
+	await page.waitForFunction(() =>
+		window.labelApp.state.doc.elements.some((e) => e.type === "image"),
+	);
+	const img = async () => (await appState(page)).doc.elements[0];
+	const signature = async () => (await labelPixels(page)).hash;
+	const fitted = await signature();
+
+	await openSettings(page);
+	const reset = () => page.$eval("#resetImageZoom", (b) => [b.textContent, b.disabled]);
+	assert.deepEqual(await reset(), ["100%", true]);
+	await typeInto(page, "#imageZoom", "2");
+	assert.equal((await img()).zoom, 2);
+	assert.deepEqual(await reset(), ["200%", false]);
+	assert.notEqual(await signature(), fitted, "a closer view");
+	await page.click("#resetImageZoom");
+	assert.equal((await img()).zoom, 1);
+	assert.equal(await signature(), fitted);
+
+	// Alt+scroll near the right edge zooms in and keeps that side where it was.
+	await page.click('#quickbar [data-qb-action="more"]'); // out of the way of the label
+	const b = await (await page.$(".box.selected")).boundingBox();
+	await page.mouse.move(b.x + b.width * 0.9, b.y + b.height / 2);
+	await page.keyboard.down("Alt");
+	for (let i = 0; i < 3; i++) await page.mouse.wheel({ deltaY: -100 });
+	await page.keyboard.up("Alt");
+	await page.waitForFunction(() => window.labelApp.state.doc.elements[0].zoom > 1.8);
+	let zoomed = await img();
+	assert.ok(zoomed.zoom < 1.9, `about a fifth a step (${zoomed.zoom})`);
+	assert.ok(Math.abs(zoomed.panX - 0.9) < 0.01, `towards the pointer (${zoomed.panX})`);
+	assert.ok(Math.abs(zoomed.panY - 0.5) < 0.01, `the pointer was halfway down (${zoomed.panY})`);
+	await page.evaluate(() => window.labelApp.undo());
+	zoomed = await img();
+	assert.deepEqual([zoomed.zoom, zoomed.panX], [1, 0.5], "the scroll undoes as one step");
+
+	// A stretched picture fills its box exactly, so there's nothing to zoom.
+	await openSettings(page);
+	await page.click('#imageProps [data-radio="fit"] [data-value="stretch"]');
+	assert.equal(await page.$eval("#imageZoom", (s) => s.disabled), true);
+	await page.click('#quickbar [data-qb-action="more"]');
+	await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
+	await page.keyboard.down("Alt");
+	await page.mouse.wheel({ deltaY: -100 });
+	await page.keyboard.up("Alt");
+	assert.equal((await img()).zoom, 1);
+	assert.deepEqual(page.errors, []);
+});

@@ -1,5 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
 import { setup, appState, FIREFOX } from "./harness.js";
 import { installFakeBluetooth } from "./fake-bluetooth.js";
 
@@ -159,4 +160,33 @@ test("on a phone the bar's controls are one finger size, none cut off, and Print
 	assert.ok(Math.max(...row) - Math.min(...row) < 10, `one row: ${row}`);
 	assert.deepEqual(page.errors, []);
 	assert.deepEqual(bt.errors, []);
+});
+
+test("pinching the label zooms the selected picture, and leaves its box where it is", async (t) => {
+	if (NO_TOUCH) return t.skip(NO_TOUCH);
+	const page = await phone();
+	const [chooser] = await Promise.all([page.waitForFileChooser(), page.click("#addImage")]);
+	await chooser.accept([fileURLToPath(new URL("../../icons/icon-192.png", import.meta.url))]);
+	await page.waitForFunction(() => window.labelApp.state.doc.elements.at(-1).type === "image");
+	const picture = async () => (await appState(page)).doc.elements.at(-1);
+	const before = await picture();
+	const b = await (await page.$(".box.selected")).boundingBox();
+	const [cx, cy] = [b.x + b.width / 2, b.y + b.height / 2];
+	const cdp = await page.createCDPSession();
+	const touch = (type, ...xs) =>
+		cdp.send("Input.dispatchTouchEvent", {
+			type,
+			touchPoints: xs.map((x, id) => ({ x, y: cy, id })),
+		});
+	// One finger, then a second, and they spread to twice as far apart.
+	await touch("touchStart", cx - 10);
+	await touch("touchStart", cx - 10, cx + 10);
+	for (const spread of [12, 15, 20]) await touch("touchMove", cx - spread, cx + spread);
+	await touch("touchEnd");
+	const after = await picture();
+	assert.ok(Math.abs(after.zoom - 2) < 0.01, `twice as close (${after.zoom})`);
+	assert.deepEqual([after.x, after.y, after.w], [before.x, before.y, before.w], "the box stays");
+	await page.evaluate(() => window.labelApp.undo());
+	assert.equal((await picture()).zoom, 1, "one undo step");
+	assert.deepEqual(page.errors, []);
 });

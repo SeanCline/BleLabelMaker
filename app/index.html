@@ -71,74 +71,153 @@
 					<span class="chip-dot" aria-hidden="true"></span
 					><span id="printerChipLabel">Printer</span>
 				</summary>
-				<div class="menu-panel floating">
-					<label>
-						Printer
-						<select id="target">
-							<option value="virtual">Virtual printer (no hardware)</option>
-							<option value="bluetooth">Bluetooth</option>
-							<option value="serial">Serial port (experimental)</option>
-						</select>
-					</label>
+				<!-- Laid out like the settings under More: rows of a name, then its control. -->
+				<div class="menu-panel floating printer-panel">
+					<h3 class="section">Printer</h3>
+					<div class="prop-row">
+						<span id="targetLabel">Connection</span>
+						<span
+							class="segmented fill"
+							id="target"
+							data-setting="target"
+							role="group"
+							aria-labelledby="targetLabel"
+						>
+							<button
+								data-value="virtual"
+								title="A printer on the screen, to try labels without one"
+							>
+								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#monitor" /></svg>
+								Virtual
+							</button>
+							<button data-value="bluetooth" title="A Bluetooth printer, paired from here">
+								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#bluetooth" /></svg>
+								Bluetooth
+							</button>
+							<button
+								data-value="serial"
+								title="A printer paired with this computer, which shows up as a serial (COM) port"
+							>
+								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#cable" /></svg>
+								Serial
+							</button>
+						</span>
+					</div>
 					<p id="noBluetooth" class="hint" hidden>
-						This browser can't reach Bluetooth printers. You can still design, save and try prints
-						on the virtual printer; to print for real, open this page in Chrome or Edge.
+						This browser can't use Bluetooth.
+						<span id="noBluetoothSerial" hidden
+							>Pair the printer with this computer and choose Serial, or use Chrome or Edge.</span
+						><span id="noBluetoothOnly">To print, open this page in Chrome or Edge.</span>
 						<a href="https://caniuse.com/web-bluetooth" target="_blank" rel="noopener"
-							>Which browsers support Bluetooth</a
+							>Supported browsers</a
 						>
 					</p>
-					<span id="printerStatus" class="status"></span>
-					<button id="btnConnect" hidden>Connect</button>
-					<label id="virtualModelRow" title="Which printer the virtual printer pretends to be"
+					<div class="prop-row" id="printerStatusRow">
+						<span>Status</span>
+						<span class="with-unit">
+							<span id="printerStatus" class="status"></span>
+							<button id="btnConnect" hidden>
+								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#plug" /></svg
+								><span>Connect</span>
+							</button>
+						</span>
+					</div>
+					<label
+						class="prop-row"
+						id="virtualModelRow"
+						title="Which printer the virtual printer pretends to be"
 						>Model
 						<select id="virtualModel"></select
 					></label>
-					<label>
-						Darkness
-						<select id="density" title="How dark the print is">
-							<option value="light">Light</option>
-							<option value="normal">Normal</option>
-							<option value="dark">Dark</option>
-						</select>
-					</label>
+					<div class="prop-row">
+						<span id="densityLabel">Darkness</span>
+						<span
+							class="segmented fill"
+							id="density"
+							data-setting="density"
+							role="group"
+							aria-labelledby="densityLabel"
+						>
+							<button data-value="light" title="Lighter print, and less wear on the head">
+								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#density-light" /></svg>
+								Light
+							</button>
+							<button data-value="normal" title="The printer's usual darkness">
+								<svg class="icon" aria-hidden="true">
+									<use href="icons/ui.svg#density-normal" />
+								</svg>
+								Normal
+							</button>
+							<button data-value="dark" title="Darker print, for faint labels">
+								<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#density-dark" /></svg>
+								Dark
+							</button>
+						</span>
+					</div>
 					<details class="advanced">
-						<summary>More printer settings</summary>
+						<summary class="section">More printer settings</summary>
 
 						<div class="advanced-body">
-							<label class="row"
-								><input type="checkbox" id="setFlip" /> Flip 180° (use if labels print upside
-								down)</label
-							>
 							<label
-								class="row"
+								class="prop-row"
 								id="setPrinterRow"
 								title="Picked up from the printer's name when one connects"
-								>Printer model
+								>Model
 								<select id="setPrinter"></select
 							></label>
-							<label class="row"
-								>Feed after continuous label
-								<input type="number" id="setFeed" min="0" max="255" step="1" /> dot lines
-								<span class="hint" id="setFeedDefault"></span>
-								<button type="button" id="setFeedReset" hidden>Reset</button></label
-							>
-							<label class="row" id="setAutoPowerRow"
-								>Turn the printer off after
-								<select id="setAutoPower"></select>
-								<span class="hint" id="setAutoPowerHint">once connected</span></label
-							>
-							<label class="row"
-								><input type="checkbox" id="setAllDevices" /> Show all Bluetooth devices in
-								picker</label
-							>
-							<button id="btnForget">Forget connected printer</button>
-							<button
-								type="button"
-								id="btnCopyDiagnostics"
-								title="App version, browser, printer and settings, for a bug report"
-							>
-								Copy diagnostics
-							</button>
+							<div class="prop-row">
+								<span id="setFlipLabel">Rotation</span>
+								<span class="segmented fill" role="group" aria-labelledby="setFlipLabel">
+									<button id="setFlip" title="Use if labels print upside down">
+										<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#rotate-cw" /></svg>
+										Flip 180°
+									</button>
+								</span>
+							</div>
+							<label class="prop-row" title="How far the printer feeds after a continuous label"
+								>Feed
+								<span class="with-unit">
+									<input type="number" id="setFeed" min="0" max="255" step="1" /> dot lines
+									<button type="button" id="setFeedReset" hidden>Reset</button>
+									<span class="hint" id="setFeedDefault"></span>
+								</span>
+							</label>
+							<label class="prop-row" id="setAutoPowerRow" title="The printer keeps this itself"
+								>Turn off
+								<span class="with-unit">
+									<select id="setAutoPower"></select>
+									<span class="hint" id="setAutoPowerHint">once connected</span>
+								</span>
+							</label>
+							<div class="prop-row">
+								<span id="setAllDevicesLabel">Pairing</span>
+								<span class="segmented fill" role="group" aria-labelledby="setAllDevicesLabel">
+									<button
+										id="setAllDevices"
+										title="List every Bluetooth device when pairing, not just known label printers"
+									>
+										<svg class="icon" aria-hidden="true">
+											<use href="icons/ui.svg#bluetooth-searching" />
+										</svg>
+										Show all devices
+									</button>
+								</span>
+							</div>
+							<div class="row">
+								<button id="btnForget">
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#unlink" /></svg
+									>Forget printer
+								</button>
+								<button
+									type="button"
+									id="btnCopyDiagnostics"
+									title="App version, browser, printer and settings, for a bug report"
+								>
+									<svg class="icon" aria-hidden="true">
+										<use href="icons/ui.svg#clipboard-copy" /></svg
+									>Copy diagnostics
+								</button>
+							</div>
 						</div>
 					</details>
 				</div>
@@ -651,6 +730,9 @@
 							while typing.
 						</li>
 						<li><kbd>Ctrl</kbd>+scroll, or <kbd>+</kbd> and <kbd>−</kbd>, zoom.</li>
+						<li>
+							<kbd>Alt</kbd>+scroll over the selected picture, or a pinch, zooms into the picture.
+						</li>
 					</ul>
 				</details>
 
@@ -948,6 +1030,23 @@
 									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#maximize-2" /></svg>
 									Stretch
 								</button>
+							</span>
+						</div>
+						<div class="prop-row">
+							<span id="imageZoomLabel">Zoom</span>
+							<span class="row slider-row">
+								<input
+									type="range"
+									id="imageZoom"
+									data-prop="zoom"
+									data-type="number"
+									min="1"
+									max="8"
+									step="0.05"
+									aria-labelledby="imageZoomLabel"
+									title="Zoom into the picture (or Alt+scroll over it on the label, or pinch)"
+								/>
+								<button id="resetImageZoom" title="Back to 100%">100%</button>
 							</span>
 						</div>
 						<!-- Where the picture sits in its box is dragged on the label, by the dot on it. -->

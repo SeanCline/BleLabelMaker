@@ -31,7 +31,7 @@ const loadImage = (src) => {
 
 /**
  * Where the picture goes in its box (in the box's own, unrotated frame), whatever units the box
- * is in: fitted by `fit`, then placed by `panX` and `panY`.
+ * is in: fitted by `fit`, enlarged by `zoom`, then placed by `panX` and `panY`.
  * @param {{w: number, h: number}} box
  * @param {{w: number, h: number}} size the picture's own
  */
@@ -39,7 +39,8 @@ export const pictureFrame = (e, box, size) => {
 	const sx = box.w / size.w;
 	const sy = box.h / size.h;
 	// contain keeps the whole picture, cover fills the box and crops; both keep proportions.
-	const scale = e.fit === "cover" ? Math.max(sx, sy) : Math.min(sx, sy);
+	// Zoom multiplies either, so a filled picture still fills its box however it's resized.
+	const scale = (e.fit === "cover" ? Math.max(sx, sy) : Math.min(sx, sy)) * e.zoom;
 	const w = e.fit === "stretch" ? box.w : size.w * scale;
 	const h = e.fit === "stretch" ? box.h : size.h * scale;
 	return { x: (box.w - w) * e.panX, y: (box.h - h) * e.panY, w, h };

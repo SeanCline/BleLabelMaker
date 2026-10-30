@@ -237,7 +237,9 @@ different lists.
   URL (PNG, JPEG, WebP or GIF; anything else, including remote URLs, is
   rejected so files work offline and can't phone home). `mode` is `dither`
   (photos) or `threshold` (logos), `level` 0–255 is darkness, and `invert`
-  flips the printed result.
+  flips the printed result. `fit` is `contain`, `cover` or `stretch`; `zoom`
+  (1–8, ignored by `stretch`) enlarges the fitted picture, and `panX`/`panY`
+  (0–1) place it in its box, 0.5 being the middle.
 - An element may leave out any property a new element would have anyway
   (`rotation`, `fontSizePt`, `symbology`…), as may `label.continuous` and
   `editor`; they take the values a new one gets (`OPTIONAL` in
@@ -372,9 +374,9 @@ query can never land in the middle of a job's image data.
   (the print head runs across the label's short side), and the rows run along
   the label's length.
 - Orientation: the label is rendered as you read it (landscape) and rotated
-  90° clockwise into the raster. That matches the reference repo, which is
-  known to print correctly. A "Flip 180°" setting is there in case real
-  prints come out upside down.
+  90° clockwise into the raster. That matches the reference repo, and a D30
+  prints the right way up with it. The other D-series models are assumed to
+  match; "Flip 180°" is there for one that doesn't.
 
 The reference repo has two bugs that we don't copy. It allocates 8 extra
 bytes and reports a non-integer row count in the header for most widths. Its
@@ -398,16 +400,21 @@ The e2e suite goes one step further with a fake Web Bluetooth device
 device picker, GATT, notifications, chunked writes, disconnects and Forget.
 `test/e2e/fake-serial.js` does the same for `SerialPrinter`.
 
-## Serial port (experimental)
+## Serial port
 
 The D30 also speaks classic Bluetooth (SPP). Windows turns a
-paired SPP device into COM ports, and Web Serial (Chrome and Edge on desktop)
-can open them, so `SerialPrinter` sends exactly the same bytes as
-`BluetoothPrinter` and reads the same status records back. The picker lists
-the SPP service id too, so Chrome can offer the printer's Bluetooth serial
-service directly. A serial link has no write acknowledgements, so jobs go out
-in 512-byte chunks with a 10 ms gap (about 50 KB/s). That's a guess at what the
-printer can buffer, to adjust on hardware.
+paired SPP device into COM ports, and Web Serial (Chrome, Edge and, since 151,
+Firefox, all on desktop) can open them, so `SerialPrinter` sends exactly the
+same bytes as `BluetoothPrinter` and reads the same status records back.
+Confirmed on a D30 from Firefox on Windows: the port is named `JL_SPP` (the
+printer's Bluetooth chip is JieLi's), the battery reads correctly and a label
+prints. The picker lists the SPP service id too, so Chrome can offer the
+printer's Bluetooth serial service directly. A serial link has no write
+acknowledgements, so jobs go out in 512-byte chunks with a 10 ms gap (about
+50 KB/s). That's a guess at what the printer can buffer: a single label is
+fine, a long batch is untested. Classic Bluetooth is weaker on range than LE
+on some machines; a link that drops straight after connecting is often just
+signal.
 
 ## Accessibility
 
@@ -432,11 +439,12 @@ printer can buffer, to adjust on hardware.
 
 ## Browser support
 
-`navigator.bluetooth` is feature-detected. Without it (Firefox, Safari),
-printing is limited to the virtual printer. The printer chip shows the virtual
-printer; its menu marks Bluetooth (and the serial port, where that's missing
-too) "browser lacks support", says to open the page in Chrome or Edge, and
-links to which browsers support it. Everything else works, which CI checks by
+`navigator.bluetooth` and `navigator.serial` are feature-detected. Without
+Bluetooth (Firefox, Safari), the printer chip starts on the virtual printer;
+its menu greys out Bluetooth (and Serial, where that's missing too) and links
+to which browsers support it. Desktop
+Firefox has Web Serial, so there the hint points to the serial port; elsewhere
+it says to open the page in Chrome or Edge. Everything else works, which CI checks by
 running the browser tests in Firefox too.
 
 ## Hardware verification checklist (milestone 4)
@@ -444,8 +452,8 @@ running the browser tests in Firefox too.
 1. Connect from Chrome or Edge. The device usually advertises as `D30`, and
    the picker uses a name-prefix filter.
 2. Open `examples/orientation-test.label` and print it. The arrow should be
-   at the left and "TOP EDGE" along the top. If the print is upside down, turn
-   on **Flip 180°** in _Advanced_.
+   at the left and "TOP EDGE" along the top (confirmed on a D30). If another
+   model prints upside down, turn on **Flip 180°** in _Advanced_.
 3. A label should stop at the next gap, with no blank labels after it. The
    first hardware print fed blank labels non-stop with the continuous-paper
    sequence, so gap labels no longer send a feed.
@@ -466,7 +474,7 @@ running the browser tests in Firefox too.
 10. The D-series also has a `1A 40` "material" record (roll part number, width,
     length) for smart label rolls; if the D30 ever sends one, it could pick the
     label size automatically.
-11. Serial: pair the D30 in Windows, choose _Phomemo D30 (serial port)_, and
-    connect. If the picker shows two COM ports, the outgoing one is usually the
-    right one. Print a label and a 10-label batch; if the batch garbles,
+11. Serial: pair the D30 in Windows, choose _Serial_, and connect to the
+    port named `JL_SPP` (if there are two, the outgoing one). A single label and
+    the battery are confirmed; print a 10-label batch, and if it garbles,
     increase `chunkGapMs` in `transport/serial.js`.

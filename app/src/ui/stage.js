@@ -229,7 +229,7 @@ export const labelPointAt = (clientX, clientY) => {
 };
 
 overlay.addEventListener("pointerdown", (ev) => {
-	if (ev.button !== 0) return;
+	if (ev.button !== 0 || startPinch(ev)) return;
 	// So arrow keys, R and Delete act on what was just clicked, not on a panel field.
 	overlay.focus({ preventScroll: true });
 	// The preventDefault below keeps the browser from clearing a text selection elsewhere on
@@ -410,7 +410,7 @@ const resizeElement = (dx, dy, free, grid, threshold) => {
 };
 
 overlay.addEventListener("pointermove", (ev) => {
-	if (!drag) return;
+	if (movePinch(ev) || !drag) return;
 	if (drag.kind === "marquee") return updateMarquee(ev);
 	// A few pixels of slack, so a tap or click doesn't shift what it lands on.
 	if (!drag.moved && Math.hypot(ev.clientX - drag.startX, ev.clientY - drag.startY) < DRAG_SLACK_PX)
@@ -446,6 +446,105 @@ const endDrag = () => {
 };
 overlay.addEventListener("pointerup", endDrag);
 overlay.addEventListener("pointercancel", endDrag);
+
+/**
+ * Zooms a picture to `to`, keeping the spot under (clientX, clientY) where it is, as far as
+ * the box's edges allow: the way photo apps zoom.
+ */
+const zoomPicture = (e, to, clientX, clientY) => {
+	const size = pictureSize(e.src);
+	if (!size) return;
+	const zoom = round(clamp(to, ...LIMITS.imageZoom), 3);
+	const quarter = quarterOf(e);
+	const local = localSize(quarter, e);
+	// Into the picture's own frame. A quarter turn's inverse is its transpose.
+	const [a, b, c, d, tx, ty] = QUARTER[quarter](e.w, e.h);
+	const at = overlayMm({ clientX, clientY });
+	const lx = at.x - e.x - tx;
+	const ly = at.y - e.y - ty;
+	const p = { x: a * lx + b * ly, y: c * lx + d * ly };
+	const before = pictureFrame(e, local, size);
+	const after = pictureFrame({ ...e, zoom }, local, size);
+	const pan = (axis, extent, length, pan0) => {
+		const slack = extent - after[length];
+		if (Math.abs(slack) < 0.05) return pan0;
+		const u = (p[axis] - before[axis]) / before[length];
+		return round(clamp((p[axis] - u * after[length]) / slack, 0, 1), 4);
+	};
+	updateElement(
+		e.id,
+		{ zoom, panX: pan("x", local.w, "w", e.panX), panY: pan("y", local.h, "h", e.panY) },
+		`${e.id}:zoom`,
+	);
+};
+
+/** The selected picture, when it's one zoom applies to. */
+const zoomable = () => {
+	const e = selected();
+	return e?.type === "image" && e.fit !== "stretch" ? e : null;
+};
+
+// Alt+wheel over the selected picture zooms into it; Ctrl+wheel is the label's own zoom.
+overlay.addEventListener(
+	"wheel",
+	(ev) => {
+		const e = zoomable();
+		if (!ev.altKey || !e) return;
+		ev.preventDefault();
+		// Smooth on a trackpad's small steps; about a fifth per mouse wheel notch.
+		zoomPicture(e, e.zoom * Math.exp(-ev.deltaY / 500), ev.clientX, ev.clientY);
+	},
+	{ passive: false },
+);
+
+// Two fingers on the label pinch the selected picture, zooming it around the point between
+// them as a phone's photo viewer does. The first finger's drag gives way to the pinch.
+/** @type {Map<number, {x: number, y: number}>} */
+const fingers = new Map();
+/** @type {{id: string, zoom: number, spread: number} | null} */
+let pinch = null;
+
+const fingerSpread = () => {
+	const [a, b] = fingers.values();
+	return Math.hypot(a.x - b.x, a.y - b.y);
+};
+
+/** Notes a finger going down; true when it's a second one, and starts a pinch. */
+const startPinch = (ev) => {
+	if (ev.pointerType !== "touch") return false;
+	fingers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+	const e = zoomable();
+	if (fingers.size !== 2 || !e) return false;
+	drag = null;
+	marqueeEl.hidden = true;
+	activeGuides = [];
+	history.seal();
+	pinch = { id: e.id, zoom: e.zoom, spread: fingerSpread() };
+	overlay.setPointerCapture(ev.pointerId);
+	ev.preventDefault();
+	return true;
+};
+
+/** Follows the fingers; true while they're pinching. */
+const movePinch = (ev) => {
+	if (!fingers.has(ev.pointerId)) return false;
+	fingers.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+	const e = pinch && elementById(pinch.id);
+	if (!e || e.type !== "image" || !pinch.spread) return !!pinch;
+	const [a, b] = fingers.values();
+	// Measured from where the pinch started, so small steps don't round away.
+	zoomPicture(e, (pinch.zoom * fingerSpread()) / pinch.spread, (a.x + b.x) / 2, (a.y + b.y) / 2);
+	return true;
+};
+
+const endPinch = (ev) => {
+	fingers.delete(ev.pointerId);
+	if (!pinch) return;
+	pinch = null;
+	renderOverlay();
+	history.seal();
+};
+for (const type of ["pointerup", "pointercancel"]) overlay.addEventListener(type, endPinch);
 
 overlay.addEventListener("dblclick", (ev) => {
 	// The drag code captures the pointer, so the dblclick targets the overlay; the first click

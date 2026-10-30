@@ -144,6 +144,7 @@ input[type="number"] {
 }
 
 .topbar {
+	position: relative;
 	display: flex;
 	align-items: center;
 	gap: var(--gap-section);
@@ -920,6 +921,48 @@ progress {
 	cursor: pointer;
 }
 
+/* The printer menu, laid out like the settings under More: wide enough for its button groups,
+   each row the full width. */
+.printer-panel {
+	width: 340px;
+	align-items: stretch;
+}
+/* Hung from the bar's right edge, not the chip: Print beside it widens to "Connect & Print"
+   for a real printer, which would move a menu hung from the chip as it changes. */
+.topbar > .printer-menu {
+	position: static;
+}
+.topbar > .printer-menu > .printer-panel {
+	top: calc(100% - 4px);
+	right: 16px;
+}
+.printer-panel label.prop-row {
+	display: grid;
+}
+.printer-panel .with-unit {
+	flex-wrap: wrap;
+}
+/* The status wraps beside Connect rather than pushing it onto a line of its own, and every
+   type of printer shows the same rows, so switching between them doesn't move the menu. */
+#printerStatusRow .with-unit {
+	flex-wrap: nowrap;
+	justify-content: space-between;
+}
+#btnConnect {
+	flex: none;
+}
+/* Set off by a rule, like a group in the settings. */
+.printer-panel .advanced {
+	color: inherit;
+	font-size: inherit;
+	padding-top: 12px;
+	border-top: 1px solid var(--border);
+}
+.printer-panel .advanced-body {
+	align-items: stretch;
+	padding: 10px 0 0;
+}
+
 .virtual {
 	background: var(--surface);
 	border: 1px solid var(--border);
@@ -1057,7 +1100,16 @@ h3.section {
 .prop-row :is(select, input, .segmented) {
 	color: var(--text);
 }
-.settings :is(select, input[type="number"], .segmented.fill) {
+/* A slider with its value beside it, on one line. */
+.slider-row {
+	flex-wrap: nowrap;
+}
+.slider-row input[type="range"] {
+	flex: 1;
+	min-width: 0;
+}
+.settings :is(select, input[type="number"], .segmented.fill),
+.printer-panel :is(select, input[type="number"], .segmented.fill, #btnConnect) {
 	height: 30px;
 }
 .with-unit {
@@ -1711,7 +1763,8 @@ button.link {
 /* Fingers: bigger buttons where they're small, and handles that can be caught. */
 /* Finger-sized: 44px, the size phones' own guidelines ask for. */
 @media (pointer: coarse) {
-	.settings :is(select, input[type="number"], .segmented.fill) {
+	.settings :is(select, input[type="number"], .segmented.fill),
+	.printer-panel :is(select, input[type="number"], .segmented.fill, #btnConnect) {
 		height: 40px;
 	}
 	/* Keyboard and mouse shortcuts, which a finger has no use for. */
@@ -1732,6 +1785,14 @@ button.link {
 	.quickbar input,
 	.menu-list button {
 		min-height: 44px;
+	}
+	/* The printer menu's buttons at its fields' height, as in the settings; a group's buttons
+	   fill the group. */
+	.printer-panel button {
+		min-height: 40px;
+	}
+	.printer-panel .segmented button {
+		min-height: 0;
 	}
 	/* Every control on the bar at the finger size, the button groups with them. */
 	.quickbar {

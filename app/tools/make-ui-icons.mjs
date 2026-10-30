@@ -67,6 +67,16 @@ const ICONS = [
 	"maximize-2",
 	"paint-bucket",
 	"circle-dot",
+	// The printer menu
+	"monitor",
+	"bluetooth",
+	"bluetooth-searching",
+	"cable",
+	"plug",
+	"unplug",
+	"rotate-cw",
+	"unlink",
+	"clipboard-copy",
 ];
 
 // Drawn here, in Lucide's style (24 grid, 2 px round strokes), where it has nothing that fits.
@@ -100,6 +110,34 @@ const CUSTOM = {
 	"text-valign-middle": textIn(10),
 	"text-valign-bottom": textIn(12),
 	"letters-stacked": A + B,
+	// Darkness: the same dots as Dither, sparser or denser.
+	"density-light": pixels([
+		".......",
+		".#...#.",
+		".......",
+		"...#...",
+		".......",
+		".#...#.",
+		".......",
+	]),
+	"density-normal": pixels([
+		"#.#.#.#",
+		".#.#.#.",
+		"#.#.#.#",
+		".#.#.#.",
+		"#.#.#.#",
+		".#.#.#.",
+		"#.#.#.#",
+	]),
+	"density-dark": pixels([
+		"#######",
+		"##.####",
+		"#######",
+		"####.##",
+		"#######",
+		"##.####",
+		"#######",
+	]),
 };
 
 const source = new URL("../node_modules/lucide-static/", import.meta.url);

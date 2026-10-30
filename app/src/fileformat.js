@@ -228,6 +228,7 @@ const checkElement = (raw, where) => {
 			level: Math.round(level),
 			invert: bool(e.invert, `${where} invert`),
 			fit: oneOf(e.fit, IMAGE_FITS, `${where} fit`),
+			zoom: "zoom" in raw ? num(raw.zoom, `${where} zoom`, LIMITS.imageZoom) : 1,
 			// Earlier files could only put a picture against an edge or in the middle.
 			panX: "panX" in raw ? num(raw.panX, `${where} position`, [0, 1]) : (EDGE[raw.align] ?? 0.5),
 			panY: "panY" in raw ? num(raw.panY, `${where} position`, [0, 1]) : (EDGE[raw.vAlign] ?? 0.5),

@@ -83,10 +83,14 @@ export class BluetoothPrinter extends Connection {
 		return ch.writeValueWithResponse ? ch.writeValueWithResponse(bytes) : ch.writeValue(bytes);
 	}
 
-	async forget() {
+	async disconnect() {
 		if (this.device?.gatt?.connected) this.device.gatt.disconnect();
-		this.device = null;
 		this.characteristic = null;
 		this.lost();
+	}
+
+	async forget() {
+		await this.disconnect();
+		this.device = null;
 	}
 }

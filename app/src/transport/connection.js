@@ -51,7 +51,7 @@ export class SendError extends Error {
 }
 
 /**
- * What every connection shares. Subclasses implement open(), write() and forget(), report
+ * What every connection shares. Subclasses implement open(), write() and disconnect(), report
  * what the printer sends with this.heard(), and call this.lost() when the link drops.
  */
 export class Connection {
@@ -128,9 +128,14 @@ export class Connection {
 	/** @param {Uint8Array} _bytes */
 	async write(_bytes) {}
 
+	/** Closes the link but keeps the device, so the next connect goes straight back to it. */
+	async disconnect() {
+		this.lost();
+	}
+
 	/** Closes the link and forgets the device, so the next connect asks again. */
 	async forget() {
-		this.lost();
+		await this.disconnect();
 	}
 
 	/** @param {{showAllDevices?: boolean}} [options] */

@@ -22,7 +22,7 @@ import { mapText, normalize } from "./richtext.js";
  *   showText: boolean, textFont: string}} BarcodeElement
  * @typedef {Box & {type: "qr", data: string, level: "L"|"M"|"Q"|"H"}} QrElement
  * @typedef {Box & {type: "image", src: string, mode: "dither"|"threshold", level: number,
- *   invert: boolean, fit: "contain"|"cover"|"stretch", panX: number, panY: number}} ImageElement
+ *   invert: boolean, fit: "contain"|"cover"|"stretch", zoom: number, panX: number, panY: number}} ImageElement
  *   panX, panY: where the picture sits in its box, 0–1 across and down: 0 lines its left
  *   (top) edge up with the box's, 1 its right (bottom). On a cropped picture they pick
  *   which part shows.
@@ -49,6 +49,8 @@ export const LIMITS = {
 	elementMinMm: 1,
 	strokeMm: [0.125, 5],
 	radiusMm: [0, 20],
+	// How far a picture zooms past its fit or fill: 8× is a small crop of a big picture.
+	imageZoom: [1, 8],
 	// Embedded images are downscaled on import; this only stops pathological files.
 	imageSrcChars: 3_000_000,
 	// A whole .label file, a few images' worth. Anything bigger is refused before it's read, so a
@@ -216,6 +218,7 @@ export const createImage = (doc, props = {}) => ({
 	level: 128,
 	invert: false,
 	fit: "contain",
+	zoom: 1,
 	panX: 0.5,
 	panY: 0.5,
 	...props,

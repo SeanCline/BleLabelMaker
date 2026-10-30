@@ -8,6 +8,8 @@ import {
 	openBatchList,
 	loaded,
 	printVirtual,
+	choose,
+	chosen,
 } from "./harness.js";
 import { installFakeBluetooth } from "./fake-bluetooth.js";
 
@@ -27,20 +29,20 @@ test("status line shows what the printer reports; density is sent and decoded", 
 	assert.equal(await page.$eval("#virtualModelRow", (r) => r.hidden), false);
 	assert.equal(await page.$eval("#setPrinterRow", (r) => r.hidden), true);
 
-	assert.equal(await page.$eval("#density", (s) => s.value), "normal", "Normal is the default");
-	assert.deepEqual(await page.$$eval("#density option", (o) => o.map((x) => x.value)), [
+	assert.equal(await chosen(page, "#density"), "normal", "Normal is the default");
+	assert.deepEqual(await page.$$eval("#density button", (b) => b.map((x) => x.dataset.value)), [
 		"light",
 		"normal",
 		"dark",
 	]);
-	await page.select("#density", "dark");
+	await choose(page, "#density", "dark");
 	await printVirtual(page);
 	assert.match(await page.$eval("#tape .printed .hint", (e) => e.textContent), /density dark/);
 
 	// The setting persists.
 	await page.reload({ waitUntil: "load" });
 	await loaded(page);
-	assert.equal(await page.$eval("#density", (s) => s.value), "dark");
+	assert.equal(await chosen(page, "#density"), "dark");
 	assert.deepEqual(page.errors, []);
 });
 

@@ -165,6 +165,19 @@ test("a picture's position is anywhere in its box; older files' edges and middle
 	assert.throws(() => parse(JSON.stringify(raw)), /position/);
 });
 
+test("a picture's zoom round-trips; files from before zoom open at 100%", () => {
+	const doc = sampleDoc();
+	const png =
+		"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+	doc.elements.push(createImage(doc, { src: png, zoom: 2.5 }));
+	assert.deepEqual(parse(serialize(doc)).doc, doc);
+	const raw = JSON.parse(serialize(doc));
+	delete raw.elements[3].zoom;
+	assert.equal(/** @type {any} */ (parse(JSON.stringify(raw)).doc.elements[3]).zoom, 1);
+	raw.elements[3].zoom = 9;
+	assert.throws(() => parse(JSON.stringify(raw)), /zoom/);
+});
+
 test("copied elements round-trip through the clipboard format; other text is left alone", () => {
 	const doc = sampleDoc();
 	assert.deepEqual(parseElements(serializeElements(doc.elements)), doc.elements);
