@@ -71,8 +71,8 @@
 					<span class="chip-dot" aria-hidden="true"></span
 					><span id="printerChipLabel">Printer</span>
 				</summary>
-				<!-- Laid out like the settings under More: rows of a name, then its control. -->
-				<div class="menu-panel floating printer-panel">
+				<!-- Laid out like the settings under More (.panel-rows): a name, then its control. -->
+				<div class="menu-panel floating panel-rows printer-panel">
 					<h3 class="section">Printer</h3>
 					<div class="prop-row">
 						<span id="targetLabel">Connection</span>
@@ -243,17 +243,19 @@
 						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#chevron-down" /></svg
 						><span class="sr-only">Print options</span>
 					</summary>
-					<div class="menu-panel floating">
-						<label>
+					<div class="menu-panel floating panel-rows print-panel">
+						<h3 class="section">Print</h3>
+						<label class="prop-row">
 							Copies
 							<input type="number" id="copies" min="1" max="99" value="1" />
 						</label>
 						<label
+							class="prop-row"
 							id="counterRow"
 							title="The number {n} prints next. It moves on after every print."
 							hidden
 						>
-							Next number
+							Next {n}
 							<input type="number" id="counterStart" min="0" step="1" />
 						</label>
 					</div>
@@ -270,46 +272,57 @@
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#tag" /></svg
 							><span id="labelChipText"></span>
 						</summary>
-						<div class="menu-panel floating">
-							<label>
-								Label
+						<div class="menu-panel floating panel-rows label-panel">
+							<h3 class="section">Label</h3>
+							<label class="prop-row">
+								Size
 								<select id="labelPreset"></select>
 							</label>
-							<span id="continuousSize" class="custom-size" hidden>
-								Length
-								<input
-									type="number"
-									id="labelLen"
-									min="10"
-									max="200"
-									step="1"
-									aria-label="Label length (mm)"
-								/>
-								mm
-								<label class="check" title="Make the label as long as what's on it"
-									><input type="checkbox" id="labelAutoLength" /> Auto</label
-								>
-							</span>
-							<span id="customSize" class="custom-size" hidden>
-								<input
-									type="number"
-									id="labelW"
-									min="10"
-									max="200"
-									step="1"
-									aria-label="Label width (mm)"
-								/>
-								×
-								<input
-									type="number"
-									id="labelH"
-									min="6"
-									max="15"
-									step="0.5"
-									aria-label="Label height (mm)"
-								/>
-								mm
-							</span>
+							<div id="continuousSize" class="prop-row" hidden>
+								<span>Length</span>
+								<span class="with-unit">
+									<input
+										type="number"
+										id="labelLen"
+										min="10"
+										max="200"
+										step="1"
+										aria-label="Label length (mm)"
+									/>
+									mm
+									<span class="segmented fill">
+										<button id="labelAutoLength" title="Make the label as long as what's on it">
+											<svg class="icon" aria-hidden="true">
+												<use href="icons/ui.svg#move-horizontal" />
+											</svg>
+											Auto
+										</button>
+									</span>
+								</span>
+							</div>
+							<div id="customSize" class="prop-row" hidden>
+								<span>Custom</span>
+								<span class="with-unit">
+									<input
+										type="number"
+										id="labelW"
+										min="10"
+										max="200"
+										step="1"
+										aria-label="Label width (mm)"
+									/>
+									×
+									<input
+										type="number"
+										id="labelH"
+										min="6"
+										max="15"
+										step="0.5"
+										aria-label="Label height (mm)"
+									/>
+									mm
+								</span>
+							</div>
 							<span class="hint" id="labelInfo"></span>
 						</div>
 					</details>
@@ -737,9 +750,11 @@
 				</details>
 
 				<section class="virtual" id="virtualOut" hidden>
-					<div class="title-row">
-						<h2>Virtual printer output</h2>
-						<button id="btnClearVirtual">Clear</button>
+					<div class="section-head">
+						<h3 class="section">Virtual printer output</h3>
+						<button id="btnClearVirtual">
+							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#trash-2" /></svg> Clear
+						</button>
 					</div>
 					<p class="hint" id="virtualNote"></p>
 					<div class="tape" id="tape"></div>
@@ -773,12 +788,21 @@
 					placeholder="Paprika&#10;Cumin&#10;Oregano"
 				></textarea>
 				<div class="row">
-					<label class="check"
-						><input type="checkbox" id="batchHeadings" /> First line is column names</label
-					>
-					<button id="batchOpen" title="Open a .csv or text file">Open CSV…</button>
+					<span class="segmented">
+						<button id="batchHeadings" title="The first line names the columns, and isn't printed">
+							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#heading" /></svg>
+							Header row
+						</button>
+					</span>
+					<span class="spacer"></span>
+					<button id="batchOpen" title="Open a .csv or text file">
+						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#folder-open" /></svg> Open
+						CSV…
+					</button>
 					<input type="file" id="batchFile" accept=".csv,.tsv,.txt,text/csv,text/plain" hidden />
-					<button id="batchClear">Clear</button>
+					<button id="batchClear">
+						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#trash-2" /></svg> Clear
+					</button>
 				</div>
 				<p class="hint" id="batchHint"></p>
 				<p class="hint" id="batchWhole" hidden>{0} inserts the whole line.</p>
@@ -1134,8 +1158,14 @@
 				<p id="printedText"></p>
 				<div class="dialog-actions row">
 					<button value="later">Not now</button>
-					<button value="problem">No, report a problem</button>
-					<button value="works" class="primary">Yes, confirm it works</button>
+					<button value="problem">
+						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#bug" /></svg> No, report a
+						problem
+					</button>
+					<button value="works" class="primary">
+						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#check" /></svg> Yes,
+						confirm it works
+					</button>
 				</div>
 			</form>
 		</dialog>
@@ -1143,14 +1173,16 @@
 		<dialog id="emojiDialog" aria-labelledby="emojiTitle">
 			<form method="dialog" class="stack">
 				<h2 id="emojiTitle">Choose an emoji</h2>
-				<input
-					type="search"
-					id="emojiSearch"
-					class="emoji-search"
-					placeholder="Search: jar, frozen, warning…"
-					aria-label="Search emoji by name"
-					autocomplete="off"
-				/>
+				<span class="search-field">
+					<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#search" /></svg>
+					<input
+						type="search"
+						id="emojiSearch"
+						placeholder="Search: jar, frozen, warning…"
+						aria-label="Search emoji by name"
+						autocomplete="off"
+					/>
+				</span>
 				<div class="emoji-grid" id="emojiGrid"></div>
 				<p class="hint" id="emojiNone" hidden>Nothing matches. Type or paste the emoji below.</p>
 				<label class="field">
@@ -1176,17 +1208,24 @@
 				</form>
 			</div>
 			<div class="history-tools row">
-				<input
-					type="search"
-					id="historySearch"
-					placeholder="Search labels…"
-					aria-label="Search print history"
-				/>
-				<button id="btnHistoryExport" title="Download the history as a file">Export</button>
-				<button id="btnHistoryImport" title="Merge an exported history into this one">
-					Import…
+				<span class="search-field">
+					<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#search" /></svg>
+					<input
+						type="search"
+						id="historySearch"
+						placeholder="Search labels…"
+						aria-label="Search print history"
+					/>
+				</span>
+				<button id="btnHistoryExport" title="Download the history as a file">
+					<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#download" /></svg> Export
 				</button>
-				<button id="btnHistoryClear" class="danger">Clear</button>
+				<button id="btnHistoryImport" title="Merge an exported history into this one">
+					<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#folder-open" /></svg> Import…
+				</button>
+				<button id="btnHistoryClear" class="danger">
+					<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#trash-2" /></svg> Clear
+				</button>
 				<input type="file" id="historyFile" accept=".json,application/json" hidden />
 			</div>
 			<p class="hint" id="historyEmpty" hidden></p>

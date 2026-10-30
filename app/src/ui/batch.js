@@ -30,7 +30,7 @@ const changed = () => {
 const render = () => {
 	const n = parsed.rows.length;
 	if ($("#batchData").value !== saved.text) $("#batchData").value = saved.text;
-	$("#batchHeadings").checked = saved.headings;
+	$("#batchHeadings").setAttribute("aria-pressed", String(saved.headings));
 	$("#batchSummary").textContent = n ? `· ${plural(n, "label")}` : "";
 	$("#batchCount").hidden = n === 0;
 	$("#batchCount").textContent = n ? String(n) : "";
@@ -71,8 +71,8 @@ $("#batchData").addEventListener("input", (ev) => {
 	saved.csv = false;
 	changed();
 });
-$("#batchHeadings").addEventListener("change", (ev) => {
-	saved.headings = ev.target.checked;
+$("#batchHeadings").addEventListener("click", () => {
+	saved.headings = !saved.headings;
 	changed();
 });
 $("#batchClear").addEventListener("click", () => {

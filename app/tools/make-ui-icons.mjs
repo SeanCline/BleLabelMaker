@@ -77,6 +77,11 @@ const ICONS = [
 	"rotate-cw",
 	"unlink",
 	"clipboard-copy",
+	// The label size, the batch list, history and dialogs
+	"move-horizontal",
+	"heading",
+	"search",
+	"bug",
 ];
 
 // Drawn here, in Lucide's style (24 grid, 2 px round strokes), where it has nothing that fits.

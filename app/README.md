@@ -96,7 +96,7 @@ bottom of the font list asks for a Google Font to be added.
   the same, and the _One per line_ template starts with a sample list. The
   button shows how many labels the list makes. Pasted lines that all have the same number of
   comma-separated values are read as CSV. Put `{1}`, `{2}`… (or
-  `{Column name}` with _First line is column names_) in the design, or `{0}`
+  `{Column name}` with _Header row_ on) in the design, or `{0}`
   for the whole line. Print then
   makes one label per row. While there's a list, the label area shows which
   row it previews, with arrows to step through them.

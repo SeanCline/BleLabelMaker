@@ -203,7 +203,11 @@ test("auto length: a continuous label grows with its text, per batch row when pr
 	const page = await env.open();
 	const label = () => appState(page).then((s) => s.doc.label);
 	await page.select("#labelPreset", "continuous");
-	assert.equal(await page.$eval("#labelAutoLength", (i) => i.checked), true, "auto to start with");
+	assert.equal(
+		await page.$eval("#labelAutoLength", (b) => b.ariaPressed === "true"),
+		true,
+		"auto to start with",
+	);
 	assert.equal(await page.$eval("#labelLen", (i) => i.disabled), true, "nothing to type");
 	await typeInto(page, "#designText", "Hi");
 	await page.waitForFunction(() => window.labelApp.state.doc.label.widthMm < 20);

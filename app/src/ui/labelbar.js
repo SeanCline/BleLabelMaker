@@ -61,7 +61,7 @@ const renderLabelBar = () => {
 	}
 	$("#customSize").hidden = sel.value !== "custom";
 	$("#continuousSize").hidden = sel.value !== "continuous";
-	$("#labelAutoLength").checked = !!l.autoLength;
+	$("#labelAutoLength").setAttribute("aria-pressed", String(!!l.autoLength));
 	// The length follows the content, so there's nothing to type.
 	$("#labelLen").disabled = !!l.autoLength;
 	for (const [id, v] of [
@@ -161,8 +161,8 @@ $("#labelLen").addEventListener("input", () =>
 	setLabel({ ...state.doc.label, widthMm: $("#labelLen").valueAsNumber }),
 );
 $("#labelLen").addEventListener("change", () => history.seal());
-$("#labelAutoLength").addEventListener("change", (ev) => {
-	setLabel({ ...state.doc.label, autoLength: ev.target.checked });
+$("#labelAutoLength").addEventListener("click", () => {
+	setLabel({ ...state.doc.label, autoLength: !state.doc.label.autoLength });
 	history.seal();
 });
 
