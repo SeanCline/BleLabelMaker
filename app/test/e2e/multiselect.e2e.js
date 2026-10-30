@@ -1,10 +1,14 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, appState, fromFileMenu } from "./harness.js";
+import { setup, typeInto, appState, fromFileMenu, FIREFOX } from "./harness.js";
 
 let env;
 before(async () => (env = await setup()));
 after(async () => env?.teardown());
+
+// Firefox hands listeners an empty clipboardData on clipboard events a page fires, so the
+// tests that fire them only run in Chrome. Real copy and paste are trusted, and filled in.
+const NO_PAGE_CLIPBOARD = FIREFOX && "Firefox empties clipboardData on page-made events";
 
 /** A design with two 6 mm QR codes side by side and nothing else, both unselected. */
 const twoCodes = async () => {
@@ -144,7 +148,8 @@ const clipboardEvent = (page, type, data = null) =>
 		data,
 	);
 
-test("copy and paste: duplicates beside the original, and between labels at the same spot", async () => {
+test("copy and paste: duplicates beside the original, and between labels at the same spot", async (t) => {
+	if (NO_PAGE_CLIPBOARD) return t.skip(NO_PAGE_CLIPBOARD);
 	const page = await twoCodes();
 	await page.mouse.click(...Object.values(await centreOf(page, 0)));
 	await page.focus("#overlay");

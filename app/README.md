@@ -158,11 +158,13 @@ bottom of the font list asks for a Google Font to be added.
 npm test             # unit tests (node:test, no dependencies)
 npm install          # once, for the browser tests and tools
 npm run test:e2e     # UI tests in headless Chrome/Edge (set CHROME_PATH if not found)
+BROWSER=firefox npm run test:e2e  # the same in Firefox (set FIREFOX_PATH if not found)
 npm run coverage     # both, measuring src/ in Node and the browser; CI fails below .c8rc.json's floors
 npm run lint         # ESLint, Prettier and type checking (JSDoc types, tsc --checkJs)
 npm run format       # fix formatting and auto-fixable lint
 npm run precache     # after adding or removing an app file
 npm run name         # after changing the name or repository in src/app-info.js
+npm run icons        # after changing icons/icon.svg
 ```
 
 There is no build step. Types are JSDoc comments checked by TypeScript; the

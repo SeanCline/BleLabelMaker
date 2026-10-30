@@ -60,6 +60,11 @@ test("connect: picker filters for the D30, status arrives over notifications", a
 	assert.match(await page.$eval("#setPrinter option[value=a30]", (o) => o.textContent), /untested/);
 	const printButton = () => page.$eval("#btnPrint", (b) => b.textContent.trim());
 	assert.equal(await printButton(), "Connect & Print");
+	// Auto power-off is the printer's own setting, so there's nothing to show until it says.
+	assert.deepEqual(await page.$eval("#setAutoPower", (s) => [s.disabled, s.selectedIndex]), [
+		true,
+		-1,
+	]);
 	await clickInMenu(page, "#btnConnect");
 	await page.waitForFunction(() =>
 		/^Connected to D30-FAKE · battery 64%$/.test(

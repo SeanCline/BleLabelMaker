@@ -355,7 +355,7 @@ Status:
 | `1F 11 08` battery        | `1A 04 nn` percent (A1/A2/A3 = 10/5/3 %), `1A 03 A8/A9` not charging / charging       |
 | `1F 11 11` paper          | `1A 06 88/89` out / present; the printer also sends `1A 05 98/99` cover closed / open |
 | `1F 11 07` firmware       | `1A 07 x y z`                                                                         |
-| `1F 11 0E` auto power-off | `1A 09 nn`: off after nn × 5 minutes, 0 = never (set with `1B 4E 07 nn`; unconfirmed) |
+| `1F 11 0E` auto power-off | `1A 09 nn`: off after nn × 5 minutes, 0 = never (set with `1B 4E 07 nn`; confirmed)   |
 | (unsolicited)             | `1A 0F 0C` print finished                                                             |
 
 The D30's density values are 1, 2 and 4, for Light, Normal and Dark. Normal is
@@ -436,7 +436,8 @@ printer can buffer, to adjust on hardware.
 printing is limited to the virtual printer. The printer chip shows the virtual
 printer; its menu marks Bluetooth (and the serial port, where that's missing
 too) "browser lacks support", says to open the page in Chrome or Edge, and
-links to which browsers support it. Everything else works.
+links to which browsers support it. Everything else works, which CI checks by
+running the browser tests in Firefox too.
 
 ## Hardware verification checklist (milestone 4)
 
@@ -462,11 +463,9 @@ links to which browsers support it. Everything else works.
    `printers/phomemo/status.js`.
 8. Print the same label at Light, Normal and Dark and compare.
 9. Scan a printed Code 128 and a QR code with a phone.
-10. _Advanced → Turn the printer off after_ should show the printer's current
-    setting once connected. Pick 10 minutes, leave the printer idle, and check
-    it switches itself off. The D-series also has a `1A 40` "material" record (roll part number, width, length) for smart
-    label rolls; if the D30 ever sends one, it could pick the label size
-    automatically.
+10. The D-series also has a `1A 40` "material" record (roll part number, width,
+    length) for smart label rolls; if the D30 ever sends one, it could pick the
+    label size automatically.
 11. Serial: pair the D30 in Windows, choose _Phomemo D30 (serial port)_, and
     connect. If the picker shows two COM ports, the outgoing one is usually the
     right one. Print a label and a 10-label batch; if the batch garbles,

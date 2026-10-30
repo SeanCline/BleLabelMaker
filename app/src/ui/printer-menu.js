@@ -94,7 +94,6 @@ export const renderPrinterStatus = () => {
 	s.classList.toggle("ok", !!real && t.connected && !hasProblem(t.status));
 	s.classList.toggle("problem", t.connected && hasProblem(t.status));
 	renderChip(real, t);
-	// Show what the printer reports; until it says, the choice reads "as set on the printer".
 	renderAutoPower(t);
 	$("#virtualOut").hidden = !$("#tape").children.length;
 	printerChanged.emit();
@@ -125,22 +124,24 @@ const renderChip = (real, t) => {
 
 const powerLabel = (m) =>
 	m === 0 ? "never" : m < 60 ? `${m} minutes` : `${m / 60} hour${m === 60 ? "" : "s"}`;
-/** The auto power-off choices this model offers, showing what the printer last reported. */
+/**
+ * The auto power-off choices this model offers, showing what the printer last reported. The
+ * setting lives in the printer, so until it says, there's nothing true to show or change.
+ */
 const renderAutoPower = (t) => {
 	const setting = currentPrinter().driver.autoPowerOff;
 	const select = $("#setAutoPower");
 	$("#setAutoPowerRow").hidden = !setting;
 	if (!setting || document.activeElement === select) return;
 	const values = setting.minutes.map(String);
-	const shown = [...select.options].slice(1).map((o) => o.value);
-	if (shown.join() !== values.join()) {
-		select.replaceChildren(
-			select.options[0],
-			...setting.minutes.map((m) => new Option(powerLabel(m), String(m))),
-		);
+	if ([...select.options].map((o) => o.value).join() !== values.join()) {
+		select.replaceChildren(...setting.minutes.map((m) => new Option(powerLabel(m), String(m))));
 	}
 	const minutes = t.connected ? t.status.autoPowerOff : undefined;
-	select.value = setting.minutes.includes(minutes) ? String(minutes) : "";
+	const known = setting.minutes.includes(minutes);
+	select.value = known ? String(minutes) : "";
+	select.disabled = !known;
+	$("#setAutoPowerHint").hidden = known;
 };
 
 const renderFeed = () => {
@@ -210,7 +211,7 @@ $("#setFeedReset").addEventListener("click", () => {
 // A printer setting, not an app one: it's sent to the printer, which keeps it.
 $("#setAutoPower").addEventListener("change", async (ev) => {
 	const setting = currentPrinter().driver.autoPowerOff;
-	if (ev.target.value === "" || !setting) return;
+	if (!setting) return;
 	const minutes = Number(ev.target.value);
 	const t = connection();
 	try {

@@ -10,11 +10,16 @@ import {
 	loaded,
 	fromFileMenu,
 	printVirtual,
+	FIREFOX,
 } from "./harness.js";
 
 let env;
 before(async () => (env = await setup()));
 after(async () => env?.teardown());
+
+// Firefox hands listeners an empty clipboardData on clipboard events a page fires, so the
+// tests that fire them only run in Chrome. Real copy and paste are trusted, and filled in.
+const NO_PAGE_CLIPBOARD = FIREFOX && "Firefox empties clipboardData on page-made events";
 
 const setText = (page, text) => typeInto(page, "#designText", text);
 /** Pictures in the newest virtual print: one per different label. */
@@ -152,7 +157,8 @@ test("Batch sits beside Print and counts its list; the Field menu groups the lis
 	assert.deepEqual(page.errors, []);
 });
 
-test("a list pasted onto the label offers a label for each line", async () => {
+test("a list pasted onto the label offers a label for each line", async (t) => {
+	if (NO_PAGE_CLIPBOARD) return t.skip(NO_PAGE_CLIPBOARD);
 	const page = await env.open();
 	await page.focus("#overlay");
 	await page.evaluate(() => {

@@ -33,3 +33,23 @@ test("the deployed site has the app, its licenses and CNAME, and no tests or too
 		if (!/^https:/.test(href)) assert.ok(files.includes(href), href);
 	}
 });
+
+test("the deployed site's version names the commit it was built from", async () => {
+	const { stampCommit } = await import("../tools/make-site.mjs");
+	const source = await readFile(new URL("../src/app-info.js", import.meta.url), "utf8");
+	const stamped = stampCommit(source, "82a1907");
+	// app-info.js imports nothing, so the stamped copy loads on its own.
+	const info = await import(`data:text/javascript,${encodeURIComponent(stamped)}`);
+	assert.equal(info.BUILD_VERSION, `${info.APP_VERSION}-82a1907`);
+	assert.throws(() => stampCommit(stamped, "82a1907"), /APP_COMMIT/);
+});
+
+test("the manifest's icons are published, and one is maskable for Android", async () => {
+	const { siteFiles } = await import("../tools/make-site.mjs");
+	const files = await siteFiles();
+	const manifest = JSON.parse(
+		await readFile(new URL("../manifest.webmanifest", import.meta.url), "utf8"),
+	);
+	for (const { src } of manifest.icons) assert.ok(files.has(src), src);
+	assert.ok(manifest.icons.some((i) => i.purpose === "maskable"));
+});

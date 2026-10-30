@@ -40,7 +40,7 @@ export const STATUS_QUERIES = [QUERY.firmware, QUERY.battery, QUERY.paper, QUERY
 
 /**
  * Auto power-off, in the steps the D-series offers; 0 is never. The printer counts in 5-minute
- * units. Not yet confirmed on hardware.
+ * units. Confirmed on a D30: set to 10 minutes, it turned off after 10.
  */
 export const AUTO_POWER_OFF_MINUTES = [10, 30, 60, 180, 300, 600, 0];
 export const setAutoPowerOff = (minutes) =>

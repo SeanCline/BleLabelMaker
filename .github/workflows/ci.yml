@@ -40,10 +40,31 @@ jobs:
           { echo "### Coverage"; echo '```'; npx c8 report --reporter=text; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
           npx c8 report --check-coverage
 
+  # The same browser tests in Firefox, which has no Web Bluetooth or Web Serial: DESIGN.md
+  # promises everything else works there. Tests that Firefox can't drive skip themselves.
+  firefox:
+    runs-on: ubuntu-26.04
+    defaults:
+      run:
+        working-directory: app
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 26
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      # The image installs Firefox from Mozilla's own packages; the harness is told where.
+      - run: echo "FIREFOX_PATH=$(command -v firefox)" >> "$GITHUB_ENV"
+      - run: npm run test:e2e
+        env:
+          BROWSER: firefox
+
   # Publishes the tested commit to GitHub Pages (custom domain in app/CNAME). Only main
   # deploys, and only after every test passed.
   deploy:
-    needs: test
+    needs: [test, firefox]
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-26.04
     permissions:

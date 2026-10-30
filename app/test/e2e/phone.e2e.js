@@ -1,11 +1,14 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, appState } from "./harness.js";
+import { setup, appState, FIREFOX } from "./harness.js";
 import { installFakeBluetooth } from "./fake-bluetooth.js";
 
 let env;
 before(async () => (env = await setup()));
 after(async () => env?.teardown());
+
+// Puppeteer can't emulate a touch screen in Firefox.
+const NO_TOUCH = FIREFOX && "needs touch emulation, which Firefox lacks";
 
 /** A phone-sized page with a touch screen. */
 const phone = async () => {
@@ -17,7 +20,8 @@ const phone = async () => {
 const rect = (page, selector) =>
 	page.$eval(selector, (e) => JSON.parse(JSON.stringify(e.getBoundingClientRect())));
 
-test("on a phone the bar docks to the bottom, and nothing runs off the side", async () => {
+test("on a phone the bar docks to the bottom, and nothing runs off the side", async (t) => {
+	if (NO_TOUCH) return t.skip(NO_TOUCH);
 	const page = await phone();
 	const bar = await rect(page, "#quickbar");
 	assert.equal(Math.round(bar.bottom), 800, "on the bottom edge");
@@ -50,7 +54,8 @@ test("tapping the selected text types on it, with the cursor at the end", async 
 	assert.deepEqual(page.errors, []);
 });
 
-test("typing by touch: double tap or hold for a word, handles to drag the ends", async () => {
+test("typing by touch: double tap or hold for a word, handles to drag the ends", async (t) => {
+	if (NO_TOUCH) return t.skip(NO_TOUCH);
 	const page = await phone();
 	const box = await (await page.$(".box.selected")).boundingBox();
 	await page.touchscreen.tap(box.x + box.width / 2, box.y + box.height / 2);
@@ -116,7 +121,8 @@ test("a tap selects; only a second tap on the same text types", async () => {
 	assert.deepEqual(page.errors, []);
 });
 
-test("on a phone the bar's controls are one finger size, none cut off, and Print stays up top", async () => {
+test("on a phone the bar's controls are one finger size, none cut off, and Print stays up top", async (t) => {
+	if (NO_TOUCH) return t.skip(NO_TOUCH);
 	const page = await phone();
 	const sizes = await page.$$eval(
 		"#quickbar .segmented, #quickbar .segmented button, #quickbar select, #quickbar input, #quickbar .field-picker",

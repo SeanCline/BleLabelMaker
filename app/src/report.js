@@ -1,7 +1,7 @@
 // Bug reports and "it works" reports, as text and as pre-filled GitHub issues. Nothing is sent
 // anywhere by the app: copying puts the text on the clipboard, and reporting opens GitHub's
 // new-issue page for the person to read, edit and submit themselves.
-import { APP_NAME, APP_VERSION, REPO_URL } from "./app-info.js";
+import { APP_NAME, BUILD_VERSION, REPO_URL } from "./app-info.js";
 
 /**
  * @typedef {object} ReportInfo
@@ -41,7 +41,7 @@ const statusDetails = (s) => {
 export const diagnostics = (info, { messages = 20 } = {}) => {
 	const p = info.printer;
 	const lines = [
-		`${APP_NAME} ${APP_VERSION}`,
+		`${APP_NAME} ${BUILD_VERSION}`,
 		`Page: ${info.page.url}${info.page.installed ? " (installed app)" : ""}`,
 		`Browser: ${info.browser.userAgent}`,
 		`Web Bluetooth: ${yesNo(info.browser.bluetooth)} · Web Serial: ${yesNo(info.browser.serial)}`,

@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { diagnostics, problemReport, worksReport, issueUrl } from "../src/report.js";
-import { APP_NAME, APP_VERSION, REPO_URL } from "../src/app-info.js";
+import { APP_NAME, BUILD_VERSION, REPO_URL } from "../src/app-info.js";
 
 /** @returns {import("../src/report.js").ReportInfo} */
 const info = ({ messages = 3, tested = false } = {}) => ({
@@ -25,7 +25,7 @@ const info = ({ messages = 3, tested = false } = {}) => ({
 test("diagnostics say which app, browser, printer and setup", () => {
 	const text = diagnostics(info());
 	for (const expected of [
-		`${APP_NAME} ${APP_VERSION}`,
+		`${APP_NAME} ${BUILD_VERSION}`,
 		"Browser: TestBrowser/1.0",
 		"Web Bluetooth: yes · Web Serial: no",
 		"Printing to: Bluetooth",

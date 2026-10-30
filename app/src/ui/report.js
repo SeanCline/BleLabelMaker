@@ -1,7 +1,7 @@
 // Bug reports and "confirmed working" reports. After the first real print on a model nobody has
 // confirmed yet, a pop-up asks how it came out; a problem can be reported from the footer at
 // any time, and diagnostics copied from Advanced.
-import { APP_VERSION, storageKey } from "../app-info.js";
+import { BUILD_VERSION, storageKey } from "../app-info.js";
 import { diagnostics, problemReport, worksReport, issueUrl } from "../report.js";
 import { bluetoothAvailable, serialAvailable } from "../transport.js";
 import { $, loadJson, storeJson, toast } from "./dom.js";
@@ -49,7 +49,7 @@ const markAsked = (id) => storeJson(ASKED_KEY, [...new Set([...asked(), id])]);
 
 const dialog = /** @type {HTMLDialogElement} */ ($("#printedDialog"));
 
-$("#appVersion").textContent = `Version ${APP_VERSION}`;
+$("#appVersion").textContent = `Version ${BUILD_VERSION}`;
 $("#btnCopyDiagnostics").addEventListener("click", () =>
 	copy(diagnostics(reportInfo()), "Diagnostics"),
 );

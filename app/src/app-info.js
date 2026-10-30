@@ -12,6 +12,11 @@ export const GITHUB_REPO = "SeanCline/BleLabelMaker";
 export const REPO_URL = `https://github.com/${GITHUB_REPO}`;
 // Kept equal to package.json's version (a test checks), so bug reports say which build.
 export const APP_VERSION = "0.1.0";
+// The commit the published site was built from, which tools/make-site.mjs stamps in. While
+// we live at head, the version alone doesn't say which build a bug report came from.
+export const APP_COMMIT = "";
+/** The version as shown and reported: 0.1.0-82a1907 on the site, 0.1.0 from a checkout. */
+export const BUILD_VERSION = APP_COMMIT ? `${APP_VERSION}-${APP_COMMIT}` : APP_VERSION;
 
 // Not the name: where people's labels, settings and history are kept, and what saved files
 // call themselves. Changing these loses or orphans what people have saved, so they stay put

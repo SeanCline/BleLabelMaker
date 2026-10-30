@@ -906,11 +906,12 @@ test("the font list shows each face, ends with a request for one, and has no str
 	assert.equal((await appState(page)).selectedIds[0], (await appState(page)).doc.elements[0].id);
 	const options = () =>
 		page.$$eval("#quickbar .font-select option", (all) =>
-			all.map((o) => [o.textContent, o.style.fontFamily]),
+			// Quotes as the browser writes them: Chrome around "Noto Emoji", Firefox not.
+			all.map((o) => [o.textContent, o.style.fontFamily.replaceAll('"', "")]),
 		);
 	const list = await options();
 	assert.ok(!list.some(([name]) => name.includes("undefined")), JSON.stringify(list));
-	assert.deepEqual(list[0], ["Inter (clean sans)", 'Inter, sans-serif, "Noto Emoji"']);
+	assert.deepEqual(list[0], ["Inter (clean sans)", "Inter, sans-serif, Noto Emoji"]);
 	assert.deepEqual(list.at(-1), ["Request a font…", ""]);
 
 	await page.select("#quickbar .font-select", "request-font");

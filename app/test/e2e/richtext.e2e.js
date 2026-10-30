@@ -9,12 +9,17 @@ import {
 	redraw,
 	typeInto,
 	loaded,
+	FIREFOX,
 } from "./harness.js";
 import { installFakeBluetooth } from "./fake-bluetooth.js";
 
 let env;
 before(async () => (env = await setup()));
 after(async () => env?.teardown());
+
+// Firefox hands listeners an empty clipboardData on clipboard events a page fires, so the
+// tests that fire them only run in Chrome. Real copy and paste are trusted, and filled in.
+const NO_PAGE_CLIPBOARD = FIREFOX && "Firefox empties clipboardData on page-made events";
 
 const BOLD = { fontWeight: 700 };
 const text = async (page) => (await appState(page)).doc.elements[0].text;
@@ -171,7 +176,8 @@ const clip = (page, type, data = {}) =>
 		data,
 	);
 
-test("copy and paste keep bold, italic and underline, from the label and from other apps", async () => {
+test("copy and paste keep bold, italic and underline, from the label and from other apps", async (t) => {
+	if (NO_PAGE_CLIPBOARD) return t.skip(NO_PAGE_CLIPBOARD);
 	const page = await editing();
 	await selectText(page, 6, 11);
 	await ctrl(page, "b");
@@ -229,7 +235,8 @@ test("copy and paste keep bold, italic and underline, from the label and from ot
 	assert.deepEqual(page.errors, []);
 });
 
-test("formatted text pasted onto the label becomes a box formatted the same", async () => {
+test("formatted text pasted onto the label becomes a box formatted the same", async (t) => {
+	if (NO_PAGE_CLIPBOARD) return t.skip(NO_PAGE_CLIPBOARD);
 	const page = await env.open();
 	await page.focus("#overlay");
 	await page.evaluate(() => {

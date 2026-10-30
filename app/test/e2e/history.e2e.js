@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
@@ -32,15 +32,18 @@ const printText = async (page, text) => {
 const waitForDownload = async (dir, timeout = 5000) => {
 	const end = Date.now() + timeout;
 	while (Date.now() < end) {
-		const done = (await readdir(dir)).filter((f) => !f.endsWith(".crdownload"));
-		if (done.length) return join(dir, done[0]);
+		const files = await readdir(dir);
+		// Chrome's and Firefox's names for a download still under way; Firefox also makes the
+		// finished file, empty, when it starts.
+		const done = files.find((f) => !/\.(crdownload|part)$/.test(f));
+		if (done && files.length === 1 && (await stat(join(dir, done))).size) return join(dir, done);
 		await new Promise((r) => setTimeout(r, 100));
 	}
 	throw new Error("no download");
 };
 
 test("prints are recorded, reprints merge, entries reopen, export/import round-trips", async () => {
-	const page = await env.open();
+	const page = await env.open({ downloads });
 	await printText(page, "Flour");
 	await printText(page, "Sugar");
 	await printText(page, "Flour");
@@ -70,13 +73,6 @@ test("prints are recorded, reprints merge, entries reopen, export/import round-t
 	assert.equal(await page.$eval('#textProps [data-prop="text"]', (t) => t.value), "Sugar");
 
 	// Export through the real download path.
-	// Each test page lives in its own browser context, so downloads are allowed per context.
-	const cdp = await page.browser().target().createCDPSession();
-	await cdp.send("Browser.setDownloadBehavior", {
-		behavior: "allow",
-		downloadPath: downloads,
-		browserContextId: page.browserContext().id,
-	});
 	await fromFileMenu(page, "#btnHistory");
 	await page.click("#btnHistoryExport");
 	const exported = await waitForDownload(downloads);

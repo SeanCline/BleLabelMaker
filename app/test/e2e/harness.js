@@ -5,7 +5,11 @@ import puppeteer from "puppeteer-core";
 import { startServer } from "../../serve.js";
 import { storageKey } from "../../src/app-info.js";
 
-const CANDIDATES = [
+// BROWSER=firefox runs the tests in Firefox, which has no Web Bluetooth or Web Serial: the
+// tests check that everything else works there, as DESIGN.md promises.
+export const FIREFOX = process.env.BROWSER === "firefox";
+
+const CHROMES = [
 	process.env.CHROME_PATH,
 	"C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe",
 	"C:/Program Files/Google/Chrome/Application/chrome.exe",
@@ -14,28 +18,43 @@ const CANDIDATES = [
 	"/usr/bin/chromium",
 	"/usr/bin/microsoft-edge",
 ];
+const FIREFOXES = [
+	process.env.FIREFOX_PATH,
+	"C:/Program Files/Mozilla Firefox/firefox.exe",
+	"/Applications/Firefox.app/Contents/MacOS/firefox",
+	"/usr/bin/firefox",
+];
 
-export const findBrowser = () => CANDIDATES.find((p) => p && existsSync(p));
+/** A Chromium-based browser, or Firefox when asked for. */
+export const findBrowser = ({ firefox = false } = {}) =>
+	(firefox ? FIREFOXES : CHROMES).find((p) => p && existsSync(p));
 
 // Set by c8 (npm run coverage). Most of the app only runs in the browser, so the pages
-// record what ran and it's written where c8 collects Node's own coverage.
-const coverageDir = process.env.NODE_V8_COVERAGE;
+// record what ran and it's written where c8 collects Node's own coverage. Only Chrome
+// reports it.
+const coverageDir = FIREFOX ? undefined : process.env.NODE_V8_COVERAGE;
 const appRoot = fileURLToPath(new URL("../..", import.meta.url));
 
 /**
- * Starts the static server and a headless Chromium. Each test gets a fresh page with
+ * Starts the static server and a headless browser. Each test gets a fresh page with
  * empty storage so autosave from one test can't leak into the next.
  */
 export const setup = async () => {
-	const executablePath = findBrowser();
-	if (!executablePath) throw new Error("No Chromium-based browser found; set CHROME_PATH.");
+	const executablePath = findBrowser({ firefox: FIREFOX });
+	if (!executablePath)
+		throw new Error(
+			FIREFOX
+				? "No Firefox found; set FIREFOX_PATH."
+				: "No Chromium-based browser found; set CHROME_PATH.",
+		);
 	const { server, url } = await startServer(0);
 	const browser = await puppeteer.launch({
 		executablePath,
+		browser: FIREFOX ? "firefox" : "chrome",
 		headless: true,
 		// GitHub's Ubuntu runners don't allow the user namespaces Chrome's sandbox needs; the
 		// browser only ever loads this app, so CI runs it without one.
-		args: ["--no-first-run", ...(process.env.CI ? ["--no-sandbox"] : [])],
+		args: FIREFOX ? [] : ["--no-first-run", ...(process.env.CI ? ["--no-sandbox"] : [])],
 	});
 	const pages = [];
 
@@ -43,7 +62,8 @@ export const setup = async () => {
 	 * Pages start on the virtual printer, so tests print without a device picker; `printer: null`
 	 * leaves the app's own default. The service worker only runs where a test asks for it
 	 * (`offline: true`): installing it fetches every file the app has, for every page.
-	 * @param {{width?: number, height?: number, printer?: string | null, offline?: boolean, beforeLoad?: (page: import("puppeteer-core").Page) => Promise<unknown>}} [options]
+	 * Downloads are saved to `downloads`, where a test asks for them.
+	 * @param {{width?: number, height?: number, printer?: string | null, offline?: boolean, downloads?: string, beforeLoad?: (page: import("puppeteer-core").Page) => Promise<unknown>}} [options]
 	 * @returns {Promise<import("puppeteer-core").Page & {errors: string[]}>} errors collects console errors and uncaught exceptions
 	 */
 	const open = async ({
@@ -51,9 +71,12 @@ export const setup = async () => {
 		height = 900,
 		printer = "virtual",
 		offline = false,
+		downloads,
 		beforeLoad,
 	} = {}) => {
-		const context = await browser.createBrowserContext();
+		const context = await browser.createBrowserContext(
+			downloads ? { downloadBehavior: { policy: "allow", downloadPath: downloads } } : {},
+		);
 		const page = /** @type {import("puppeteer-core").Page & {errors: string[]}} */ (
 			await context.newPage()
 		);
@@ -91,7 +114,16 @@ export const setup = async () => {
 		return page;
 	};
 
-	/** Really takes the app offline: emulated offline mode doesn't reach service workers. */
+	/**
+	 * Really takes the app offline: emulated offline mode doesn't reach service workers. The
+	 * server stays up and drops every connection, because a closed port isn't the same
+	 * everywhere: Firefox on Windows waits seconds on each refused connection.
+	 */
+	const goOffline = () => {
+		server.removeAllListeners("request");
+		server.on("request", (req) => req.socket.destroy());
+		server.closeAllConnections();
+	};
 	const stopServer = () =>
 		new Promise((done) => {
 			server.close(done);
@@ -119,9 +151,9 @@ export const setup = async () => {
 	const teardown = async () => {
 		if (coverageDir) await saveCoverage();
 		await browser.close();
-		if (server.listening) await stopServer();
+		await stopServer();
 	};
-	return { url, open, stopServer, teardown };
+	return { url, open, goOffline, teardown };
 };
 
 /** Waits for a page (re)loaded with waitUntil "load" to be drawn, with its fonts. */
@@ -194,6 +226,8 @@ export const redraw = (page) => page.evaluate(() => window.labelApp.drawCanvas()
 /** Drags from the centre of an element by (dx, dy) screen pixels. */
 export const dragBy = async (page, selector, dx, dy, { alt = false } = {}) => {
 	const el = await page.$(selector);
+	// As a user would scroll to it first: Firefox won't move the mouse off the page.
+	await el.scrollIntoView();
 	const b = await el.boundingBox();
 	const x = b.x + b.width / 2;
 	const y = b.y + b.height / 2;

@@ -18,7 +18,7 @@ test("works offline after one visit: app, fonts and virtual printing", async () 
 		}
 	});
 
-	await env.stopServer();
+	env.goOffline();
 	await page.reload({ waitUntil: "load" });
 	await page.evaluate(() => window.labelApp.ready);
 	// Guard against a vacuous pass: if the worker could still reach the server, this would be
@@ -30,8 +30,9 @@ test("works offline after one visit: app, fonts and virtual printing", async () 
 		),
 	);
 	assert.equal(reachable, false, "network should be unreachable from the service worker");
-	// That probe logs exactly one expected network error; anything else is a real failure.
-	assert.deepEqual(page.errors, ["Failed to load resource: net::ERR_FAILED"]);
+	// That probe logs exactly one expected network error (each browser words it its own way);
+	// anything else is a real failure.
+	assert.equal(page.errors.length, 1, page.errors.join("\n"));
 	page.errors.length = 0;
 
 	await page.select('#quickbar [data-prop="fontFamily"]', "Pacifico");
