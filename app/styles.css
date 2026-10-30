@@ -1027,13 +1027,6 @@ progress {
 .settings:focus {
 	outline: none;
 }
-.field {
-	display: flex;
-	flex-direction: column;
-	gap: var(--gap-small);
-	font-size: 12.5px;
-	color: var(--muted);
-}
 /* The Field menu looks like the buttons beside it: its icon (and word) in a button's frame,
    with the native list over it, unseen, so a click or a key opens it as any select (and a
    phone's own picker). */

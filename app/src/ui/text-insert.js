@@ -22,15 +22,13 @@ const renderEmojiGrid = () => {
 $("#emojiSearch").addEventListener("input", renderEmojiGrid);
 const pickEmoji = (cb) => {
 	emojiCallback = cb;
-	$("#emojiCustom").value = "";
 	$("#emojiSearch").value = "";
 	renderEmojiGrid();
 	emojiDialog.showModal();
 	$("#emojiSearch").focus();
 };
 emojiDialog.addEventListener("close", () => {
-	let v = emojiDialog.returnValue;
-	if (v === "custom") v = $("#emojiCustom").value.trim();
+	const v = emojiDialog.returnValue;
 	if (v && v !== "cancel" && emojiCallback) emojiCallback(v);
 	emojiCallback = null;
 });
