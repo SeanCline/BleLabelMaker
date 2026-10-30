@@ -23,12 +23,13 @@
 		<link rel="manifest" href="manifest.webmanifest" />
 		<link rel="apple-touch-icon" href="icons/icon-192.png" />
 		<link rel="stylesheet" href="styles.css" />
-		<link rel="icon" href="icons/icon.svg" type="image/svg+xml" />
+		<link rel="icon" href="icons/favicon.svg" type="image/svg+xml" />
 	</head>
 	<body>
 		<header class="topbar">
-			<img class="logo" src="icons/icon.svg" alt="" width="28" height="28" />
+			<img class="logo" src="icons/icon.svg" alt="" width="34" height="34" />
 			<h1 data-app="name">BLE Label Maker</h1>
+			<span class="bar-rule" aria-hidden="true"></span>
 			<details class="menu" id="fileMenu">
 				<summary class="file-button bar-button" aria-label="File">
 					<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#file" /></svg
@@ -68,8 +69,14 @@
 			<!-- The printer: which one, its state, and its settings. -->
 			<details class="menu printer-menu" id="printerMenu">
 				<summary class="printer-chip" id="printerChip" title="The printer">
-					<span class="chip-dot" aria-hidden="true"></span
-					><span id="printerChipLabel">Printer</span>
+					<span class="chip-printer" aria-hidden="true"
+						><svg class="icon"><use href="icons/ui.svg#printer" /></svg
+						><span class="chip-dot"></span></span
+					><span id="printerChipLabel">Printer</span
+					><span class="chip-battery" id="printerChipBattery" hidden
+						><svg class="icon" aria-hidden="true"><use href="icons/ui.svg#battery-medium" /></svg
+						><span></span
+					></span>
 				</summary>
 				<!-- Laid out like the settings under More (.panel-rows): a name, then its control. -->
 				<div class="menu-panel floating panel-rows printer-panel">

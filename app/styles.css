@@ -65,10 +65,13 @@ body {
 	min-height: 100dvh;
 }
 
+/* The app's name in the header, set as a wordmark in the label font the app ships. */
 h1 {
-	font-size: 16px;
+	font-family: Inter, system-ui, sans-serif;
+	font-size: 17px;
 	margin: 0;
-	font-weight: 650;
+	font-weight: 700;
+	letter-spacing: -0.015em;
 }
 h2 {
 	font-size: 13px;
@@ -156,9 +159,32 @@ input[type="number"] {
 .spacer {
 	flex: 1;
 }
+/* A wide tag in a square, so a little larger than the bar's icons to look as big. */
 .logo {
 	display: block;
-	margin-right: -4px;
+	width: 34px;
+	height: 34px;
+	margin: -4px -4px -4px -2px;
+}
+/* Between the name and the controls. */
+.bar-rule {
+	width: 1px;
+	height: 24px;
+	background: var(--border);
+}
+/* The bar's everyday controls are borderless until pointed at, so the printer (outlined) and
+   Print (filled) stand out from them. */
+.topbar .icon-button,
+.topbar .bar-button {
+	border-color: transparent;
+	background: transparent;
+}
+.menu > summary.file-button:hover,
+.menu[open] > summary.file-button {
+	border-color: transparent;
+}
+.topbar .icon-button:disabled {
+	opacity: 0.35;
 }
 
 /* Icons from icons/ui.svg (tools/make-ui-icons.mjs), drawn in the text colour. */
@@ -228,8 +254,6 @@ summary:has(> .icon) {
 /* Looks like the bar's other buttons (Batch beside Print), with an arrow for its menu. */
 .menu > summary.file-button {
 	padding: 6px 8px 6px 12px;
-	background: var(--surface);
-	border-color: var(--border);
 	border-radius: var(--radius-control);
 }
 .file-button .chevron {
@@ -325,26 +349,46 @@ button[data-prop][aria-pressed="true"],
 	width: 4.5em;
 }
 
-/* The printer in the header: its name and state, with a dot that's green when it's ready. */
+/* The printer in the header: a printer with a dot that's green when it's ready, its name,
+   and its battery. */
 .menu > .printer-chip {
 	display: inline-flex;
 	align-items: center;
-	gap: var(--gap-control);
-	max-width: 260px;
-	padding: 6px 12px;
+	gap: var(--gap-line);
+	max-width: 280px;
+	padding: 6px 12px 6px 10px;
 	border-color: var(--border);
 	border-radius: 999px;
 	white-space: nowrap;
+	font-size: 13px;
+	font-weight: 500;
+}
+#printerChipLabel {
+	min-width: 0;
 	overflow: hidden;
 	text-overflow: ellipsis;
-	font-size: 13px;
+}
+.chip-printer {
+	position: relative;
+	display: inline-flex;
 }
 .chip-dot {
-	flex: none;
+	position: absolute;
+	top: -3px;
+	right: -3px;
 	width: 8px;
 	height: 8px;
 	border-radius: 50%;
 	background: var(--muted);
+	box-shadow: 0 0 0 2px var(--surface);
+}
+.chip-battery {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--gap-small);
+	padding-left: var(--gap-line);
+	border-left: 1px solid var(--border);
+	color: var(--muted);
 }
 .printer-chip.ok .chip-dot {
 	background: var(--ok);
@@ -1739,10 +1783,14 @@ button.link {
 		max-height: 70vh;
 		overflow: auto;
 	}
+	/* Just the printer and its dot, borderless like the buttons beside it. */
 	.menu > .printer-chip {
 		padding: 10px;
+		border-color: transparent;
 	}
 	#printerChipLabel,
+	#printerChipBattery,
+	.file-button .chevron,
 	.batch-word,
 	.file-word,
 	.print-connect,
@@ -1858,6 +1906,9 @@ button.link {
 	}
 }
 @media (max-width: 500px) {
+	.bar-rule {
+		display: none;
+	}
 	.topbar h1 {
 		position: absolute;
 		width: 1px;

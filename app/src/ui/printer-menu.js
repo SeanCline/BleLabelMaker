@@ -109,6 +109,16 @@ export const renderPrinterStatus = () => {
 	printerChanged.emit();
 };
 
+/** The battery icon for a level, as a phone's status bar would show it. */
+const batteryIcon = ({ battery, charging }) =>
+	charging
+		? "battery-charging"
+		: battery < 25
+			? "battery-low"
+			: battery < 60
+				? "battery-medium"
+				: "battery-full";
+
 /**
  * The printer chip in the header: which printer, and the one thing worth knowing about it
  * (a problem, or a real one's battery), so the menu only needs opening to change something.
@@ -116,18 +126,26 @@ export const renderPrinterStatus = () => {
 const renderChip = (real, t) => {
 	const chip = $("#printerChip");
 	const problem = t.connected && hasProblem(t.status);
-	const battery = typeof t.status.battery === "number" ? `${t.status.battery}%` : "";
+	const battery =
+		!problem && real?.connected && typeof t.status.battery === "number"
+			? `${t.status.battery}%`
+			: "";
 	// What's connected; what the browser can't connect to is in the menu it opens.
 	const name = !real ? "Virtual printer" : real.connected ? real.name : "Not connected";
-	const detail = problem
-		? describeStatus(t.status, { battery: false })
-		: real?.connected
-			? battery
-			: "";
-	const text = [name, detail].filter(Boolean).join(" · ");
-	$("#printerChipLabel").textContent = text;
-	// On a phone the chip is just its dot, so its name says the rest.
-	chip.setAttribute("aria-label", `Printer: ${text}`);
+	const label = [name, problem ? describeStatus(t.status, { battery: false }) : ""]
+		.filter(Boolean)
+		.join(" · ");
+	$("#printerChipLabel").textContent = label;
+	$("#printerChipBattery").hidden = !battery;
+	$("#printerChipBattery span").textContent = battery;
+	if (battery) {
+		$("#printerChipBattery use").setAttribute("href", `icons/ui.svg#${batteryIcon(t.status)}`);
+	}
+	// On a phone the chip is just its printer and dot, so its name says the rest.
+	chip.setAttribute(
+		"aria-label",
+		`Printer: ${[label, battery && `battery ${battery}`].filter(Boolean).join(", ")}`,
+	);
 	chip.classList.toggle("ok", !!real?.connected && !problem);
 	chip.classList.toggle("problem", problem);
 };

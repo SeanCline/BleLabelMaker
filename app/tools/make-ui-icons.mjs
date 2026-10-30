@@ -77,6 +77,10 @@ const ICONS = [
 	"rotate-cw",
 	"unlink",
 	"clipboard-copy",
+	"battery-low",
+	"battery-medium",
+	"battery-full",
+	"battery-charging",
 	// The label size, the batch list, history and dialogs
 	"move-horizontal",
 	"heading",

@@ -72,7 +72,12 @@ test("connect: picker filters for the D30, status arrives over notifications", a
 		),
 	);
 	assert.equal(await printButton(), "Print");
-	assert.equal(await page.$eval("#printerChipLabel", (l) => l.textContent), "D30-FAKE · 64%");
+	assert.equal(await page.$eval("#printerChipLabel", (l) => l.textContent), "D30-FAKE");
+	assert.equal(await page.$eval("#printerChipBattery", (b) => b.textContent), "64%");
+	assert.equal(
+		await page.$eval("#printerChipBattery use", (u) => u.getAttribute("href")),
+		"icons/ui.svg#battery-full",
+	);
 	// …but the printer that connects names itself D30, which only takes 12 mm labels.
 	assert.equal(await page.$eval("#setPrinter", (s) => s.value), "d30");
 	assert.ok(

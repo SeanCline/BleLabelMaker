@@ -1,7 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#2459d6"/>
-  <rect x="64" y="160" width="384" height="192" rx="36" fill="#fff"/>
-  <rect x="112" y="212" width="200" height="30" rx="8" fill="#1d1d1b"/>
-  <rect x="112" y="270" width="132" height="30" rx="8" fill="#1d1d1b"/>
-  <circle cx="380" cy="256" r="38" fill="none" stroke="#1d1d1b" stroke-width="20"/>
+  <style>@media (prefers-color-scheme: dark) { .tag { fill: #5b8cff } }</style>
+  <path class="tag" d="M24 256 136 120H452a40 40 0 0 1 40 40V352a40 40 0 0 1-40 40H136Z" fill="#2459d6" mask="url(#cut)"/>
+  <mask id="cut">
+    <rect width="512" height="512" fill="#fff"/>
+    <circle cx="146" cy="256" r="32"/>
+    <g fill="none" stroke="#000" stroke-width="32" stroke-linecap="round">
+      <path d="M212 190A94 94 0 0 1 212 322"/>
+      <path d="M268 154A160 160 0 0 1 268 358"/>
+      <path d="M338 148A220 220 0 0 1 338 364"/>
+    </g>
+  </mask>
 </svg>

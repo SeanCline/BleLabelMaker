@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <style>@media (prefers-color-scheme: dark) { .tag { fill: #5b8cff } }</style>
+  <path class="tag" d="M24 256 136 120H452a40 40 0 0 1 40 40V352a40 40 0 0 1-40 40H136Z" fill="#2459d6" mask="url(#cut)"/>
+  <!-- Icon.svg with two heavier arcs, which stay apart at 16 px. -->
+  <mask id="cut">
+    <rect width="512" height="512" fill="#fff"/>
+    <circle cx="146" cy="256" r="36"/>
+    <g fill="none" stroke="#000" stroke-width="40" stroke-linecap="round">
+      <path d="M226 186A100 100 0 0 1 226 326"/>
+      <path d="M318 150A190 190 0 0 1 318 362"/>
+    </g>
+  </mask>
+</svg>
