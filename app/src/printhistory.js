@@ -23,6 +23,10 @@ const designKey = (doc) =>
 
 const toFile = (doc) => JSON.parse(serialize(doc, { selectedIds: [] }));
 
+// Time first, so ids sort roughly by when they were made; the rest tells apart two in one ms.
+const newEntryId = (now = new Date()) =>
+	`h${now.getTime().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+
 /**
  * Records a print. Reprinting an identical design bumps the existing entry to the top
  * instead of adding a duplicate, so history doubles as a "recent labels" list.
@@ -45,7 +49,7 @@ export const recordPrint = (
 				target,
 			}
 		: {
-				id: `h${now.getTime().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+				id: newEntryId(now),
 				firstPrintedAt: at,
 				lastPrintedAt: at,
 				prints: 1,
@@ -82,6 +86,8 @@ const countOr = (v, fallback) => (Number.isInteger(v) && v > 0 ? v : fallback);
 const checkEntry = (raw, where = "entry") => {
 	if (typeof raw !== "object" || raw === null)
 		throw new LabelFileError(`${where} is not an object.`);
+	if (typeof raw.file !== "object" || raw.file === null)
+		throw new LabelFileError(`${where} has no label.`);
 	let parsed;
 	try {
 		parsed = parse(JSON.stringify(raw.file));
@@ -91,8 +97,7 @@ const checkEntry = (raw, where = "entry") => {
 	const now = new Date().toISOString();
 	const last = isoOr(raw.lastPrintedAt, now);
 	return {
-		id:
-			typeof raw.id === "string" && raw.id ? raw.id : `h${Math.random().toString(36).slice(2, 10)}`,
+		id: typeof raw.id === "string" && raw.id ? raw.id : newEntryId(),
 		firstPrintedAt: isoOr(raw.firstPrintedAt, last),
 		lastPrintedAt: last,
 		prints: countOr(raw.prints, 1),

@@ -33,7 +33,8 @@ self.addEventListener("fetch", (event) => {
 			const cache = await caches.open(CACHE);
 			try {
 				const res = await fetch(req);
-				if (res.ok) cache.put(req, res.clone());
+				// Kept alive until stored; a full cache just means this one isn't kept offline.
+				if (res.ok) event.waitUntil(cache.put(req, res.clone()).catch(() => {}));
 				return res;
 			} catch {
 				const hit = await cache.match(req, { ignoreSearch: true });

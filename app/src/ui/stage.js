@@ -7,7 +7,7 @@ import { clamp, round } from "../units.js";
 import { textOf } from "../richtext.js";
 import { currentScale, onModelChange } from "./settings.js";
 import { snapTargets, snapMove, snapResize } from "../snap.js";
-import { $, el, DRAG_SLACK_PX } from "./dom.js";
+import { $, el, focusBarField, DRAG_SLACK_PX } from "./dom.js";
 import { describeLabel } from "./describe.js";
 import { sizeStage, placeStyle, pct } from "./viewport.js";
 import { inlineEdit, relayoutInline, startInlineEdit, onEditingChange } from "./inline-editor.js";
@@ -18,6 +18,7 @@ import {
 	setSelection,
 	toggleSelected,
 	isSelected,
+	selected,
 	selectedElements,
 	updateElement,
 	updateElements,
@@ -47,7 +48,6 @@ export const fittedSizes = () => fitted;
 /** Per-element problems from the last render (e.g. a barcode too narrow to scan). */
 export const renderWarnings = () => warnings;
 export const onDrawn = drawn.on;
-export const labelCanvas = () => canvas;
 
 /** @type {() => import("../fields.js").FieldContext} */
 let fieldContext = () => ({ now: new Date(), n: 1, row: null, columns: null });
@@ -88,7 +88,7 @@ const render = async () => {
 	canvas.getContext("2d", { willReadFrequently: true }).drawImage(scratch, 0, 0);
 	canvas.setAttribute("aria-label", describeLabel(doc));
 	// A picture's size is known once it's drawn, and with it where its pan handle goes.
-	const picked = elementById(state.selectedId);
+	const picked = selected();
 	if (picked?.type === "image") syncBox(picked, state.doc.label);
 	sizeStage();
 	// The editor was laid out when the text changed, perhaps before a newly picked font had
@@ -116,8 +116,7 @@ const HANDLES = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
 // Overlay layers are created once. Boxes are updated in place, keyed by id: replacing the
 // element under the pointer mid-gesture makes Chrome drop the click/dblclick that follows.
-// The snap lines shown while dragging.
-let activeGuides = [];
+let activeGuides = []; // the snap lines shown while dragging
 const guideEl = el("div", { className: "guide", title: "Printable area" });
 const snapLayer = el("div", { className: "layer" });
 const boxLayer = el("div", { className: "layer boxes" });
@@ -457,9 +456,7 @@ overlay.addEventListener("dblclick", (ev) => {
 	if (e.type === "text") {
 		startInlineEdit(id);
 	} else {
-		const field = $(`#quickbar [data-qb="${e.type}"] [data-prop]`);
-		field?.focus();
-		field?.select?.();
+		focusBarField(e.type);
 	}
 });
 

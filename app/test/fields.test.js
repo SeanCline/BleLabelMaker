@@ -52,6 +52,12 @@ test("fillDocument fills text, barcode and QR data, and can skip the element bei
 	assert.equal(filled.elements[2], doc.elements[2], "untouched elements are reused");
 	const editing = fillDocument(doc, ctx(), { except: doc.elements[0].id });
 	assert.equal(/** @type {any} */ (editing.elements[0]).text, "Lot {n}");
+	/** @type {any} */ (doc.elements[2]).text = "a}}b";
+	assert.equal(
+		/** @type {any} */ (fillDocument(doc, ctx()).elements[2]).text,
+		"a}b",
+		"an escaped brace is unescaped with no field beside it",
+	);
 });
 
 test("fieldsUsed tells counters, dates and columns apart", () => {

@@ -1,5 +1,4 @@
-// Emoji and fields go into text where the cursor was, from the emoji picker and the Field menu
-// on the bar over the label.
+// The emoji picker, and putting emoji and fields into text.
 import { searchEmoji } from "../emoji.js";
 import { plainText } from "../layout.js";
 import { applyEdit, textOf } from "../richtext.js";

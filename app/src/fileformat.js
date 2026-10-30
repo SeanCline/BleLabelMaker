@@ -20,7 +20,7 @@ import {
 import { STORAGE_ID, REPO_URL } from "./app-info.js";
 import { STYLE_PROPS } from "./richtext.js";
 
-export const FORMAT_ID = `${STORAGE_ID}-label`;
+const FORMAT_ID = `${STORAGE_ID}-label`;
 export const CURRENT_VERSION = 1;
 export const FILE_EXTENSION = ".label";
 

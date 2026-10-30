@@ -1,6 +1,5 @@
 import qrcode from "./vendor/qrcode-generator.js";
 
-export const QR_LEVELS = { L: "Low (7%)", M: "Medium (15%)", Q: "Quartile (25%)", H: "High (30%)" };
 // Scanners want a light border; 2 modules is enough for phone cameras and saves label space.
 export const QR_QUIET = 2;
 

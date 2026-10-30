@@ -49,25 +49,22 @@ const markAsked = (id) => storeJson(ASKED_KEY, [...new Set([...asked(), id])]);
 
 const dialog = /** @type {HTMLDialogElement} */ ($("#printedDialog"));
 
-const init = () => {
-	$("#appVersion").textContent = `Version ${APP_VERSION}`;
-	$("#btnCopyDiagnostics").addEventListener("click", () =>
-		copy(diagnostics(reportInfo()), "Diagnostics"),
-	);
-	$("#btnReportProblem").addEventListener("click", () => openIssue(problemReport));
-	// A real print on an unconfirmed model is the evidence that would mark it tested.
-	onPrinted(({ target }) => {
-		const m = currentPrinter();
-		if (target === "virtual" || m.tested || asked().includes(m.id) || dialog.open) return;
-		markAsked(m.id);
-		$("#printedText").textContent =
-			`Nobody has confirmed the ${m.name} works with this app yet. If the label came out right, a quick report lets everyone with one know.`;
-		dialog.returnValue = "";
-		dialog.showModal();
-	});
-	dialog.addEventListener("close", () => {
-		if (dialog.returnValue === "works") openIssue(worksReport);
-		if (dialog.returnValue === "problem") openIssue(problemReport);
-	});
-};
-init();
+$("#appVersion").textContent = `Version ${APP_VERSION}`;
+$("#btnCopyDiagnostics").addEventListener("click", () =>
+	copy(diagnostics(reportInfo()), "Diagnostics"),
+);
+$("#btnReportProblem").addEventListener("click", () => openIssue(problemReport));
+// A real print on an unconfirmed model is the evidence that would mark it tested.
+onPrinted(({ target }) => {
+	const m = currentPrinter();
+	if (target === "virtual" || m.tested || asked().includes(m.id) || dialog.open) return;
+	markAsked(m.id);
+	$("#printedText").textContent =
+		`Nobody has confirmed the ${m.name} works with this app yet. If the label came out right, a quick report lets everyone with one know.`;
+	dialog.returnValue = "";
+	dialog.showModal();
+});
+dialog.addEventListener("close", () => {
+	if (dialog.returnValue === "works") openIssue(worksReport);
+	if (dialog.returnValue === "problem") openIssue(problemReport);
+});

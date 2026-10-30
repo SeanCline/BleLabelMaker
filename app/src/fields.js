@@ -88,7 +88,8 @@ export const fillDocument = (doc, ctx, { except = null } = {}) => ({
 	...doc,
 	elements: doc.elements.map((e) => {
 		const prop = TEMPLATED[e.type];
-		if (!prop || e.id === except || !textOf(e[prop]).includes("{")) return e;
+		// Text with no braces has nothing to fill, or unescape.
+		if (!prop || e.id === except || !/[{}]/.test(textOf(e[prop]))) return e;
 		// Run by run: a field never spans two (see normalizeText).
 		return { ...e, [prop]: mapText(e[prop], (s) => fillFields(s, ctx)) };
 	}),

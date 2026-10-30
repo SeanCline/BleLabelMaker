@@ -3,7 +3,15 @@ import assert from "node:assert/strict";
 import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { setup, typeInto, serialized, appState, fromFileMenu, loaded } from "./harness.js";
+import {
+	setup,
+	typeInto,
+	serialized,
+	appState,
+	fromFileMenu,
+	loaded,
+	printVirtual,
+} from "./harness.js";
 
 let env;
 let downloads;
@@ -18,13 +26,7 @@ after(async () => {
 
 const printText = async (page, text) => {
 	await typeInto(page, '#textProps [data-prop="text"]', text);
-	const before = await page.$$eval("#tape .printed", (n) => n.length);
-	await page.click("#btnPrint");
-	await page.waitForFunction(
-		(n) => document.querySelectorAll("#tape .printed").length > n,
-		{},
-		before,
-	);
+	await printVirtual(page);
 };
 
 const waitForDownload = async (dir, timeout = 5000) => {
@@ -97,8 +99,7 @@ test("prints are recorded, reprints merge, entries reopen, export/import round-t
 
 	// "Print again" opens and prints in one go.
 	const beforeFile = await serialized(other);
-	await other.click('#historyList li [data-action="print"]');
-	await other.waitForSelector("#tape .printed");
+	await printVirtual(other, () => other.click('#historyList li [data-action="print"]'));
 	assert.notEqual(await serialized(other), beforeFile);
 	assert.deepEqual(page.errors, []);
 	assert.deepEqual(other.errors, []);
@@ -154,13 +155,7 @@ test("history holds more than localStorage could: big images survive a reload", 
 		total += file.length;
 		await page.evaluate((t) => window.labelApp.loadText(t), file);
 		assert.equal((await appState(page)).doc.elements[0]?.type, "image", "the file loaded");
-		const before = await page.$$eval("#tape .printed", (n) => n.length);
-		await page.click("#btnPrint");
-		await page.waitForFunction(
-			(n) => document.querySelectorAll("#tape .printed").length > n,
-			{},
-			before,
-		);
+		await printVirtual(page);
 	}
 	assert.ok(total > 6_000_000, `${total} characters of labels`);
 	await page.waitForFunction(() => window.labelApp.historyEntries().length === 3);

@@ -1,16 +1,16 @@
 // The virtual printer's output: the labels it decoded, shown as they'd come out of the head.
 import { rasterToReadingBits } from "../raster.js";
-import { $, el } from "./dom.js";
+import { $, el, plural } from "./dom.js";
 
 /** Draws 1-bit reading-orientation bits onto a fresh canvas. */
 const bitsToCanvas = ({ width, height, bits }) => {
 	const c = el("canvas", { width, height });
 	const ctx = c.getContext("2d");
 	const img = ctx.createImageData(width, height);
-	for (let i = 0; i < bits.length; i++) {
-		const v = bits[i] ? 0 : 255;
-		img.data.set([v, v, v, 255], i * 4);
-	}
+	// A pixel at a time, as opaque black or white; a byte order the canvas reads back alike
+	// either way round.
+	const px = new Uint32Array(img.data.buffer);
+	for (let i = 0; i < bits.length; i++) px[i] = bits[i] ? 0xff000000 : 0xffffffff;
 	ctx.putImageData(img, 0, 0);
 	return c;
 };
@@ -22,11 +22,11 @@ const sameRaster = (a, b) =>
  * Adds a print to the strip: a picture per different label (a batch or a counter, not one per
  * copy) and what the decoder saw.
  * @param {{labels: any[], events: any[], bytes: number, packets: number}} result
- * @param {number} copies how many labels were asked for
+ * @param {number} total how many labels the print made (every row and copy)
  * @param {{flip180: boolean}} settings
  * @param {import("../printers/index.js").PrinterModel} printer
  */
-export const showVirtualOutput = (result, copies, { flip180 }, printer) => {
+export const showVirtualOutput = (result, total, { flip180 }, printer) => {
 	const tape = $("#tape");
 	const label = result.labels[0];
 	const distinct = [];
@@ -53,7 +53,7 @@ export const showVirtualOutput = (result, copies, { flip180 }, printer) => {
 	const meta = el(
 		"div",
 		{ className: "hint" },
-		`${result.labels.length} of ${copies} cop${copies === 1 ? "y" : "ies"} decoded · ${label.bytesPerRow * 8}×${label.rows} dots · ` +
+		`${result.labels.length} of ${plural(total, "label")} decoded · ${label.bytesPerRow * 8}×${label.rows} dots · ` +
 			`${result.bytes.toLocaleString()} bytes in ${result.packets} packets · density ${densityName} · ${paper} · ${new Date().toLocaleTimeString()}`,
 	);
 	tape.prepend(el("div", { className: "printed" }, ...pictures, meta));

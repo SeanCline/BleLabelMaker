@@ -27,6 +27,11 @@ import {
 	textOf,
 } from "../richtext.js";
 
+// The list is kept short on purpose, so one that's asked for is worth adding. Asking is the
+// list's last choice, where someone who didn't find theirs ends up.
+const REQUEST_FONT = "request-font";
+const FONT_REQUEST_URL = `${REPO_URL}/issues/new?template=font-request.yml`;
+
 // ---------------------------------------------------------------------------
 // Property binding: inputs carry data-prop / data-type, panels carry data-panel.
 
@@ -112,21 +117,17 @@ const showFamily = (sel, family) => {
 const shownSize = (e) =>
 	round(e.fit && fittedSizes().has(e.id) ? fittedSizes().get(e.id) : e.fontSizePt, 1);
 
-// Fitting happens while drawing, so the size box catches up once a draw has finished.
-const updateFittedSizes = () => {
-	const show = (root, e) => {
-		const input = $('[data-prop="fontSizePt"]', root);
-		if (!input || !e?.fit || document.activeElement === input) return;
-		input.value = String(shownSize(e));
-	};
-	if (selected()?.type === "text") show($("#textProps"), selected());
-	const warning = selected() && renderWarnings().get(selected().id);
+// Problems are found while drawing (a barcode too narrow to scan), so they show once a draw
+// has finished. The fitted size does too: the bar renders again after each draw.
+const showWarnings = () => {
+	const e = selected();
+	const warning = e && renderWarnings().get(e.id);
 	$("#elementWarning").hidden = !warning;
 	$("#elementWarning").textContent = warning ? `⚠ ${warning}` : "";
 	for (const box of $$("#overlay .box"))
 		box.classList.toggle("warn", renderWarnings().has(box.dataset.id));
 };
-onDrawn(updateFittedSizes);
+onDrawn(showWarnings);
 
 const coerce = (input) => {
 	if (input.dataset.type === "number") return input.valueAsNumber ?? Number(input.value);
@@ -212,10 +213,6 @@ for (const root of $$("[data-panel]")) {
 		history.seal();
 	});
 }
-// The list is kept short on purpose, so one that's asked for is worth adding. Asking is the
-// list's last choice, where someone who didn't find theirs ends up.
-const REQUEST_FONT = "request-font";
-const FONT_REQUEST_URL = `${REPO_URL}/issues/new?template=font-request.yml`;
 for (const sel of $$(".font-select")) {
 	sel.replaceChildren(
 		// Each name in its own face, so the list shows how they look without picking each one.

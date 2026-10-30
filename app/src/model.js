@@ -302,8 +302,8 @@ export const clampToLabel = (e, label) => {
 		...e,
 		w,
 		h,
-		x: round(Math.min(Math.max(e.x, 0), label.widthMm - w)),
-		y: round(Math.min(Math.max(e.y, 0), label.heightMm - h)),
+		x: round(Math.min(Math.max(e.x, 0), label.widthMm - w), 3),
+		y: round(Math.min(Math.max(e.y, 0), label.heightMm - h), 3),
 	};
 };
 
@@ -381,7 +381,7 @@ export const placeCopies = (doc, elements, stepMm = 2) => {
 		a.type === b.type && a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
 	let offset = 0;
 	const at = (e) =>
-		clampToLabel({ ...e, x: round(e.x + offset), y: round(e.y + offset) }, doc.label);
+		clampToLabel({ ...e, x: round(e.x + offset, 3), y: round(e.y + offset, 3) }, doc.label);
 	for (let i = 0; i < 20 && elements.some((e) => doc.elements.some((o) => same(at(e), o))); i++) {
 		offset += stepMm;
 	}

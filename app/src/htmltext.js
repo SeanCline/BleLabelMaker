@@ -89,7 +89,7 @@ export const spansFromHtml = (doc) => {
 		if (node.nodeType === 3) {
 			const text = pre ? node.textContent : node.textContent.replace(/[\t\n\r ]+/g, " ");
 			for (const char of text.replace(/\r\n?/g, "\n"))
-				units.push({ style, char: char === " " ? " " : char, keep: pre || char !== " " });
+				units.push({ style, char: char === "\u00a0" ? " " : char, keep: pre || char !== " " });
 			return;
 		}
 		if (node.nodeType !== 1) return;
@@ -138,6 +138,18 @@ export const spansFromHtml = (doc) => {
 /** Whether any of the pasted text says how it looks, rather than leaving it all to the box. */
 export const isFormatted = (/** @type {Span[]} */ spans) =>
 	spans.some(({ style }) => Object.keys(style).length > 0);
+
+/**
+ * Pasted HTML's spans, in what `box`'s font has, or null when the HTML says nothing about how
+ * the text looks: its plain text, beside it on the clipboard, pastes better.
+ * @param {string} html
+ * @param {{fontFamily: string}} box
+ */
+export const formattedSpans = (html, box) => {
+	if (!html) return null;
+	const spans = spansFromHtml(parseHtml(html));
+	return isFormatted(spans) ? spansForBox(spans, box) : null;
+};
 
 /**
  * Pasted spans in what a box's font has: the nearest weight it comes in, and no italic where

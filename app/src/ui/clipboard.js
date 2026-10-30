@@ -3,13 +3,13 @@
 // which is what lets elements travel to another label, tab or window.
 import { parseBatch } from "../batch.js";
 import { serializeElements, parseElements } from "../fileformat.js";
-import { isFormatted, parseHtml, spansForBox, spansFromHtml } from "../htmltext.js";
-import { createText, normalizeText, printableArea } from "../model.js";
+import { formattedSpans } from "../htmltext.js";
+import { createText, normalizeText } from "../model.js";
 import { fromSpans } from "../richtext.js";
 import { isTyping, toast } from "./dom.js";
 import { state, history, selectedElements, updateElement } from "./store.js";
 import { openBatch, setBatch } from "./batch.js";
-import { addCopies, addElement, addImageFile, centred, deleteSelected } from "./actions.js";
+import { addCopies, addElement, addImageFile, deleteSelected, halfBox } from "./actions.js";
 
 // Text fields and open dialogs keep the normal clipboard behaviour.
 const forElements = (ev) => !isTyping(ev.target) && !document.querySelector("dialog[open]");
@@ -60,12 +60,9 @@ document.addEventListener("paste", (ev) => {
 	}
 	// Anything else pasted onto the label becomes a new text box, formatted as it was.
 	ev.preventDefault();
-	const a = printableArea(state.doc.label);
-	const box = createText(state.doc, { ...centred(a.w / 2, a.h / 2), text: text.trim(), fit: true });
-	const html = ev.clipboardData.getData("text/html");
-	const spans = html ? spansFromHtml(parseHtml(html)) : [];
-	if (isFormatted(spans))
-		box.text = normalizeText({ ...box, text: fromSpans(spansForBox(spans, box)) });
+	const box = createText(state.doc, { ...halfBox(), text: text.trim(), fit: true });
+	const spans = formattedSpans(ev.clipboardData.getData("text/html"), box);
+	if (spans) box.text = normalizeText({ ...box, text: fromSpans(spans) });
 	addElement(box);
 	offerBatch(text, box.id);
 });

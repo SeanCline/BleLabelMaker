@@ -1,6 +1,17 @@
 export const $ = (s, root = document) => root.querySelector(s);
 export const $$ = (s, root = document) => [...root.querySelectorAll(s)];
 
+/** An icon from icons/ui.svg, in the text's colour, and silent: its button names it. */
+export const icon = (name) => {
+	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+	svg.setAttribute("class", "icon");
+	svg.setAttribute("aria-hidden", "true");
+	const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
+	use.setAttribute("href", `icons/ui.svg#${name}`);
+	svg.append(use);
+	return svg;
+};
+
 export const el = (tag, props = {}, ...children) => {
 	const node = document.createElement(tag);
 	for (const [k, v] of Object.entries(props)) {
@@ -44,6 +55,16 @@ export const announce = (msg) => {
 	a.textContent = "";
 	requestAnimationFrame(() => (a.textContent = msg));
 };
+
+/** Puts the cursor in the bar's first field for an element type (a code's data), ready to type over. */
+export const focusBarField = (type) => {
+	const field = $(`#quickbar [data-qb="${type}"] [data-prop]`);
+	field?.focus();
+	field?.select?.();
+};
+
+/** "1 label", "2 labels": a count and its noun, which gets an s unless there's one. */
+export const plural = (n, noun) => `${n} ${noun}${n === 1 ? "" : "s"}`;
 
 // How far a press can wander, in screen pixels, and still be a tap or a hold rather than a drag.
 export const DRAG_SLACK_PX = 4;

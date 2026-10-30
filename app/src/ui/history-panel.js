@@ -8,10 +8,8 @@ import {
 	matches,
 	entryTitle,
 } from "../printhistory.js";
-import { renderLabel } from "../render.js";
-import { currentScale } from "./settings.js";
-import { ensureFontsFor } from "../fonts.js";
-import { $, el, toast, download } from "./dom.js";
+import { thumbnails } from "./thumbs.js";
+import { $, el, icon, toast, download, plural } from "./dom.js";
 import { idbAll, idbWrite, keepStorage, HISTORY } from "./idb.js";
 import { state, loadState } from "./store.js";
 import { onPrinted, print } from "./printing.js";
@@ -95,18 +93,7 @@ const relativeTime = (iso) => {
 	return new Date(iso).toLocaleDateString();
 };
 
-// Thumbnails render one at a time after the list is on screen, so opening a long history
-// is instant and each preview pops in as it's drawn.
-let thumbToken = 0;
-const renderThumbs = async (jobs) => {
-	const token = ++thumbToken;
-	for (const [canvas, entry] of jobs) {
-		const { doc } = entryToState(entry);
-		await ensureFontsFor(doc);
-		if (token !== thumbToken) return;
-		await renderLabel(doc, canvas, { dots: currentScale() });
-	}
-};
+const renderThumbs = thumbnails();
 
 const renderList = () => {
 	const q = $("#historySearch").value;
@@ -115,7 +102,7 @@ const renderList = () => {
 	list.replaceChildren(
 		...shown.map((entry) => {
 			const thumb = el("canvas", { className: "thumb" });
-			jobs.push([thumb, entry]);
+			jobs.push([thumb, () => entryToState(entry).doc]);
 			const { widthMm, heightMm } = entry.file.label;
 			const copies = entry.copies === 1 ? "1 copy" : `${entry.copies} copies`;
 			const times = entry.prints === 1 ? "" : ` over ${entry.prints} prints`;
@@ -153,11 +140,12 @@ const renderList = () => {
 					el(
 						"button",
 						{
+							className: "icon-button",
 							dataset: { action: "delete" },
 							title: "Remove from history",
 							"aria-label": "Remove from history",
 						},
-						"✕",
+						icon("x"),
 					),
 				),
 			);
@@ -167,9 +155,7 @@ const renderList = () => {
 	$("#historyEmpty").textContent = entries.length
 		? "Nothing matches that search."
 		: "Nothing printed yet. Every label you print shows up here, so you can reprint it in two clicks.";
-	$("#historyCount").textContent = entries.length
-		? `${entries.length} label${entries.length === 1 ? "" : "s"}`
-		: "";
+	$("#historyCount").textContent = entries.length ? plural(entries.length, "label") : "";
 	$("#btnHistoryExport").disabled = !entries.length;
 	$("#btnHistoryClear").disabled = !entries.length;
 	renderThumbs(jobs);
@@ -218,7 +204,7 @@ $("#historyFile").addEventListener("change", async (ev) => {
 		setEntries(result.entries);
 		renderList();
 		toast(
-			`Imported ${result.added} new label${result.added === 1 ? "" : "s"}${result.merged ? `, merged ${result.merged} already here` : ""}.`,
+			`Imported ${plural(result.added, "new label")}${result.merged ? `, merged ${result.merged} already here` : ""}.`,
 		);
 	} catch (err) {
 		toast(`Couldn't import ${file.name}: ${err.message}`, { error: true });

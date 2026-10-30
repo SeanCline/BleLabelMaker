@@ -1,6 +1,7 @@
 // How big the label is on screen: fitted to the stage, zoomed, and panned by scrolling.
 import { labelDots } from "../render.js";
 import { currentScale } from "./settings.js";
+import { clamp } from "../units.js";
 import { $ } from "./dom.js";
 import { state } from "./store.js";
 
@@ -55,7 +56,7 @@ new ResizeObserver(() => sizeStage()).observe(stage, { box: "border-box" });
  * middle of the stage) where it was, the way map apps zoom.
  */
 export const setZoom = (z, anchor) => {
-	const next = Math.min(ZOOMS.at(-1), Math.max(ZOOMS[0], z));
+	const next = clamp(z, ZOOMS[0], ZOOMS.at(-1));
 	if (next === zoom) return;
 	const s = stage.getBoundingClientRect();
 	const at = anchor ?? { x: s.left + s.width / 2, y: s.top + s.height / 2 };
@@ -70,7 +71,7 @@ export const setZoom = (z, anchor) => {
 };
 export const zoomStep = (dir, anchor) => {
 	const i = ZOOMS.findIndex((z) => z >= zoom);
-	setZoom(ZOOMS[Math.max(0, Math.min(ZOOMS.length - 1, i + dir))], anchor);
+	setZoom(ZOOMS[clamp(i + dir, 0, ZOOMS.length - 1)], anchor);
 };
 
 $("#zoomIn").addEventListener("click", () => zoomStep(1));
@@ -95,10 +96,14 @@ stage.addEventListener("pointerdown", (ev) => {
 		stage.scrollLeft = start.left - (m.clientX - start.x);
 		stage.scrollTop = start.top - (m.clientY - start.y);
 	};
-	const up = () => {
-		removeEventListener("pointermove", move);
-		removeEventListener("pointerup", up);
+	// Captured, so the release is heard even outside the window.
+	stage.setPointerCapture(ev.pointerId);
+	const end = () => {
+		stage.removeEventListener("pointermove", move);
+		stage.removeEventListener("pointerup", end);
+		stage.removeEventListener("pointercancel", end);
 	};
-	addEventListener("pointermove", move);
-	addEventListener("pointerup", up);
+	stage.addEventListener("pointermove", move);
+	stage.addEventListener("pointerup", end);
+	stage.addEventListener("pointercancel", end);
 });

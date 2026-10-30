@@ -64,8 +64,9 @@ export const decodeShare = async (hash) => {
 	if (!hash.startsWith(SHARE_PREFIX)) return null;
 	try {
 		const bytes = fromBase64Url(hash.slice(SHARE_PREFIX.length));
-		// UTF-8 is at least a byte a character, so this many bytes covers the largest label.
-		return new TextDecoder().decode(await inflate(bytes, LIMITS.fileChars * 4));
+		// fileChars counts UTF-16 units, and UTF-8 takes at most three bytes for each (a pair
+		// that makes one emoji is four), so this many bytes covers the largest label.
+		return new TextDecoder().decode(await inflate(bytes, LIMITS.fileChars * 3));
 	} catch (err) {
 		if (err instanceof ShareTooLarge) throw err;
 		throw new Error(

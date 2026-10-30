@@ -2,31 +2,31 @@
 // differs between models comes from the PrinterModel.
 import { concat } from "../../bytes.js";
 
-export const INIT = Uint8Array.of(0x1b, 0x40);
-export const RASTER_PREFIX = Uint8Array.of(0x1d, 0x76, 0x30, 0x00);
+const INIT = Uint8Array.of(0x1b, 0x40);
+const RASTER_PREFIX = Uint8Array.of(0x1d, 0x76, 0x30, 0x00);
 
 /**
  * There is one print sequence per paper type. On gapped label rolls the printer stops at the
  * next gap by itself; a trailing ESC d makes a real D30 keep feeding blank labels, so only
  * continuous paper gets one.
  */
-export const PAPER = ["gaps", "continuous"];
+const PAPER = ["gaps", "continuous"];
 export const feed = (lines) => Uint8Array.of(0x1b, 0x64, lines & 0xff);
 // Shifts an image narrower than the head across it, in bytes.
-export const setOffset = (bytes) => Uint8Array.of(0x1f, 0x11, 0x24, bytes & 0xff);
-export const setCopies = (n) => Uint8Array.of(0x1f, 0x11, 0x21, n & 0xff);
+const setOffset = (bytes) => Uint8Array.of(0x1f, 0x11, 0x24, bytes & 0xff);
+const setCopies = (n) => Uint8Array.of(0x1f, 0x11, 0x21, n & 0xff);
 /**
  * Which paper is loaded. The printer keeps this setting, and it decides what happens after an
  * image: on "gaps" it feeds on to the next gap, and on continuous tape (which has none) it
  * goes on feeding a distance that grows with the label before giving up. So every job says
  * which paper it was laid out for.
  */
-export const PAPER_TYPE = { gaps: 0x0a, continuous: 0x0b };
-export const setPaperType = (paper) => Uint8Array.of(0x1f, 0x11, PAPER_TYPE[paper]);
+const PAPER_TYPE = { gaps: 0x0a, continuous: 0x0b };
+const setPaperType = (paper) => Uint8Array.of(0x1f, 0x11, PAPER_TYPE[paper]);
 
 // Print density. Sending nothing leaves whatever the printer last used.
 export const DENSITY = { light: 1, normal: 2, dark: 4 };
-export const setDensity = (n) => Uint8Array.of(0x1f, 0x11, 0x02, n & 0xff);
+const setDensity = (n) => Uint8Array.of(0x1f, 0x11, 0x02, n & 0xff);
 
 // Status queries; replies arrive as BLE notifications (see status.js).
 export const QUERY = {

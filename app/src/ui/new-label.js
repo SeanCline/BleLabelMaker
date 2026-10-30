@@ -1,9 +1,8 @@
 // New: pick a starting point. Templates show what the app can do, which a blank label doesn't.
 import { TEMPLATES, fromTemplate } from "../templates.js";
 import { fillDocument } from "../fields.js";
-import { renderLabel } from "../render.js";
-import { currentScale } from "./settings.js";
-import { ensureFontsFor } from "../fonts.js";
+import { parseBatch } from "../batch.js";
+import { thumbnails } from "./thumbs.js";
 import { $, el, toast } from "./dom.js";
 import { state, commit, history } from "./store.js";
 import { hasBatch, openBatch, setBatch } from "./batch.js";
@@ -11,8 +10,8 @@ import { hasBatch, openBatch, setBatch } from "./batch.js";
 const dialog = $("#newDialog");
 const list = $("#templateList");
 
-let thumbToken = 0;
-const renderList = async () => {
+const drawThumbs = thumbnails();
+const renderList = () => {
 	const label = state.doc.label;
 	$("#newLabelSize").textContent = label.continuous
 		? `${label.heightMm} mm continuous tape`
@@ -30,18 +29,28 @@ const renderList = async () => {
 				el("span", { className: "hint" }, t.description),
 			),
 		);
-		return { item, thumb, doc: fromTemplate(t, label), row: t.batch?.split("\n").slice(0, 1) };
+		return { item, thumb, template: t };
 	});
 	list.replaceChildren(...jobs.map((j) => j.item));
 	// Thumbnails show fields filled in, as the preview does, so "{date}" reads as a date and a
 	// list's column as its first sample line.
-	const token = ++thumbToken;
-	for (const { thumb, doc, row } of jobs) {
-		const filled = fillDocument(doc, { now: new Date(), n: 1, row: row ?? null, columns: null });
-		await ensureFontsFor(filled);
-		if (token !== thumbToken) return;
-		await renderLabel(filled, thumb, { dots: currentScale() });
-	}
+	const now = new Date();
+	drawThumbs(
+		jobs.map(({ thumb, template }) => [
+			thumb,
+			() => {
+				// The first sample line, read as a real list is, so its columns fill {1}, {2}…
+				const sample = template.batch ? parseBatch(template.batch) : null;
+				return fillDocument(fromTemplate(template, label), {
+					now,
+					n: 1,
+					row: sample?.rows[0] ?? null,
+					line: sample?.lines[0],
+					columns: null,
+				});
+			},
+		]),
+	);
 };
 
 list.addEventListener("click", (ev) => {

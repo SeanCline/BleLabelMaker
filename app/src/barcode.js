@@ -6,10 +6,11 @@
 
 export class BarcodeError extends Error {}
 
+// The blank needed either side, in modules, for each symbology.
 const SYMBOLOGIES = {
-	CODE128: { label: "Code 128 (text & numbers)", quiet: 10 },
-	EAN13: { label: "EAN-13 (retail, 13 digits)", quiet: 11 },
-	UPCA: { label: "UPC-A (retail, 12 digits)", quiet: 9 },
+	CODE128: { quiet: 10 },
+	EAN13: { quiet: 11 },
+	UPCA: { quiet: 9 },
 };
 
 // Code 128 bar/space widths for values 0–106 (106 = stop, which has a 7th element).

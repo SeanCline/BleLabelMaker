@@ -32,11 +32,10 @@ export const idbAll = (store) => transact(store, "readonly", (s) => s.getAll());
 /**
  * Applies several changes in one transaction: all of them land, or none do.
  * @param {string} store
- * @param {{put?: object[], remove?: string[], clear?: boolean}} changes
+ * @param {{put?: object[], remove?: string[]}} changes
  */
-export const idbWrite = (store, { put = [], remove = [], clear = false }) =>
+export const idbWrite = (store, { put = [], remove = [] }) =>
 	transact(store, "readwrite", (s) => {
-		if (clear) s.clear();
 		for (const id of remove) s.delete(id);
 		for (const record of put) s.put(record);
 	});

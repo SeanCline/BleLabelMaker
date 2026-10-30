@@ -6,8 +6,7 @@ import { storageKey } from "../app-info.js";
 import { $, el, loadJson, storeJson } from "./dom.js";
 import { state, history, commit, amend, subscribe } from "./store.js";
 import { onDrawn, previewDocument } from "./stage.js";
-import { onPrinterChange } from "./printer-menu.js";
-import { currentPrinter, currentScale } from "./settings.js";
+import { currentPrinter, currentScale, onModelChange } from "./settings.js";
 
 const presetKey = (l) => `${l.widthMm}x${l.heightMm}`;
 // The sizes the printer being used takes; some models only take 12 mm labels, say.
@@ -98,15 +97,12 @@ const labelOf = ({ widthMm, heightMm, continuous, autoLength }) => ({
 	...(continuous === true && autoLength === true ? { autoLength: true } : {}),
 });
 
-let printerId = currentPrinter().id;
-onPrinterChange(() => {
-	if (currentPrinter().id !== printerId) {
-		printerId = currentPrinter().id;
-		const l = remembered()[printerId];
-		if (l) {
-			setLabel(l);
-			history.seal();
-		}
+// Each model remembers the label last used on it.
+onModelChange((model) => {
+	const l = remembered()[model.id];
+	if (l) {
+		setLabel(l);
+		history.seal();
 	}
 	renderLabelBar();
 });

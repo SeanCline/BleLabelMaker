@@ -13,20 +13,12 @@ import {
 	fromFileMenu,
 	loaded,
 	caretFromInk,
+	printVirtual,
 } from "./harness.js";
 
 let env;
 before(async () => (env = await setup()));
 after(async () => env?.teardown());
-
-const printVirtual = async (page, count = 1) => {
-	await page.click("#btnPrint");
-	await page.waitForFunction(
-		(n) => document.querySelectorAll("#tape .printed").length >= n,
-		{},
-		count,
-	);
-};
 
 /** Compares the editor canvas with the newest virtual print, pixel for pixel. */
 const previewMatchesPrint = (page) =>
@@ -57,9 +49,9 @@ test("a new label: webfont, fit, and virtual print matches the preview", async (
 	assert.equal(await previewMatchesPrint(page), true);
 
 	await typeInto(page, "#copies", "3");
-	await printVirtual(page, 2);
+	await printVirtual(page);
 	const meta = await page.$eval("#tape .printed .hint", (e) => e.textContent);
-	assert.match(meta, /^3 of 3 copies/);
+	assert.match(meta, /^3 of 3 labels decoded/);
 	assert.deepEqual(page.errors, []);
 });
 
@@ -752,10 +744,11 @@ test("the first-run tip goes once the label is typed on, or after a print, and s
 	const page = await env.open();
 	assert.equal(await page.$eval("#welcome", (w) => w.hidden), false);
 	// Ctrl+P prints here, rather than opening the browser's print dialog.
-	await page.keyboard.down("Control");
-	await page.keyboard.press("p");
-	await page.keyboard.up("Control");
-	await page.waitForSelector("#tape .printed");
+	await printVirtual(page, async () => {
+		await page.keyboard.down("Control");
+		await page.keyboard.press("p");
+		await page.keyboard.up("Control");
+	});
 	assert.equal(await page.$eval("#welcome", (w) => w.hidden), true);
 	await page.reload();
 	await page.evaluate(() => window.labelApp.ready);

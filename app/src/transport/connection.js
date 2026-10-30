@@ -3,7 +3,7 @@
 // queueing, chunked sending and status handling are here. What the bytes mean is the
 // business of the model's driver (src/printers/).
 import { packetize } from "../bytes.js";
-import { DEFAULT_PRINTER, printerForName } from "../printers/index.js";
+import { DEFAULT_PRINTER } from "../printers/index.js";
 
 /** @typedef {(sent: number, total: number) => void} OnProgress */
 /** @typedef {ReturnType<typeof emptyStatus>} PrinterStatus */
@@ -136,8 +136,6 @@ export class Connection {
 	/** @param {{showAllDevices?: boolean}} [options] */
 	async connect(options = {}) {
 		await this.open(options);
-		// A printer that names itself is the model it says, whatever was selected.
-		this.model = printerForName(this.name) ?? this.model;
 		this.onStatus("connected");
 		this.refreshStatus();
 	}

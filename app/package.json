@@ -14,6 +14,7 @@
 		"lint": "eslint . && prettier --check . && tsc -p jsconfig.json",
 		"format": "prettier --write . && eslint --fix .",
 		"precache": "node tools/make-precache.mjs",
+		"icons": "node tools/make-icons.mjs",
 		"ui-icons": "node tools/make-ui-icons.mjs",
 		"name": "node tools/apply-name.mjs && prettier --write index.html manifest.webmanifest",
 		"typecheck": "tsc -p jsconfig.json"

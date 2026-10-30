@@ -22,7 +22,7 @@ import {
 	inlineEdit,
 	onInlineChange,
 	refocusInline,
-	selectedLooks,
+	styleState,
 	startInlineEdit,
 	stopInlineEdit,
 	toggleStyle,
@@ -37,10 +37,9 @@ const layersMenu = /** @type {HTMLDetailsElement} */ ($("#layersMenu"));
 /** Menus that drop down from a button: File, the printer, Print's options, the label size. */
 const menus = /** @type {HTMLDetailsElement[]} */ ([...$$("details.menu"), layersMenu]);
 const barKeys = rovingToolbar(bar);
-rovingToolbar($(".rail"), { vertical: true });
 
 /**
- * What the bar is for: the text being typed, simple mode's one text, or what's selected.
+ * What the bar is for: the text being typed, or what's selected.
  * @returns {import("../model.js").Element[]}
  */
 const targets = () => {
@@ -48,15 +47,6 @@ const targets = () => {
 	const typing = inlineEdit() && elementById(inlineEdit().id);
 	if (typing) return [typing];
 	return selectedElements();
-};
-
-/** How much of the text (the selection, or all of it) has a style: "true", "false", "mixed". */
-const pressed = (e, prop) => {
-	const on = selectedLooks(e).map((s) =>
-		prop === "fontWeight" ? s.fontWeight >= BOLD : !!s[prop],
-	);
-	if (on.every(Boolean)) return "true";
-	return on.some(Boolean) ? "mixed" : "false";
 };
 
 const render = () => {
@@ -89,7 +79,7 @@ const render = () => {
 	if (e) syncProps(bar, e);
 	if (e?.type === "text") {
 		for (const b of $$("[data-style]", bar))
-			b.setAttribute("aria-pressed", pressed(e, b.dataset.style));
+			b.setAttribute("aria-pressed", styleState(e, b.dataset.style));
 		$('[data-style="italic"]', bar).disabled = !(fontInfo(e.fontFamily)?.italic ?? true);
 		$('[data-style="fontWeight"]', bar).disabled = Math.max(...weightsFor(e.fontFamily)) < BOLD;
 	}
@@ -175,7 +165,7 @@ const place = (box) => {
 
 // Styling the whole box, when nothing's being typed: the same buttons, for every word.
 const styleBox = (e, prop) => {
-	const on = pressed(e, prop) !== "true";
+	const on = styleState(e, prop) !== "true";
 	const value = prop === "fontWeight" ? nearestWeight(e.fontFamily, on ? 700 : 400) : on;
 	updateElement(e.id, { [prop]: value, text: clearStyle(e.text, prop) });
 	history.seal();

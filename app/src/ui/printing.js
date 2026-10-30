@@ -4,7 +4,7 @@
 import { printDocument } from "../print.js";
 import { fieldsUsed } from "../fields.js";
 import { clamp } from "../units.js";
-import { $, el, toast } from "./dom.js";
+import { $, el, toast, plural } from "./dom.js";
 import { showVirtualOutput } from "./virtual-output.js";
 import { setFieldContext } from "./stage.js";
 import { state, subscribe } from "./store.js";
@@ -24,12 +24,14 @@ const printed = signal();
 /** Called after every print that got labels out, with { copies, target, image }. */
 export const onPrinted = printed.on;
 
-const currentCopies = () => clamp(Math.round(Number($("#copies").valueAsNumber) || 1), 1, 99);
+// A count from anywhere (the box, a reprint) as one the printer takes: blank or NaN is 1.
+const toCopies = (v) => clamp(Math.round(v) || 1, 1, 99);
+const currentCopies = () => toCopies($("#copies").valueAsNumber);
 
 /** Prints the current design: each batch row, each copy, with its fields filled in. */
 export const print = async ({ copies = currentCopies() } = {}) => {
 	if (busy) return false;
-	copies = clamp(Math.round(copies), 1, 99);
+	copies = toCopies(copies);
 	$("#copies").value = copies;
 	const t = connection();
 	const progress = $("#progress");
@@ -56,7 +58,7 @@ export const print = async ({ copies = currentCopies() } = {}) => {
 		}
 		if (outcome.decoded)
 			showVirtualOutput(outcome.decoded, outcome.total, settings, currentPrinter());
-		else toast(`Sent ${outcome.total} label${outcome.total === 1 ? "" : "s"} to ${t.name}`);
+		else toast(`Sent ${plural(outcome.total, "label")} to ${t.name}`);
 		return true;
 	} catch (err) {
 		reportPrintError(err);
@@ -89,7 +91,7 @@ const finishPrint = ({ labels, nextCounter, image }) => {
  */
 const reportBrokenSend = ({ error, labels, total, firstUnsentRow }) => {
 	console.error(error);
-	const of = `${labels} of ${total} label${total === 1 ? "" : "s"}`;
+	const of = `${labels} of ${plural(total, "label")}`;
 	const rest =
 		firstUnsentRow !== null
 			? ` Rows from ${firstUnsentRow + 1} on weren't sent.`

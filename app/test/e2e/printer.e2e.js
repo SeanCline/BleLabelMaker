@@ -1,6 +1,14 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, appState, clickInMenu, openBatchList, loaded } from "./harness.js";
+import {
+	setup,
+	typeInto,
+	appState,
+	clickInMenu,
+	openBatchList,
+	loaded,
+	printVirtual,
+} from "./harness.js";
 import { installFakeBluetooth } from "./fake-bluetooth.js";
 
 let env;
@@ -26,8 +34,7 @@ test("status line shows what the printer reports; density is sent and decoded", 
 		"dark",
 	]);
 	await page.select("#density", "dark");
-	await page.click("#btnPrint");
-	await page.waitForSelector("#tape .printed");
+	await printVirtual(page);
 	assert.match(await page.$eval("#tape .printed .hint", (e) => e.textContent), /density dark/);
 
 	// The setting persists.
@@ -69,14 +76,12 @@ test("out of paper: warned immediately, asked before printing, and nothing print
 	// Loading labels clears the problem.
 	await page.evaluate(() => window.labelApp.simulateVirtual({ paper: true }));
 	await page.waitForFunction(() => !document.querySelector("#printerStatus.problem"));
-	await page.click("#btnPrint");
-	await page.waitForSelector("#tape .printed");
+	await printVirtual(page);
 });
 
 test("pre-cut labels stop at the gap; a continuous roll feeds and has a free length", async () => {
 	const page = await env.open();
-	await page.click("#btnPrint");
-	await page.waitForSelector("#tape .printed");
+	await printVirtual(page);
 	assert.match(
 		await page.$eval("#tape .printed .hint", (e) => e.textContent),
 		/gap labels: stops at the gap/,
@@ -91,8 +96,7 @@ test("pre-cut labels stop at the gap; a continuous roll feeds and has a free len
 	const { label } = (await appState(page)).doc;
 	assert.deepEqual(label, { widthMm: 85, heightMm: 12, continuous: true });
 	assert.ok(await page.$("#paper.continuous"), "square corners");
-	await page.click("#btnPrint");
-	await page.waitForFunction(() => document.querySelectorAll("#tape .printed").length === 2);
+	await printVirtual(page);
 	const hint = await page.$eval("#tape .printed .hint", (e) => e.textContent);
 	assert.match(hint, /feed 23/);
 	assert.match(hint, /96×680 dots/, "85 mm long");
@@ -116,8 +120,7 @@ test("the continuous feed can be overridden, and a model change restores its def
 	assert.equal((await feed()).resettable, true);
 
 	await page.select("#labelPreset", "continuous");
-	await page.click("#btnPrint");
-	await page.waitForSelector("#tape .printed");
+	await printVirtual(page);
 	assert.match(await page.$eval("#tape .printed .hint", (e) => e.textContent), /feed 40/);
 
 	await page.reload({ waitUntil: "load" });
@@ -127,8 +130,7 @@ test("the continuous feed can be overridden, and a model change restores its def
 	await page.select("#virtualModel", "a30");
 	assert.deepEqual(await feed(), { value: "12", resettable: false, hint: "A30 default: 12" });
 	await page.select("#virtualModel", "p15");
-	await page.click("#btnPrint");
-	await page.waitForSelector("#tape .printed");
+	await printVirtual(page);
 	assert.match(
 		await page.$eval("#tape .printed .hint", (e) => e.textContent),
 		/continuous: no feed/,

@@ -27,7 +27,13 @@ const types = {
 };
 
 const serveFile = async (req, res, extra) => {
-	const path = decodeURIComponent(new URL(req.url, "http://x").pathname);
+	let path;
+	try {
+		path = decodeURIComponent(new URL(req.url, "http://x").pathname);
+	} catch {
+		res.writeHead(400).end();
+		return;
+	}
 	if (extra[path]) {
 		res
 			.writeHead(200, { "content-type": extra[path].type, "cache-control": "no-cache" })
@@ -71,10 +77,10 @@ export const loadCert = () => {
  */
 export const startServer = (port = 8080, { host = "127.0.0.1", tls } = {}) =>
 	new Promise((done) => {
-		// Devices have to trust the CA before HTTPS works, so make it easy to fetch from them.
 		const extra = {
 			// The app's license sits at the repository root; the deployed site has it at its own.
 			"/LICENSE.txt": { type: types[".txt"], body: readFileSync(join(root, "..", "LICENSE.txt")) },
+			// Devices have to trust the CA before HTTPS works, so make it easy to fetch from them.
 			...(tls?.ca && { "/ca.crt": { type: "application/x-x509-ca-cert", body: tls.ca } }),
 		};
 		const handler = (req, res) => serveFile(req, res, extra);
@@ -126,13 +132,12 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
 	await startServer(port, { host, tls });
 	const shown = host === "127.0.0.1" ? "localhost" : hostname().toLowerCase();
 	const scheme = tls ? "https" : "http";
-	console.log(
-		`${APP_NAME}: ${scheme}://${shown}${(tls ? port === 443 : port === 80) ? "" : `:${port}`}/`,
-	);
+	const origin = `${scheme}://${shown}${(tls ? port === 443 : port === 80) ? "" : `:${port}`}`;
+	console.log(`${APP_NAME}: ${origin}/`);
 	if (tls && env.REDIRECT_PORT) {
 		await startRedirect(Number(env.REDIRECT_PORT), host, port, tls.ca);
 		console.log(`Redirecting http on port ${env.REDIRECT_PORT} to HTTPS`);
 		const portSuffix = env.REDIRECT_PORT === "80" ? "" : `:${env.REDIRECT_PORT}`;
 		console.log(`Trust the CA on other devices: http://${shown}${portSuffix}/ca.crt`);
-	} else if (tls) console.log(`Trust the CA on other devices: ${scheme}://${shown}/ca.crt`);
+	} else if (tls) console.log(`Trust the CA on other devices: ${origin}/ca.crt`);
 }

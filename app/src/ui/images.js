@@ -1,8 +1,8 @@
+import { round } from "../units.js";
+
 // Longest side kept on import. Even a 200 mm label is 1600 dots long, and images are usually
 // a corner of a label, so this is plenty of detail while keeping .label files small.
 const MAX_SIDE = 800;
-
-class ImageImportError extends Error {}
 
 /**
  * Reads an image file, downscales it, and returns an embeddable data URL plus its size.
@@ -11,12 +11,12 @@ class ImageImportError extends Error {}
  * @returns {Promise<{src: string, width: number, height: number}>}
  */
 export const importImageFile = async (file) => {
-	if (!file.type.startsWith("image/")) throw new ImageImportError(`${file.name} isn't an image.`);
+	if (!file.type.startsWith("image/")) throw new Error(`${file.name} isn't an image.`);
 	let bitmap;
 	try {
 		bitmap = await createImageBitmap(file);
 	} catch {
-		throw new ImageImportError(`${file.name} couldn't be read as an image.`);
+		throw new Error(`${file.name} couldn't be read as an image.`);
 	}
 	const scale = Math.min(1, MAX_SIDE / Math.max(bitmap.width, bitmap.height));
 	const width = Math.max(1, Math.round(bitmap.width * scale));
@@ -35,5 +35,5 @@ export const importImageFile = async (file) => {
 /** Largest box with the image's proportions that fits in `area` (mm). */
 export const fitBox = ({ width, height }, area) => {
 	const scale = Math.min(area.w / width, area.h / height);
-	return { w: Math.round(width * scale * 100) / 100, h: Math.round(height * scale * 100) / 100 };
+	return { w: round(width * scale), h: round(height * scale) };
 };

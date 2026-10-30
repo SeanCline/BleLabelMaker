@@ -40,7 +40,8 @@ import { MODELS as PHOMEMO } from "./phomemo/models.js";
  *   void, leftover: number}} decoder reads a job the way the firmware would, for the virtual
  *   printer and tests
  * @property {{reply: (event: {type: string, [detail: string]: any}, s: SimulatedPrinter) =>
- *   Uint8Array[], afterJob: (s: SimulatedPrinter, printed: boolean) => Uint8Array[]}} simulator
+ *   Uint8Array[], afterJob: (s: SimulatedPrinter, printed: boolean) => Uint8Array[],
+ *   blocks: (s: SimulatedPrinter) => boolean}} simulator
  *   what a printer in state `s` would notify: in answer to a decoded command, and after a job
  */
 

@@ -1,19 +1,10 @@
 // The Elements list beside the rail: every element, front first, to pick from (it's a listbox
 // for the keyboard) and, by each row's grip or Alt+arrows, to restack.
-import { $, $$, el, announce } from "./dom.js";
+import { $, $$, el, icon, announce } from "./dom.js";
 import { contentOf, describeElement, typeName } from "./describe.js";
 import { state, history, commit, select, toggleSelected, subscribe, elementById } from "./store.js";
 
 const LAYER_KIND = { text: "T", shape: "▭", barcode: "║", qr: "▦", image: "▣" };
-
-const gripIcon = () => {
-	const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-	svg.setAttribute("class", "icon");
-	const use = document.createElementNS("http://www.w3.org/2000/svg", "use");
-	use.setAttribute("href", "icons/ui.svg#grip-vertical");
-	svg.append(use);
-	return svg;
-};
 
 let layersKey = "";
 /**
@@ -42,7 +33,7 @@ const renderLayers = () => {
 				el(
 					"span",
 					{ className: "grip", title: "Drag to reorder", "aria-hidden": "true" },
-					gripIcon(),
+					icon("grip-vertical"),
 				),
 				el("span", { className: "kind", "aria-hidden": "true" }, LAYER_KIND[e.type] ?? "▭"),
 				el("span", { className: "sr-only" }, `${typeName(e)}: `),

@@ -1,6 +1,6 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
-import { setup, typeInto, redraw } from "./harness.js";
+import { setup, typeInto, redraw, printVirtual } from "./harness.js";
 
 let env;
 before(async () => (env = await setup()));
@@ -43,7 +43,6 @@ test("works offline after one visit: app, fonts and virtual printing", async () 
 		"font served offline",
 	);
 
-	await page.click("#btnPrint");
-	await page.waitForSelector("#tape .printed");
+	await printVirtual(page);
 	assert.deepEqual(page.errors, []);
 });

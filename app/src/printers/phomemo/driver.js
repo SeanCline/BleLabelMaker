@@ -11,6 +11,8 @@ import {
 import { StatusParser, statusRecord, answerQuery } from "./status.js";
 import { PrinterDecoder } from "./decoder.js";
 
+const phomemoBlocks = (s) => !s.paper || s.coverOpen;
+
 /** @type {import("../index.js").PrinterDriver} */
 export const dSeries = {
 	id: "phomemo-d-series",
@@ -28,8 +30,9 @@ export const dSeries = {
 	simulator: {
 		reply: (event, s) => (event.type === "query" ? answerQuery(event.query, s) : []),
 		// A real printer with no paper or an open cover prints nothing and says why.
+		blocks: (s) => phomemoBlocks(s),
 		afterJob: (s, printed) =>
-			!s.paper || s.coverOpen
+			phomemoBlocks(s)
 				? [statusRecord.cover(s.coverOpen), statusRecord.paper(s.paper)]
 				: printed
 					? [statusRecord.printed()]

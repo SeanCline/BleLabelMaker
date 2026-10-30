@@ -10,6 +10,7 @@ import {
 	openElements,
 	openSettings,
 	fromFileMenu,
+	printVirtual,
 } from "./harness.js";
 
 // The app icon doubles as a test picture: a blue square with a white label shape.
@@ -55,8 +56,7 @@ test("import an image, switch styles and invert, print, and save/load it", async
 	await typeInto(page, '#quickbar [data-qb="image"] [data-prop="level"]', "40");
 	assert.notEqual(await blackDots(page), inverted, "darkness slider changes the result");
 
-	await page.click("#btnPrint");
-	await page.waitForSelector("#tape .printed");
+	await printVirtual(page);
 
 	const saved = await serialized(page);
 	await fromFileMenu(page, "#btnNew");

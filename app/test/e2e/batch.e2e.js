@@ -9,6 +9,7 @@ import {
 	openBatchList,
 	loaded,
 	fromFileMenu,
+	printVirtual,
 } from "./harness.js";
 
 let env;
@@ -16,14 +17,6 @@ before(async () => (env = await setup()));
 after(async () => env?.teardown());
 
 const setText = (page, text) => typeInto(page, "#designText", text);
-const printAndWait = async (page, count) => {
-	await page.click("#btnPrint");
-	await page.waitForFunction(
-		(n) => document.querySelectorAll("#tape .printed").length >= n,
-		{},
-		count,
-	);
-};
 /** Pictures in the newest virtual print: one per different label. */
 const pictures = (page) => page.$$eval("#tape .printed:first-child canvas", (c) => c.length);
 const canvasHash = async (page) => (await labelPixels(page)).hash;
@@ -34,9 +27,12 @@ test("a counter makes every copy different and carries on from the last print", 
 	await setText(page, "BIN-{n:000}");
 	assert.equal(await page.$eval("#counterRow", (r) => r.hidden), false);
 	await typeInto(page, "#copies", "3");
-	await printAndWait(page, 1);
+	await printVirtual(page);
 	assert.equal(await pictures(page), 3, "three different labels");
-	assert.match(await page.$eval("#tape .printed .hint", (h) => h.textContent), /^3 of 3 copies/);
+	assert.match(
+		await page.$eval("#tape .printed .hint", (h) => h.textContent),
+		/^3 of 3 labels decoded/,
+	);
 	assert.equal(await page.$eval("#counterStart", (i) => i.value), "4");
 
 	// The next print starts at 4 and so looks different from the first one.
@@ -64,7 +60,7 @@ test("a batch list prints one label per line, with a preview of each", async () 
 	assert.notEqual(await canvasHash(page), first, "previewing the second line");
 	assert.equal(await page.$eval("#batchPos", (p) => p.textContent), "Row 2 of 3");
 
-	await printAndWait(page, 1);
+	await printVirtual(page);
 	assert.equal(await pictures(page), 3);
 	const history = await page.evaluate(() => window.labelApp.historyEntries());
 	assert.equal(history.length, 1, "one history entry for the batch");

@@ -21,7 +21,8 @@ const time = (d) => d.toTimeString().slice(0, 8);
 const labelText = (l) =>
 	`${l.widthMm} × ${l.heightMm} mm, ${l.continuous ? "continuous" : "with gaps"}`;
 
-const describeStatus = (s) => {
+/** Everything the printer has reported, for a bug report; the UI shows only problems. */
+const statusDetails = (s) => {
 	if (!s) return "not connected";
 	const parts = [];
 	if (typeof s.battery === "number")
@@ -48,7 +49,7 @@ export const diagnostics = (info, { messages = 20 } = {}) => {
 		`Model: ${p.model.vendor} ${p.model.name} (${p.model.id}), ${p.model.tested ? "tested" : "untested"}`,
 		`Device: ${p.deviceName ?? "none connected"}`,
 		`Firmware: ${p.status?.firmware ?? "unknown"}`,
-		`Status: ${describeStatus(p.status)}`,
+		`Status: ${statusDetails(p.status)}`,
 		`Label: ${labelText(info.label)}`,
 		`Settings: ${JSON.stringify(p.settings)}`,
 	];

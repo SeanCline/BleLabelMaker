@@ -1,7 +1,7 @@
 import { test, before, after } from "node:test";
 import assert from "node:assert/strict";
 import zxing from "@zxing/library";
-import { setup, typeInto, appState } from "./harness.js";
+import { setup, typeInto, appState, printVirtual } from "./harness.js";
 
 const {
 	MultiFormatReader,
@@ -18,9 +18,7 @@ after(async () => env?.teardown());
 
 /** Prints to the virtual printer and returns the decoded print as a luminance image. */
 const printAndCapture = async (page) => {
-	const n = await page.$$eval("#tape .printed", (x) => x.length);
-	await page.click("#btnPrint");
-	await page.waitForFunction((k) => document.querySelectorAll("#tape .printed").length > k, {}, n);
+	await printVirtual(page);
 	return page.evaluate(() => {
 		const c = document.querySelector("#tape .printed canvas");
 		const d = c.getContext("2d").getImageData(0, 0, c.width, c.height).data;

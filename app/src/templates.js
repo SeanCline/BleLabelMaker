@@ -70,9 +70,11 @@ export const TEMPLATES = [
 		name: "Storage bin",
 		description: "A QR code beside a description of what's inside.",
 		elements: (doc, area) => {
-			const [code, words] = [area.h, area.w - area.h - 1];
+			// On a narrow label the code gives up some size, so the words keep some room.
+			const code = Math.min(area.h, area.w / 2);
+			const words = area.w - code - 1;
 			return [
-				createQr(doc, { x: area.x, y: area.y, w: code, h: code, data: "Bin A-12" }),
+				createQr(doc, { x: area.x, y: area.y, w: round(code), h: round(code), data: "Bin A-12" }),
 				createText(doc, {
 					x: round(area.x + code + 1),
 					y: area.y,

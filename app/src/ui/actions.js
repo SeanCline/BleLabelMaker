@@ -16,7 +16,7 @@ import {
 } from "../model.js";
 import { clamp, round } from "../units.js";
 import { encodeBarcode } from "../barcode.js";
-import { $, $$, el, toast, announce, DRAG_SLACK_PX } from "./dom.js";
+import { $, $$, el, toast, announce, focusBarField, DRAG_SLACK_PX } from "./dom.js";
 import { describeElement } from "./describe.js";
 import { importImageFile, fitBox } from "./images.js";
 import { currentScale } from "./settings.js";
@@ -31,6 +31,7 @@ import {
 } from "./store.js";
 import { startInlineEdit } from "./inline-editor.js";
 import { labelPointAt } from "./stage.js";
+import { rovingToolbar } from "./toolbar.js";
 
 /** Turns each element a quarter turn (or three) about its own centre, as one undo step. */
 export const rotateElements = (els, deltaDeg) => {
@@ -52,12 +53,7 @@ export const rotateElements = (els, deltaDeg) => {
 };
 
 /** Rotation reshapes the box (see rotateTo), so it can't be a plain property patch. */
-export const rotateElement = (e, rotation) => {
-	const { x, y, w, h } = clampToLabel(rotateTo(e, rotation), state.doc.label);
-	updateElement(e.id, { rotation, x, y, w, h });
-	history.seal();
-	announce(`Rotated to ${rotation}°`);
-};
+export const rotateElement = (e, rotation) => rotateElements([e], rotation - e.rotation);
 
 export const addElement = (element) => {
 	commit(
@@ -87,6 +83,12 @@ export const centred = (w, h, at = null) => {
 	return { x: round(a.x + (a.w - cw) / 2), y: round(a.y + (a.h - ch) / 2), w: cw, h: ch };
 };
 
+/** A new text's box: half the printable area, centred, or on `at` when dropped there. */
+export const halfBox = (at = null) => {
+	const a = printableArea(state.doc.label);
+	return centred(a.w / 2, a.h / 2, at);
+};
+
 let replacing = null;
 // Where a picture dragged from the rail was dropped, while its file is being picked.
 let droppedAt = null;
@@ -94,8 +96,7 @@ let droppedAt = null;
 /** What each of the rail's buttons adds: centred, or at `at` (mm) when dragged there. */
 const ADD = {
 	text: (at) => {
-		const a = printableArea(state.doc.label);
-		const e = createText(state.doc, { ...centred(a.w / 2, a.h / 2, at), text: "Text", fit: true });
+		const e = createText(state.doc, { ...halfBox(at), text: "Text", fit: true });
 		addElement(e);
 		// Straight to typing on it, with the placeholder selected to type over.
 		startInlineEdit(e.id);
@@ -104,7 +105,7 @@ const ADD = {
 	// that size, so it's half as big.
 	shape: (at) => {
 		const a = printableArea(state.doc.label);
-		addElement(createShape(state.doc, at ? centred(a.w / 2, a.h / 2, at) : { ...a }));
+		addElement(createShape(state.doc, at ? halfBox(at) : { ...a }));
 	},
 	barcode: (at) => {
 		const a = printableArea(state.doc.label);
@@ -113,13 +114,13 @@ const ADD = {
 		const modules = encodeBarcode(e.symbology, e.data).modules.length;
 		const width = Math.min(a.w, Math.ceil(currentScale().toMm(modules * 2) + 0.5));
 		addElement({ ...e, ...centred(width, a.h, at) });
-		$('#quickbar [data-qb="barcode"] [data-prop="data"]').select();
+		focusBarField("barcode");
 	},
 	qr: (at) => {
 		const a = printableArea(state.doc.label);
 		const side = Math.min(a.h, a.w);
 		addElement(createQr(state.doc, centred(side, side, at)));
-		$('#quickbar [data-qb="qr"] [data-prop="data"]').select();
+		focusBarField("qr");
 	},
 	image: (at) => {
 		replacing = null;
@@ -130,7 +131,7 @@ const ADD = {
 for (const button of $$(".rail [data-add]"))
 	button.addEventListener("click", () => ADD[button.dataset.add](null));
 
-/** Adds an image file as a new element, sized to fit the printable area. Switches to design mode. */
+/** Adds an image file as a new element, sized to fit the printable area. */
 export const addImageFile = async (file, at = null) => {
 	try {
 		const img = await importImageFile(file);
@@ -170,6 +171,7 @@ $("#imageFile").addEventListener("change", async (ev) => {
 
 let railDrag = null;
 const rail = $(".rail");
+rovingToolbar(rail, { vertical: true });
 
 const endRailDrag = () => {
 	railDrag?.ghost?.remove();

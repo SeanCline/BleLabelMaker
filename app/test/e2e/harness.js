@@ -167,6 +167,25 @@ export const fromFileMenu = async (page, selector) => {
 export const openElements = (page) =>
 	page.$eval("#layersMenu", (d) => /** @type {HTMLDetailsElement} */ (d).setAttribute("open", ""));
 
+/**
+ * Does something that prints to the virtual printer (by default, clicks Print) and waits for
+ * that print on the tape. Waiting for a new first print, rather than a count, still works when
+ * the tape already holds prints, or as many as it keeps.
+ * @param {import("puppeteer-core").Page} page
+ */
+export const printVirtual = async (page, act = () => page.click("#btnPrint")) => {
+	const before = await page.$("#tape .printed");
+	await act();
+	await page.waitForFunction(
+		(old) => {
+			const newest = document.querySelector("#tape .printed");
+			return !!newest && newest !== old;
+		},
+		{},
+		before,
+	);
+};
+
 export const appState = (page) =>
 	page.evaluate(() => JSON.parse(JSON.stringify(window.labelApp.state)));
 export const serialized = (page) => page.evaluate(() => window.labelApp.serialize());

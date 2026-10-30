@@ -137,6 +137,9 @@ export const renderLabel = async (doc, canvas, { dots = dotScale() } = {}) => {
 			w: Math.max(1, Math.round(dots.mm(e.w))),
 			h: Math.max(1, Math.round(dots.mm(e.h))),
 		};
+		// Before the key: clearing renumbers images, and a drawing filed under an old number
+		// could later be found for a different picture.
+		if (imageIds.size > ELEMENT_CACHE_SIZE) clearRenderCache();
 		const key = cacheKey(e, box, dots);
 		let drawn = elementCache.get(key);
 		if (drawn) {
@@ -144,7 +147,6 @@ export const renderLabel = async (doc, canvas, { dots = dotScale() } = {}) => {
 			elementCache.delete(key);
 		} else {
 			drawn = await drawElement(draw, e, box, dots);
-			if (imageIds.size > ELEMENT_CACHE_SIZE) clearRenderCache();
 		}
 		if (!drawn.retry) elementCache.set(key, drawn);
 		if (elementCache.size > ELEMENT_CACHE_SIZE)

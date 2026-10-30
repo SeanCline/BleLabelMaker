@@ -2,9 +2,10 @@
  * Smart guides: while dragging, edges and centres snap to the label's edges and centre, the
  * printable margins, and other elements. Pure functions so the maths is unit-testable.
  */
+import { round } from "./units.js";
 
 // Results are rounded to 1 µm so float noise (10.299999…) never reaches the document.
-const r3 = (v) => Math.round(v * 1000) / 1000;
+const r3 = (v) => round(v, 3);
 
 /** Lines worth snapping to, in mm. */
 export const snapTargets = (label, area, others) => {

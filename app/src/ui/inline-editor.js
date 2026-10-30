@@ -18,7 +18,7 @@ import {
 	textOf,
 	typingStyle,
 } from "../richtext.js";
-import { isFormatted, parseHtml, spansForBox, spansFromHtml, toHtml } from "../htmltext.js";
+import { formattedSpans, toHtml } from "../htmltext.js";
 import { $, el, DRAG_SLACK_PX } from "./dom.js";
 import { rememberCaret } from "./caret.js";
 import { placeStyle } from "./viewport.js";
@@ -234,15 +234,23 @@ export const selectedLooks = (e) => {
 	return stylesBetween(e.text, from, to, e).map((s) => ({ ...s, ...pending }));
 };
 
+/**
+ * How much of the text a style button is for has its style: "true", "false" or "mixed".
+ * @param {import("../model.js").TextElement} e
+ */
+export const styleState = (e, prop) => {
+	const on = selectedLooks(e).map((s) =>
+		prop === "fontWeight" ? s.fontWeight >= BOLD : !!s[prop],
+	);
+	if (on.every(Boolean)) return "true";
+	return on.some(Boolean) ? "mixed" : "false";
+};
+
 export const toggleStyle = (prop) => {
 	const e = /** @type {import("../model.js").TextElement} */ (elementById(inline.id));
 	if (prop === "italic" && !(fontInfo(e.fontFamily)?.italic ?? true)) return;
 	const { selectionStart: a, selectionEnd: b } = inline.textarea;
-	const looks = selectedLooks(e);
-	const on =
-		prop === "fontWeight"
-			? !looks.every((s) => s.fontWeight >= BOLD)
-			: !looks.every((s) => s[prop]);
+	const on = styleState(e, prop) !== "true";
 	// Unbolding goes back to the box's weight, unless the box itself is bold.
 	const value =
 		prop === "fontWeight"
@@ -333,11 +341,9 @@ const listenForClipboard = (textarea, id) => {
 		if (copy(ev)) document.execCommand("delete");
 	});
 	textarea.addEventListener("paste", (ev) => {
-		const html = ev.clipboardData.getData("text/html");
-		if (!html) return;
-		const spans = spansFromHtml(parseHtml(html));
-		// Plain from the HTML is plain from the text beside it, which the browser pastes better.
-		if (!isFormatted(spans)) return;
+		const box = /** @type {import("../model.js").TextElement} */ (elementById(id));
+		const spans = formattedSpans(ev.clipboardData.getData("text/html"), box);
+		if (!spans) return;
 		ev.preventDefault();
 		const { selectionStart: a, selectionEnd: b, value } = textarea;
 		const inserted = spans.map((p) => p.text).join("");
@@ -345,7 +351,7 @@ const listenForClipboard = (textarea, id) => {
 			at: a,
 			removed: b - a,
 			value: value.slice(0, a) + inserted + value.slice(b),
-			spans: spansForBox(spans, /** @type {import("../model.js").TextElement} */ (elementById(id))),
+			spans,
 		};
 		document.execCommand("insertText", false, inserted);
 	});

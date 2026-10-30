@@ -15,6 +15,8 @@ const ICONS = [
 	"redo-2",
 	"printer",
 	"chevron-down",
+	"chevron-left",
+	"chevron-right",
 	// The label size, and the batch list
 	"tag",
 	"table",

@@ -60,9 +60,9 @@ export class VirtualPrinter extends Connection {
 		this.#job = null;
 		const leftover = this.#decoder.leftover;
 		if (leftover) throw new Error(`virtual printer: ${leftover} bytes of an incomplete command`);
-		// A real printer with no paper or an open cover prints nothing and says why.
+		// As a real printer would, one that can't print prints nothing, and says why.
 		const s = this.simulate;
-		const blocked = !s.paper || s.coverOpen;
+		const blocked = this.driver.simulator.blocks(s);
 		for (const r of this.driver.simulator.afterJob(s, labels.length > 0)) this.heard(r);
 		return { ...sent, labels: blocked ? [] : labels, events };
 	}

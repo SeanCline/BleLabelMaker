@@ -5,8 +5,10 @@ import { printableArea } from "../src/model.js";
 import { PRINTERS } from "../src/printers/index.js";
 import { parse, serialize } from "../src/fileformat.js";
 
-// Every label any printer offers, pre-cut and continuous.
+// Every label any printer offers, pre-cut and continuous, and a custom one narrower than it's
+// tall, which leaves a code beside words little room.
 const labels = [
+	{ widthMm: 10, heightMm: 15, continuous: false },
 	...new Map(
 		PRINTERS.flatMap((p) => [
 			...p.presets.map((l) => ({ ...l, continuous: false })),

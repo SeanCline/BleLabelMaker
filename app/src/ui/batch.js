@@ -3,7 +3,7 @@
 // The list is a per-browser convenience (local storage), not part of the .label file: the
 // same design is often printed with different lists.
 import { parseBatch } from "../batch.js";
-import { $, loadJson, storeJson, toast } from "./dom.js";
+import { $, loadJson, storeJson, toast, plural } from "./dom.js";
 import { storageKey } from "../app-info.js";
 import { signal } from "./signal.js";
 
@@ -31,13 +31,13 @@ const render = () => {
 	const n = parsed.rows.length;
 	if ($("#batchData").value !== saved.text) $("#batchData").value = saved.text;
 	$("#batchHeadings").checked = saved.headings;
-	$("#batchSummary").textContent = n ? `· ${n} label${n === 1 ? "" : "s"}` : "";
+	$("#batchSummary").textContent = n ? `· ${plural(n, "label")}` : "";
 	$("#batchCount").hidden = n === 0;
 	$("#batchCount").textContent = n ? String(n) : "";
 	$("#btnBatch").classList.toggle("active", n > 0);
 	$("#btnBatch").setAttribute(
 		"aria-label",
-		n ? `Batch: ${n} label${n === 1 ? "" : "s"} from a list` : "Batch",
+		n ? `Batch: ${plural(n, "label")} from a list` : "Batch",
 	);
 	// On the label area while there's a list: which row it shows, and the way back to the list.
 	$("#batchNav").hidden = n === 0;

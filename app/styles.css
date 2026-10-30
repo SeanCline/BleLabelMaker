@@ -18,6 +18,8 @@
 	--guide: #e0457b;
 	--shadow: 0 1px 2px rgb(0 0 0 / 0.08), 0 4px 16px rgb(0 0 0 / 0.08);
 	--radius: 8px;
+	--radius-control: 6px; /* buttons, fields and the groups of them */
+	--ok: #2a9d4b;
 	/* Spacing, named for what it separates, so the same kind of gap is the same size
 	   everywhere. */
 	--gap-tight: 2px; /* buttons clustered into one control */
@@ -85,7 +87,7 @@ textarea {
 button {
 	background: var(--surface);
 	border: 1px solid var(--border);
-	border-radius: 6px;
+	border-radius: var(--radius-control);
 	padding: 5px 11px;
 	cursor: pointer;
 }
@@ -121,10 +123,11 @@ button.danger {
 select,
 input[type="number"],
 input[type="text"],
+input[type="search"],
 textarea {
 	background: var(--surface);
 	border: 1px solid var(--border);
-	border-radius: 6px;
+	border-radius: var(--radius-control);
 	padding: 4px 7px;
 	min-width: 0;
 }
@@ -212,7 +215,7 @@ summary:has(> .icon) {
 	list-style: none;
 	cursor: pointer;
 	border: 1px solid transparent;
-	border-radius: 7px;
+	border-radius: var(--radius-control);
 }
 .menu > summary::-webkit-details-marker,
 .layers-menu > summary::-webkit-details-marker {
@@ -226,7 +229,7 @@ summary:has(> .icon) {
 	padding: 6px 8px 6px 12px;
 	background: var(--surface);
 	border-color: var(--border);
-	border-radius: 6px;
+	border-radius: var(--radius-control);
 }
 .file-button .chevron {
 	width: 14px;
@@ -263,7 +266,7 @@ summary:has(> .icon) {
 .segmented {
 	display: inline-flex;
 	border: 1px solid var(--border);
-	border-radius: 7px;
+	border-radius: var(--radius-control);
 	overflow: hidden;
 }
 .segmented button {
@@ -274,9 +277,9 @@ summary:has(> .icon) {
 .segmented button + button {
 	border-left: 1px solid var(--border);
 }
-.segmented button[aria-selected="true"],
 .segmented button[aria-pressed="true"],
-button[data-prop][aria-pressed="true"] {
+button[data-prop][aria-pressed="true"],
+#btnRuler[aria-pressed="true"] {
 	background: var(--accent);
 	color: var(--accent-text);
 }
@@ -343,7 +346,7 @@ button[data-prop][aria-pressed="true"] {
 	background: var(--muted);
 }
 .printer-chip.ok .chip-dot {
-	background: #2a9d4b;
+	background: var(--ok);
 }
 .printer-chip.problem {
 	color: var(--danger);
@@ -353,12 +356,12 @@ button[data-prop][aria-pressed="true"] {
 	background: var(--danger);
 }
 
-/* Batch, beside Print: a feature of its own, which says how many labels its list makes. */
 /* A word beside its icon on the top bar, as Batch and File are. */
 .bar-button {
 	padding: 6px 12px;
 	font-weight: 600;
 }
+/* Batch, beside Print: a feature of its own, which says how many labels its list makes. */
 .batch-button.active {
 	border-color: var(--accent);
 	color: var(--accent);
@@ -386,7 +389,7 @@ button[data-prop][aria-pressed="true"] {
 .print-menu > summary {
 	height: 100%;
 	padding: 0 8px;
-	border-radius: 0 7px 7px 0;
+	border-radius: 0 var(--radius-control) var(--radius-control) 0;
 	border-left: 1px solid rgb(255 255 255 / 0.35);
 	background: var(--accent);
 	color: var(--accent-text);
@@ -448,8 +451,6 @@ button[data-prop][aria-pressed="true"] {
 	padding: 4px 10px;
 }
 .batch-nav #batchEdit {
-	display: inline-flex;
-	gap: var(--gap-control);
 	color: inherit;
 	text-decoration: none;
 }
@@ -476,9 +477,6 @@ button[data-prop][aria-pressed="true"] {
 	border: 0;
 	background: none;
 }
-.custom-size input[type="number"] {
-	width: 4.5em;
-}
 
 .sr-only {
 	position: absolute;
@@ -486,7 +484,7 @@ button[data-prop][aria-pressed="true"] {
 	height: 1px;
 	margin: -1px;
 	overflow: hidden;
-	clip: rect(0 0 0 0);
+	clip-path: inset(50%);
 	white-space: nowrap;
 }
 .hint,
@@ -608,9 +606,7 @@ button[data-prop][aria-pressed="true"] {
 	background: var(--surface);
 }
 #btnRuler[aria-pressed="true"] {
-	background: var(--accent);
 	border-color: var(--accent);
-	color: var(--accent-text);
 }
 .zoom {
 	display: inline-flex;
@@ -688,26 +684,15 @@ button[data-prop][aria-pressed="true"] {
 }
 .emoji-search {
 	width: 100%;
-	box-sizing: border-box;
-	margin-bottom: 8px;
 }
 .batch {
 	font-size: 13px;
-}
-.batch textarea {
-	width: 100%;
-	box-sizing: border-box;
-	font: inherit;
-	color: var(--text);
-}
-.batch p {
-	margin: 0;
 }
 .marquee {
 	position: absolute;
 	z-index: 2;
 	border: 1px solid var(--select);
-	background: rgb(47 123 255 / 0.1);
+	background: color-mix(in srgb, var(--select) 10%, transparent);
 	pointer-events: none;
 }
 /* The inline editor: the canvas below is the text you read; see the comment in stage.js. */
@@ -744,7 +729,7 @@ button[data-prop][aria-pressed="true"] {
 }
 .inline-selection > div {
 	position: absolute;
-	background: rgb(47 123 255 / 0.3);
+	background: color-mix(in srgb, var(--select) 30%, transparent);
 	pointer-events: none;
 }
 /* A handle hangs below its line: a teardrop pointing up at the caret, in a finger-sized box,
@@ -762,9 +747,6 @@ button[data-prop][aria-pressed="true"] {
 	width: 0;
 	height: 0;
 	pointer-events: none;
-}
-.inline-handle[hidden] {
-	display: none;
 }
 .inline-handle::before {
 	content: "";
@@ -829,11 +811,11 @@ button[data-prop][aria-pressed="true"] {
 }
 .box {
 	position: absolute;
-	outline: 1px dashed rgb(47 123 255 / 0.35);
+	outline: 1px dashed color-mix(in srgb, var(--select) 35%, transparent);
 	cursor: move;
 }
 .box:hover {
-	outline: 1px solid rgb(47 123 255 / 0.7);
+	outline: 1px solid color-mix(in srgb, var(--select) 70%, transparent);
 }
 .box.warn {
 	outline: 2px dashed var(--danger);
@@ -908,7 +890,7 @@ button[data-prop][aria-pressed="true"] {
 }
 .status.ok::before {
 	content: "● ";
-	color: #2a9d4b;
+	color: var(--ok);
 }
 .status.problem {
 	color: var(--danger);
@@ -934,14 +916,8 @@ progress {
 	align-items: flex-start;
 	padding: 8px 0 0 14px;
 }
-.advanced-body > .hint {
-	margin: 0;
-}
 .advanced summary {
 	cursor: pointer;
-}
-.advanced input[type="number"] {
-	width: 4.5em;
 }
 
 .virtual {
@@ -999,7 +975,7 @@ progress {
 	gap: var(--gap-small);
 	background: var(--surface);
 	border: 1px solid var(--border);
-	border-radius: 6px;
+	border-radius: var(--radius-control);
 	cursor: pointer;
 }
 .field-picker:hover {
@@ -1129,7 +1105,7 @@ h3.section {
 }
 .layers {
 	border: 1px solid var(--border);
-	border-radius: 6px;
+	border-radius: var(--radius-control);
 	max-height: 180px;
 }
 .layers li {
@@ -1192,7 +1168,7 @@ input[type="range"] {
 .grid4 label {
 	display: flex;
 	flex-direction: column;
-	font-size: 12px;
+	font-size: 12.5px;
 	color: var(--muted);
 }
 .grid4 input {
@@ -1215,7 +1191,7 @@ input[type="range"] {
 .warning {
 	margin: 0;
 	padding: 8px 10px;
-	border-radius: 6px;
+	border-radius: var(--radius-control);
 	background: color-mix(in srgb, var(--danger) 12%, transparent);
 	color: var(--danger);
 	font-size: 13px;
@@ -1270,7 +1246,7 @@ dialog::backdrop {
 	background: var(--text);
 	color: var(--bg);
 	padding: 9px 16px;
-	border-radius: 8px;
+	border-radius: var(--radius);
 	box-shadow: var(--shadow);
 	max-width: calc(100vw - 32px);
 	z-index: 10;
@@ -1313,10 +1289,6 @@ dialog::backdrop {
 .history-tools input[type="search"] {
 	flex: 1;
 	min-width: 140px;
-	background: var(--surface);
-	border: 1px solid var(--border);
-	border-radius: 6px;
-	padding: 4px 8px;
 }
 .history-list {
 	display: flex;
@@ -1330,7 +1302,7 @@ dialog::backdrop {
 	gap: var(--gap-section);
 	padding: 8px;
 	border: 1px solid var(--border);
-	border-radius: 8px;
+	border-radius: var(--radius);
 }
 .template-list {
 	display: grid;
@@ -1456,7 +1428,7 @@ dialog::backdrop {
 }
 .menu-list a {
 	padding: 7px 10px;
-	border-radius: 6px;
+	border-radius: var(--radius-control);
 	color: var(--text);
 }
 .menu-list a:hover {
@@ -1545,7 +1517,7 @@ button.link {
 		background: var(--surface);
 		color: var(--text);
 		border: 1px solid var(--border);
-		border-radius: 8px;
+		border-radius: var(--radius);
 		box-shadow: var(--shadow);
 		padding: 4px 0;
 	}
@@ -1571,10 +1543,8 @@ button.link {
 	.quickbar [data-qb="text"] {
 		display: contents;
 	}
-}
-/* Too wide for its room (quickbar.js), it tightens before it wraps: less space, a narrower
-   font list, and its buttons' words left to their titles and screen readers. */
-@media (min-width: 601px) {
+	/* Too wide for its room (quickbar.js), it tightens before it wraps: less space, a
+	   narrower font list, and its buttons' words left to their titles and screen readers. */
 	.quickbar.compact,
 	.quickbar.compact .qb-group {
 		gap: var(--gap-tight);

@@ -161,7 +161,7 @@
 					<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#printer" /></svg
 					><span class="print-label">Print</span>
 				</button>
-				<details class="menu print-menu" id="printMenu">
+				<details class="menu print-menu">
 					<summary class="primary" title="Copies and numbering">
 						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#chevron-down" /></svg
 						><span class="sr-only">Print options</span>
@@ -188,7 +188,7 @@
 		<main class="layout">
 			<section class="workspace stack">
 				<div class="canvas-area">
-					<details class="menu label-menu" id="labelMenu">
+					<details class="menu label-menu">
 						<summary id="labelChip" title="Label size">
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#tag" /></svg
 							><span id="labelChipText"></span>
@@ -345,10 +345,22 @@
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#table" /></svg
 							><span id="batchPos" aria-live="polite"></span>
 						</button>
-						<button id="batchPrev" class="icon-button" aria-label="Preview the previous line">
-							‹
+						<button
+							id="batchPrev"
+							class="icon-button"
+							aria-label="Preview the previous line"
+							title="Previous line"
+						>
+							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#chevron-left" /></svg>
 						</button>
-						<button id="batchNext" class="icon-button" aria-label="Preview the next line">›</button>
+						<button
+							id="batchNext"
+							class="icon-button"
+							aria-label="Preview the next line"
+							title="Next line"
+						>
+							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#chevron-right" /></svg>
+						</button>
 					</div>
 					<!-- A first-visit hint, where the first thing to do is. -->
 					<p class="coach" id="emptyHint" hidden>
@@ -1031,9 +1043,9 @@
 			</form>
 		</dialog>
 
-		<dialog id="emojiDialog">
+		<dialog id="emojiDialog" aria-labelledby="emojiTitle">
 			<form method="dialog" class="stack">
-				<h2>Choose an emoji</h2>
+				<h2 id="emojiTitle">Choose an emoji</h2>
 				<input
 					type="search"
 					id="emojiSearch"
@@ -1048,7 +1060,7 @@
 					Or type or paste any emoji
 					<span class="row"
 						><input type="text" id="emojiCustom" maxlength="16" placeholder="e.g. 🦖" />
-						<button value="custom" id="emojiCustomBtn">Use</button></span
+						<button value="custom">Use</button></span
 					>
 				</label>
 				<div class="dialog-actions row"><button value="cancel">Cancel</button></div>
@@ -1060,7 +1072,11 @@
 				<h2 id="historyTitle">Print history</h2>
 				<span class="hint" id="historyCount"></span>
 				<span class="spacer"></span>
-				<form method="dialog"><button aria-label="Close">✕</button></form>
+				<form method="dialog">
+					<button class="icon-button" aria-label="Close" title="Close">
+						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#x" /></svg>
+					</button>
+				</form>
 			</div>
 			<div class="history-tools row">
 				<input
@@ -1088,7 +1104,11 @@
 				<h2 id="newTitle">New label</h2>
 				<span class="hint" id="newLabelSize"></span>
 				<span class="spacer"></span>
-				<form method="dialog"><button aria-label="Close">✕</button></form>
+				<form method="dialog">
+					<button class="icon-button" aria-label="Close" title="Close">
+						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#x" /></svg>
+					</button>
+				</form>
 			</div>
 			<ul class="template-list" id="templateList"></ul>
 		</dialog>

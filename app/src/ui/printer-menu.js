@@ -21,7 +21,7 @@ import {
 import { signal } from "./signal.js";
 
 /** Tells the user about problems the moment the printer reports them, not just on print. */
-const onPrinterStatus = (status, event) => {
+const onPrinterStatus = (_status, event) => {
 	if (event.type === "paper" && event.present === false)
 		toast("The printer is out of labels.", { error: true });
 	if (event.type === "cover" && event.open) toast("The printer's cover is open.", { error: true });
