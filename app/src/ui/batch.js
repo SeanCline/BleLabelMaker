@@ -17,6 +17,13 @@ export const onBatchChange = batchChanged.on;
 
 /** The rows to print, or null when the list is empty (a normal print). */
 export const batchData = () => (parsed.rows.length ? parsed : null);
+/** Just the previewed row, as a list of one: to print a single label from the batch. */
+export const previewedOnly = () => {
+	const i = previewRow();
+	return parsed.rows.length
+		? { ...parsed, rows: [parsed.rows[i]], lines: [parsed.lines[i]] }
+		: null;
+};
 /** Which row the canvas previews. */
 export const previewRow = () => Math.min(preview, Math.max(0, parsed.rows.length - 1));
 

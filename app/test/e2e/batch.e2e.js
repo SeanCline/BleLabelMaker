@@ -65,11 +65,20 @@ test("a batch list prints one label per line, with a preview of each", async () 
 	assert.notEqual(await canvasHash(page), first, "previewing the second line");
 	assert.equal(await page.$eval("#batchPos", (p) => p.textContent), "Row 2 of 3");
 
+	// Printing just the row on show, say to redo one label that came out wrong.
+	const printedImages = () =>
+		page.$$eval("#tape .printed:first-child canvas", (c) => c.map((x) => x.toDataURL()));
+	await printVirtual(page, () => page.click("#batchPrintRow"));
+	const [onlyRow] = await printedImages();
+	assert.equal(await pictures(page), 1);
+
 	await printVirtual(page);
 	assert.equal(await pictures(page), 3);
+	assert.equal((await printedImages())[1], onlyRow, "the single label was the second row");
 	const history = await page.evaluate(() => window.labelApp.historyEntries());
+	// The same design printed again is one history entry, its copies added up.
 	assert.equal(history.length, 1, "one history entry for the batch");
-	assert.equal(history[0].copies, 3);
+	assert.equal(history[0].copies, 4);
 
 	// The list survives a reload, and shows on the label area so a batch is never a surprise.
 	await page.reload({ waitUntil: "load" });

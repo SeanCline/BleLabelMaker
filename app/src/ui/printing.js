@@ -8,7 +8,7 @@ import { $, el, toast, plural } from "./dom.js";
 import { showVirtualOutput } from "./virtual-output.js";
 import { setFieldContext } from "./stage.js";
 import { state, subscribe } from "./store.js";
-import { batchData, previewRow, onBatchChange } from "./batch.js";
+import { batchData, previewRow, previewedOnly, onBatchChange } from "./batch.js";
 import { settings, saveSettings, currentPrinter } from "./settings.js";
 import {
 	connection,
@@ -28,8 +28,11 @@ export const onPrinted = printed.on;
 const toCopies = (v) => clamp(Math.round(v) || 1, 1, 99);
 const currentCopies = () => toCopies($("#copies").valueAsNumber);
 
-/** Prints the current design: each batch row, each copy, with its fields filled in. */
-export const print = async ({ copies = currentCopies() } = {}) => {
+/**
+ * Prints the current design: each batch row, each copy, with its fields filled in. `only`
+ * prints just the batch row the preview shows.
+ */
+export const print = async ({ copies = currentCopies(), only = false } = {}) => {
 	if (busy) return false;
 	copies = toCopies(copies);
 	$("#copies").value = copies;
@@ -42,7 +45,7 @@ export const print = async ({ copies = currentCopies() } = {}) => {
 			connection: t,
 			printer: currentPrinter(),
 			copies,
-			batch: batchData(),
+			batch: only ? previewedOnly() : batchData(),
 			counterStart: settings.counterStart,
 			settings,
 			confirm: (question) => confirm(question),
@@ -53,7 +56,8 @@ export const print = async ({ copies = currentCopies() } = {}) => {
 		// The labels that did go out are printed: keep their serials used and their history.
 		if (outcome.labels) finishPrint(outcome);
 		if (outcome.result === "partial") {
-			reportBrokenSend(outcome);
+			// Its row numbers count from the row printed, not the list.
+			reportBrokenSend(only ? { ...outcome, firstUnsentRow: null } : outcome);
 			return false;
 		}
 		if (outcome.decoded)
@@ -129,6 +133,7 @@ const renderPrintButton = () => {
 	const what = batch ? [el("span", { className: "print-unit" }, ` ${total} labels`)] : [];
 	$("#btnPrint .print-label").replaceChildren(...connect, "Print", ...what);
 	$("#btnPrint").disabled = busy;
+	$("#batchPrintRow").disabled = busy;
 };
 
 // The preview shows the batch row being looked at and the next counter value.
@@ -152,6 +157,7 @@ subscribe(renderPrintBar);
 onPrinterChange(renderPrintButton);
 
 $("#btnPrint").addEventListener("click", () => print());
+$("#batchPrintRow").addEventListener("click", () => print({ only: true }));
 $("#copies").addEventListener("input", renderPrintBar);
 $("#counterStart").addEventListener("input", (ev) => {
 	const v = ev.target.valueAsNumber;

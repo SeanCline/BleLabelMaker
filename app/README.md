@@ -99,7 +99,8 @@ bottom of the font list asks for a Google Font to be added.
   `{Column name}` with _Header row_ on) in the design, or `{0}`
   for the whole line. Print then
   makes one label per row. While there's a list, the label area shows which
-  row it previews, with arrows to step through them.
+  row it previews, with arrows to step through them and a printer button to print
+  only that row (to redo one label that came out wrong).
 - **Labels:** the size chip at the label area's bottom left; pick a pre-cut size, or _Continuous roll_ for rolls that are one
   long label. A roll starts out as long as the text (_Auto_; in a batch, each label gets its
   own length); untick _Auto_ to set a length. Only the sizes the selected printer model
