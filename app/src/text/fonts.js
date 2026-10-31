@@ -82,7 +82,15 @@ export const WEIGHT_NAMES = {
 
 const GENERIC = new Set(["sans-serif", "serif", "monospace"]);
 
-export const fontInfo = (family) => FONTS.find((f) => f.family === family);
+/**
+ * Fonts the user added in this browser (ui/custom-fonts.js): listed after ours, with the
+ * weights their files have.
+ * @type {{family: string, weights: number[], italic: boolean}[]}
+ */
+export const CUSTOM_FONTS = [];
+
+export const fontInfo = (family) =>
+	FONTS.find((f) => f.family === family) ?? CUSTOM_FONTS.find((f) => f.family === family);
 
 /**
  * Families saved in a file may not be in our list (hand-edited, or removed later); treat as

@@ -1245,6 +1245,39 @@ h3.section {
 	margin-top: 4px;
 	padding-top: 11px;
 }
+/* The fonts added in this browser: each name in its face, where it came from, and Remove. */
+#fontDialog {
+	width: min(440px, calc(100vw - 32px));
+}
+#fontDialog .with-unit {
+	flex-wrap: nowrap;
+}
+#fontDialog .with-unit input {
+	flex: 1;
+	min-width: 0;
+}
+.font-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+.font-list li {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto auto;
+	align-items: center;
+	gap: var(--gap-line);
+	padding: 4px 0;
+	border-bottom: 1px solid var(--border);
+}
+.font-list .font-name {
+	font-size: 17px;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+#fontStatus.problem {
+	color: var(--danger);
+}
 /* The text a QR code holds, as it is: a vCard runs to several lines. */
 #qrRaw {
 	margin: var(--gap-tight) 0 0;

@@ -96,7 +96,8 @@ const ICONS = [
 	"contact-round",
 	"eye",
 	"eye-off",
-	// Request a font, in the font list
+	// Add and request a font, in the font list
+	"plus",
 	"message-square-share",
 ];
 

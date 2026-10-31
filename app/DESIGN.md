@@ -32,6 +32,7 @@ src/
     layout.js    text wrapping and fit-to-box (pure, measure fn injected)
     caretmap.js  caret positions on laid-out text, for the inline editor
     fonts.js     the font list, and loading each face before it's drawn
+    fontfiles.js  added fonts: a file's name, a Google Fonts name or link, Google's CSS
     emoji.js     the emoji picker's list and its search
   batch.js       batch lists: lines, spreadsheet cells, CSV
   render.js      document → canvas at printer resolution, 1-bit; element cache
@@ -74,6 +75,8 @@ src/
     printing.js  the Print button, copies, counter, and how a print went
     report.js    the pop-up after an untested model prints, Report a problem, diagnostics
     virtual-output.js  the virtual printer's decoded labels
+    custom-fonts.js  fonts added from a file or Google Fonts: kept in IndexedDB, loaded
+                 with FontFace, in every font list
     batch.js, files.js, clipboard.js, keyboard.js, history-panel.js, idb.js, caret.js
 test/            node:test suites for the pure modules
 test/e2e/        headless-Chromium tests of the UI (npm run test:e2e), with a fake

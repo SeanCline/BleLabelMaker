@@ -1,17 +1,24 @@
-// A thin wrapper over IndexedDB for the print history, which carries whole labels (images
-// included) and outgrows localStorage's ~5 MB long before IndexedDB's quota, a share of the
-// free disk. Each entry is its own record, so a print writes one entry rather than the
-// whole history: quicker, and nothing is lost if the tab closes right after printing.
+// A thin wrapper over IndexedDB for what outgrows localStorage's ~5 MB long before IndexedDB's
+// quota, a share of the free disk: the print history, which carries whole labels (images
+// included), and fonts the user added. Each entry is its own record, so a print writes one
+// entry rather than the whole history: quicker, and nothing is lost if the tab closes right
+// after printing.
 import { STORAGE_ID } from "../app-info.js";
 
 const DB = STORAGE_ID;
 export const HISTORY = "history";
+export const FONT_FILES = "fonts";
 
 let dbPromise;
 const open = () =>
 	(dbPromise ??= new Promise((resolve, reject) => {
-		const req = indexedDB.open(DB, 1);
-		req.onupgradeneeded = () => req.result.createObjectStore(HISTORY, { keyPath: "id" });
+		// Version 2 added the fonts; a database from version 1 keeps its history.
+		const req = indexedDB.open(DB, 2);
+		req.onupgradeneeded = () => {
+			for (const store of [HISTORY, FONT_FILES])
+				if (!req.result.objectStoreNames.contains(store))
+					req.result.createObjectStore(store, { keyPath: "id" });
+		};
 		req.onsuccess = () => resolve(req.result);
 		req.onerror = () => reject(req.error);
 	}));

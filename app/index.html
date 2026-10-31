@@ -5,7 +5,7 @@
 		<!-- Labels and links from strangers get opened here, so only this site's own code runs. -->
 		<meta
 			http-equiv="Content-Security-Policy"
-			content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; object-src 'none'; base-uri 'none'; form-action 'none'"
+			content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://fonts.googleapis.com https://fonts.gstatic.com; object-src 'none'; base-uri 'none'; form-action 'none'"
 		/>
 		<!-- The on-screen keyboard shrinks the page rather than covering it, so the bar docked
 		     at its bottom (styles.css) sits on the keyboard as the browser lays it out, without
@@ -1235,6 +1235,51 @@
 					Nothing matches. Any emoji can also be typed or pasted straight into the text.
 				</p>
 				<div class="dialog-actions row"><button value="cancel">Cancel</button></div>
+			</form>
+		</dialog>
+
+		<dialog id="fontDialog" aria-labelledby="fontTitle">
+			<form method="dialog" class="stack">
+				<h2 id="fontTitle">Add a font</h2>
+				<label class="prop-row">
+					Google Fonts
+					<span class="with-unit">
+						<input
+							type="text"
+							id="googleFont"
+							spellcheck="false"
+							placeholder="Name or link: Playfair Display"
+						/>
+						<button type="button" id="addGoogleFont">Add</button>
+					</span>
+				</label>
+				<p class="hint">
+					Find one at
+					<a href="https://fonts.google.com" target="_blank" rel="noopener">fonts.google.com</a>.
+					It's downloaded once, and works offline after that.
+				</p>
+				<div class="prop-row">
+					<span>From a file</span>
+					<span>
+						<button type="button" id="addFontFile">
+							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#folder-open" /></svg>
+							Choose…
+						</button>
+						<input type="file" id="fontFile" accept=".ttf,.otf,.woff,.woff2" multiple hidden />
+					</span>
+				</div>
+				<p class="hint">
+					TTF, OTF or WOFF. Files named the way font makers name them (Montserrat-Bold.ttf) come
+					together as one font with its weights.
+				</p>
+				<p class="status" id="fontStatus" aria-live="polite"></p>
+				<h3 class="section">Your fonts</h3>
+				<ul class="font-list" id="customFontList"></ul>
+				<p class="hint" id="noCustomFonts">None yet.</p>
+				<p class="hint">
+					They're kept in this browser. A label that uses one prints in a plain face anywhere else.
+				</p>
+				<div class="dialog-actions row"><button value="close">Done</button></div>
 			</form>
 		</dialog>
 

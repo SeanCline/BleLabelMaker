@@ -69,8 +69,10 @@ Settings for `node serve.js` (environment variables):
 
 After the first visit the app works offline, and Chrome or Edge can install it
 as a desktop app (the install icon in the address bar). Fonts are bundled, so
-it never needs the internet. Missing one you need? _Request a font…_ at the
-bottom of the font list asks for a Google Font to be added.
+it never needs the internet. Missing one you need? _Add a font…_ at the bottom
+of the font list adds one from a file, or from Google Fonts by its name or link.
+It's kept in this browser, and works offline once added. _Request a font…_ asks
+for one to be added for everyone.
 
 ## Use it
 

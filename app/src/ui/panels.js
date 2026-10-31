@@ -1,18 +1,11 @@
 // The settings for what's selected: each input names the property it edits (data-prop), and
 // each section the element types it's for (data-panel, data-types).
 import { LIMITS } from "../model.js";
-import {
-	FONTS,
-	WEIGHT_NAMES,
-	cssFamily,
-	weightsFor,
-	nearestWeight,
-	fontInfo,
-	hasEmoji,
-} from "../text/fonts.js";
+import { WEIGHT_NAMES, weightsFor, nearestWeight, fontInfo, hasEmoji } from "../text/fonts.js";
 import { clamp, round } from "../units.js";
 import { $, $$, el, showChoice } from "./dom.js";
 import { dropdown } from "./dropdown.js";
+import { ADD_FONT, REQUEST_FONT, fillFontLists, openFontDialog } from "./custom-fonts.js";
 import { SYMBOLOGIES } from "../codes/barcode.js";
 import { REPO_URL } from "../app-info.js";
 import { state, history, updateElement, selected, subscribe, undo, redo } from "./store.js";
@@ -31,7 +24,6 @@ import {
 
 // The list is kept short on purpose, so one that's asked for is worth adding. Asking is the
 // list's last choice, where someone who didn't find theirs ends up.
-const REQUEST_FONT = "request-font";
 const FONT_REQUEST_URL = `${REPO_URL}/issues/new?template=font-request.yml`;
 
 // ---------------------------------------------------------------------------
@@ -184,6 +176,17 @@ const onPropInput = (ev) => {
 		/** @type {HTMLSelectElement} */ (input).value = e[prop];
 		return;
 	}
+	// A font added from here is then the one this text, or caption, is in.
+	if (input.value === ADD_FONT) {
+		/** @type {HTMLSelectElement} */ (input).value = e[prop];
+		openFontDialog((family) => {
+			const now = selected();
+			if (!now) return;
+			updateElement(now.id, patchFor(now, prop, family));
+			history.seal();
+		});
+		return;
+	}
 	const value = coerce(input);
 	if (typeof value === "number" && !Number.isFinite(value)) return; // mid-typing, e.g. "-"
 
@@ -225,24 +228,9 @@ for (const root of $$("[data-panel]")) {
 		history.seal();
 	});
 }
-for (const sel of $$(".font-select")) {
-	sel.replaceChildren(
-		// Each name in its own face, so the list shows how they look without picking each one.
-		...FONTS.map((f) => {
-			const option = new Option(f.label ?? f.family, f.family);
-			option.style.fontFamily = cssFamily(f.family);
-			return option;
-		}),
-		document.createElement("hr"),
-		// Not a font: it opens a request on GitHub, and its icon says it goes elsewhere.
-		el(
-			"option",
-			{ value: REQUEST_FONT, dataset: { icon: "message-square-share" } },
-			"Request a font…",
-		),
-	);
-	dropdown(sel, { className: "font-dropdown" });
-}
+// The font lists are filled by custom-fonts.js, which knows the fonts added here too.
+fillFontLists();
+for (const sel of $$(".font-select")) dropdown(sel, { className: "font-dropdown" });
 for (const sel of $$(".barcode-format"))
 	sel.replaceChildren(
 		...Object.entries(SYMBOLOGIES).map(([value, { name, hint }]) =>
