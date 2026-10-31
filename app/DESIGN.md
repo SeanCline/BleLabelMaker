@@ -361,7 +361,12 @@ Status:
 | (unsolicited)             | `1A 0F 0C` print finished                                                             |
 
 The D30's density values are 1, 2 and 4, for Light, Normal and Dark. Normal is
-the default. Which BLE characteristic carries the D30's notifications isn't
+the default. These are Print Master's own values for the D30 (5.23.1: its
+`concentration_values_d3`), sent as `1F 11 02 n`, though it sends them before
+`ESC @` rather than after. On a D30 the three levels look the same on paper,
+from Print Master too, so the printer itself barely varies its heat. Print Master
+has finer heat commands (`1F 11 69 …`, `1B 4E 62 14 …`), but only fills them
+with per-roll values from Phomemo's server for its smart label rolls. Which BLE characteristic carries the D30's notifications isn't
 confirmed, so
 `BluetoothPrinter` subscribes to every notifying characteristic in the `ff00`
 service. All writes (print jobs and status queries) go through one queue, so a
@@ -459,17 +464,17 @@ running the browser tests in Firefox too.
    sequence, so gap labels no longer send a feed.
 4. Print 3 copies. All three should come out, with no merging. This checks
    the copy count `1F 11 21`. If only one comes out, the printer may ignore
-   it, and the fix is to repeat the image instead.
+   it, and the fix is to repeat the image instead. (Copies on a continuous roll
+   repeat the image anyway, and are confirmed on a D30.)
 5. Check that the margins match the guides, and that text near the edges
    isn't clipped by the print head (confirmed on a D30 with 12 mm labels).
 6. After connecting, the status line should show battery and "labels loaded".
    If it shows nothing, the D30 may not send status over BLE. Printing still
    works.
 7. Open the cover, then take the labels out. The status line and a warning
-   should report each (the cover is confirmed as `05` on a D30; out of labels
-   is still to check). If the two are swapped, swap the `05`/`06` meanings in
-   `printers/phomemo/status.js`.
-8. Print the same label at Light, Normal and Dark and compare.
+   should report each (both confirmed on a D30).
+8. Print the same label at Light, Normal and Dark and compare. (On a D30 they
+   look the same, from Print Master too: see _The Phomemo D-series driver_.)
 9. Scan a printed Code 128 and a QR code with a phone.
 10. The D-series also has a `1A 40` "material" record (roll part number, width,
     length) for smart label rolls; if the D30 ever sends one, it could pick the

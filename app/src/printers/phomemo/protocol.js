@@ -24,7 +24,8 @@ const setCopies = (n) => Uint8Array.of(0x1f, 0x11, 0x21, n & 0xff);
 const PAPER_TYPE = { gaps: 0x0a, continuous: 0x0b };
 const setPaperType = (paper) => Uint8Array.of(0x1f, 0x11, PAPER_TYPE[paper]);
 
-// Print density. Sending nothing leaves whatever the printer last used.
+// Print density: Print Master's values for the D30, though that printer barely changes
+// with them. Sending nothing leaves whatever the printer last used.
 export const DENSITY = { light: 1, normal: 2, dark: 4 };
 const setDensity = (n) => Uint8Array.of(0x1f, 0x11, 0x02, n & 0xff);
 
@@ -89,6 +90,8 @@ export const buildPrintJob = (
 	// After INIT, in case the reset clears it; the printer keeps it as a persistent setting.
 	const densityCmd = density !== null ? [setDensity(density)] : [];
 	if (paper === "continuous") {
+		// No offset: a D30 centres a narrower image on continuous paper itself (confirmed with
+		// a 6 mm label), and Print Master doesn't send one there either.
 		const parts = [setPaperType("continuous"), INIT, ...densityCmd];
 		for (let i = 0; i < copies; i++) {
 			parts.push(image);
