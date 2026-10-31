@@ -475,11 +475,15 @@ running the browser tests in Firefox too.
    should report each (both confirmed on a D30).
 8. Print the same label at Light, Normal and Dark and compare. (On a D30 they
    look the same, from Print Master too: see _The Phomemo D-series driver_.)
-9. Scan a printed Code 128 and a QR code with a phone.
+9. Scan a printed Code 128 and a QR code with a phone (both confirmed from a
+   D30; phone cameras read QR codes, but barcodes need a scanner app).
 10. The D-series also has a `1A 40` "material" record (roll part number, width,
     length) for smart label rolls; if the D30 ever sends one, it could pick the
     label size automatically.
 11. Serial: pair the D30 in Windows, choose _Serial_, and connect to the
     port named `JL_SPP` (if there are two, the outgoing one). A single label and
-    the battery are confirmed; print a 10-label batch, and if it garbles,
-    increase `chunkGapMs` in `transport/serial.js`.
+    the battery are confirmed. A batch is one stream, paced like a single
+    label, and Print Master (5.23.1, Android, which only uses Bluetooth serial)
+    writes each whole job in one unpaced write over the same link, so a
+    batch should hold too. If one ever garbles, increase `chunkGapMs` in
+    `transport/serial.js`.

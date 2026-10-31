@@ -14,8 +14,9 @@ const SPP = "00001101-0000-1000-8000-00805f9b34fb";
  * records as BLE.
  */
 export class SerialPrinter extends Connection {
-	// No acknowledgements over a serial link, so writes are paced to stay under what the
-	// printer can buffer: about 50 KB/s. Fine for one label; long batches are untested.
+	// Paced at about 50 KB/s, as a margin rather than a need: the printer maker's own app
+	// prints over this same Bluetooth serial link with each job in one unpaced write, leaving
+	// it to the link's flow control (see DESIGN.md). It costs ~80 ms on a typical label.
 	chunkSize = 512;
 	chunkGapMs = 10;
 	/** @type {any} */
