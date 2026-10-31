@@ -585,25 +585,17 @@
 							aria-label="Barcode data"
 							class="qb-data"
 						/>
-						<select data-prop="symbology" aria-label="Barcode type">
-							<option value="CODE128">Code 128</option>
-							<option value="EAN13">EAN-13</option>
-							<option value="UPCA">UPC-A</option>
-						</select>
+						<select
+							data-prop="symbology"
+							class="barcode-format"
+							aria-label="Barcode format"
+						></select>
 					</span>
 					<span class="qb-group row" data-qb="qr">
-						<input
-							type="text"
-							data-prop="data"
-							spellcheck="false"
-							aria-label="Text or link"
-							class="qb-data"
-						/>
-						<select
-							data-prop="level"
-							aria-label="Error correction"
-							title="Error correction: Low makes the smallest code, High survives scratches"
-						>
+						<select class="qr-kind" aria-label="What the QR code holds"></select>
+						<input type="text" data-qr-primary spellcheck="false" class="qb-data" />
+						<select data-prop="level" class="qr-level" aria-label="Error correction">
+							<option value="auto">Auto</option>
 							<option value="L">Low</option>
 							<option value="M">Medium</option>
 							<option value="Q">Quartile</option>
@@ -1009,12 +1001,35 @@
 						hidden
 					>
 						<h3 class="section">Barcode</h3>
+						<label class="prop-row">
+							Format
+							<select
+								data-prop="symbology"
+								class="barcode-format"
+								aria-label="Barcode format"
+							></select>
+						</label>
+						<p class="hint" data-hint-of="symbology"></p>
+						<label class="prop-row">
+							Data
+							<input type="text" data-prop="data" spellcheck="false" />
+						</label>
 						<div class="prop-row">
 							<span id="captionLabel">Caption</span>
-							<span class="segmented fill" role="group" aria-labelledby="captionLabel">
-								<button data-prop="showText" title="Show the code's text under the bars">
-									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#captions" /></svg>
-									Show text under barcode
+							<span
+								class="segmented fill"
+								data-radio="showText"
+								data-radio-type="bool"
+								role="group"
+								aria-labelledby="captionLabel"
+							>
+								<button data-value="true" title="The code's text under the bars">
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#eye" /></svg>
+									Visible
+								</button>
+								<button data-value="false" title="Bars only">
+									<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#eye-off" /></svg>
+									Hidden
 								</button>
 							</span>
 						</div>
@@ -1029,18 +1044,28 @@
 					</div>
 
 					<div id="qrProps" class="props stack" data-panel="qr" data-types="qr" hidden>
-						<h3 class="section" id="qrHeading">QR code</h3>
-						<textarea
-							data-prop="data"
-							rows="4"
-							spellcheck="false"
-							aria-labelledby="qrHeading"
-							placeholder="Text or link"
-						></textarea>
-						<p class="hint">
-							Error correction (on the bar): Low makes the smallest code, High still scans when
-							scratched. Medium suits most labels.
-						</p>
+						<h3 class="section">QR code</h3>
+						<label class="prop-row">
+							Format
+							<select class="qr-kind" aria-label="What the QR code holds"></select>
+						</label>
+						<p class="hint" id="qrKindHint"></p>
+						<div id="qrFields" class="stack"></div>
+						<label class="prop-row">
+							Correction
+							<select data-prop="level" class="qr-level" aria-label="Error correction">
+								<option value="auto">Auto</option>
+								<option value="L">Low</option>
+								<option value="M">Medium</option>
+								<option value="Q">Quartile</option>
+								<option value="H">High</option>
+							</select>
+						</label>
+						<details class="qr-raw">
+							<summary>Raw data</summary>
+							<pre id="qrRaw"></pre>
+							<p class="hint" id="qrLength"></p>
+						</details>
 					</div>
 
 					<div id="imageProps" class="props stack" data-panel="image" data-types="image" hidden>

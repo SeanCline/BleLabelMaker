@@ -554,7 +554,7 @@ test("letter spacing, underline, outline, stacked and image fit each change the 
 	await page.click("#addBarcode");
 	assert.equal(await page.$eval('#barcodeProps [data-show-if="showText"]', (f) => f.hidden), false);
 	await openSettings(page);
-	await page.click('#barcodeProps [data-prop="showText"]');
+	await page.click('#barcodeProps [data-radio="showText"] [data-value="false"]');
 	assert.equal(await page.$eval('#barcodeProps [data-show-if="showText"]', (f) => f.hidden), true);
 	assert.deepEqual(page.errors, []);
 });
@@ -916,7 +916,7 @@ test("the font list shows each face, ends with a request for one, and has no str
 		);
 	const list = await options();
 	assert.ok(!list.some(([name]) => name.includes("undefined")), JSON.stringify(list));
-	assert.deepEqual(list[0], ["Inter (clean sans)", "Inter, sans-serif, Noto Emoji"]);
+	assert.deepEqual(list[0], ["Inter", "Inter, sans-serif, Noto Emoji"]);
 	assert.deepEqual(list.at(-1), ["Request a font…", ""]);
 
 	await page.select("#quickbar .font-select", "request-font");
@@ -929,5 +929,54 @@ test("the font list shows each face, ends with a request for one, and has no str
 	]);
 	assert.equal(await page.$eval("#quickbar .font-select", (s) => s.value), "Inter", "unchanged");
 	assert.equal((await appState(page)).doc.elements[0].fontFamily, "Inter");
+	assert.deepEqual(page.errors, []);
+});
+
+test("the font menu is drawn by the page: each face in itself, by mouse or keys, in any browser", async () => {
+	const page = await env.open();
+	await openSettings(page);
+	const font = () => appState(page).then((s) => s.doc.elements[0].fontFamily);
+	const open = () =>
+		page.$eval("#quickbar .font-dropdown + select + .dropdown-list", (l) =>
+			l.matches(":popover-open"),
+		);
+	await page.click("#quickbar .font-dropdown");
+	assert.equal(await open(), true);
+	// Each name in its own face, which Firefox's own list doesn't show.
+	const oswald = await page.$$eval(
+		"#quickbar .dropdown-list:popover-open .dropdown-option",
+		(all) => {
+			const o = all.find((x) => x.textContent.startsWith("Oswald"));
+			o.click();
+			return o.style.fontFamily;
+		},
+	);
+	assert.match(oswald, /Oswald/);
+	assert.equal(await font(), "Oswald");
+	assert.equal(await open(), false);
+	assert.match(
+		await page.$eval(
+			"#quickbar .font-dropdown .dropdown-choice:not(.unseen)",
+			(f) => f.style.fontFamily,
+		),
+		/Oswald/,
+		"the button shows the face picked",
+	);
+
+	// Keys: a letter picks the next name starting with it, arrows and Enter pick from the list.
+	await page.focus("#quickbar .font-dropdown");
+	await page.keyboard.press("i");
+	assert.equal(await font(), "Inter");
+	await page.keyboard.press("ArrowDown");
+	assert.equal(await open(), true);
+	await page.keyboard.press("ArrowDown");
+	await page.keyboard.press("Enter");
+	assert.notEqual(await font(), "Inter");
+	assert.equal(await open(), false);
+	// Escape closes the list, not the settings under it.
+	await page.keyboard.press("ArrowDown");
+	await page.keyboard.press("Escape");
+	assert.equal(await open(), false);
+	assert.equal(await page.$eval("#settings", (s) => s.hidden), false);
 	assert.deepEqual(page.errors, []);
 });

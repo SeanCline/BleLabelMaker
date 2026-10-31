@@ -44,7 +44,7 @@ src/
   printhistory.js  print history entries, export/import
   share.js       labels as links
   report.js      diagnostics, bug and "it works" reports, GitHub issue links
-  fonts.js, emoji.js, barcode.js, qr.js, snap.js
+  fonts.js, emoji.js, barcode.js, qr.js, qrcontent.js, snap.js
   app.js         entry point: boots the ui/ modules
   ui/
     dom.js       DOM helpers, toast, best-effort localStorage
@@ -58,7 +58,9 @@ src/
     actions.js   add, delete, duplicate, rotate and arrange elements, each one undo step
     layers.js    the Elements list: pick from it, restack by grip or Alt+arrows
     quickbar.js  the bar over the label (the selection's essentials) and the settings sheet
+    qr-builder.js  a QR code's kind and fields, in the settings and its main one on the bar
     toolbar.js   arrow keys between a toolbar's controls, one Tab stop for its buttons
+    dropdown.js  a select drawn by the page over a hidden native one: icons, fonts in their own face
     labelbar.js  label size: the printer's presets, continuous, custom, remembered per printer
     text-insert.js  emoji picker and Field menu, inserting at the cursor
     settings.js  saved print settings; the selected model and its resolution
@@ -226,10 +228,18 @@ different lists.
   horizontal bar through the middle of the box; rotate it for a vertical one).
   Outlines are drawn entirely inside the box, at `strokeMm` thickness rounded
   to whole dots.
-- Barcodes (`"type": "barcode"`, with `data`, `symbology` = `CODE128` / `EAN13` /
-  `UPCA`, and `showText`) are encoded by `src/barcode.js`. QR codes
-  (`"type": "qr"`, with `data` and `level` = `L`/`M`/`Q`/`H`) use the vendored
-  `qrcode-generator` with UTF-8 text. Each bar or QR square is a whole number
+- Barcodes (`"type": "barcode"`, with `data`, `symbology` = `CODE128` / `CODE39` /
+  `EAN13` / `EAN8` / `UPCA` / `ITF14`, and `showText`) are encoded by `src/barcode.js`. QR codes
+  (`"type": "qr"`, with `kind`, `data` and `level` = `auto`/`L`/`M`/`Q`/`H`) use the
+  vendored `qrcode-generator` with UTF-8 text. A QR code has no content type of
+  its own: phones act on the text's format. `kind` (`text`, `link`, `wifi`,
+  `phone`, `sms`, `email`, `contact`) says which format `src/qrcontent.js`
+  writes from the builder's fields and reads back; `data` is still what's
+  encoded, and files without `kind` get the one their data matches. Escaping
+  skips `{…}` fields, so batches work in every kind. `auto` makes the squares as
+  big as the box allows, up to 0.5 mm, then takes the most error correction
+  that keeps them that size (squares help every scan, correction only a
+  damaged label); the settings show what it picked. Each bar or QR square is a whole number
   of printer dots. The renderer flags codes that can't be drawn, or whose
   modules are only one dot wide (unreliable to scan). Code content isn't
   validated on load, since a half-typed EAN is a normal editing state.

@@ -4,67 +4,59 @@ import { stylesIn, textOf } from "./richtext.js";
 export const FONTS = [
 	{
 		family: "Inter",
-		label: "Inter (clean sans)",
 		weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
 		italic: true,
 		google: "Inter:ital,wght@0,100..900;1,100..900",
 	},
 	{
 		family: "Roboto Condensed",
-		label: "Roboto Condensed (narrow)",
 		weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
 		italic: true,
 		google: "Roboto+Condensed:ital,wght@0,100..900;1,100..900",
 	},
 	{
 		family: "Oswald",
-		label: "Oswald (tall, compact)",
 		weights: [200, 300, 400, 500, 600, 700],
 		italic: false,
 		google: "Oswald:wght@200..700",
 	},
 	{
 		family: "Bebas Neue",
-		label: "Bebas Neue (all caps)",
 		weights: [400],
 		italic: false,
 		google: "Bebas+Neue",
 	},
 	{
 		family: "Roboto Slab",
-		label: "Roboto Slab (serif)",
 		weights: [100, 200, 300, 400, 500, 600, 700, 800, 900],
 		italic: false,
 		google: "Roboto+Slab:wght@100..900",
 	},
 	{
 		family: "Lora",
-		label: "Lora (book serif)",
 		weights: [400, 500, 600, 700],
 		italic: true,
 		google: "Lora:ital,wght@0,400..700;1,400..700",
 	},
 	{
-		family: "JetBrains Mono",
-		label: "JetBrains Mono (code)",
-		weights: [100, 200, 300, 400, 500, 600, 700, 800],
+		family: "Roboto Mono",
+		weights: [100, 200, 300, 400, 500, 600, 700],
 		italic: true,
-		google: "JetBrains+Mono:ital,wght@0,100..800;1,100..800",
+		google: "Roboto+Mono:ital,wght@0,100..700;1,100..700",
 	},
 	{
 		family: "Permanent Marker",
-		label: "Permanent Marker (handwritten)",
 		weights: [400],
 		italic: false,
 		google: "Permanent+Marker",
 	},
 	{
 		family: "Pacifico",
-		label: "Pacifico (script)",
 		weights: [400],
 		italic: false,
 		google: "Pacifico",
 	},
+	// The system's own faces are named for what they are; a listed font is its family name.
 	{ family: "sans-serif", label: "System sans-serif", weights: [400, 700], italic: true },
 	{ family: "serif", label: "System serif", weights: [400, 700], italic: true },
 	{ family: "monospace", label: "System monospace", weights: [400, 700], italic: true },
@@ -137,6 +129,20 @@ export const installFontStylesheet = () => {
 		link.onload = resolve;
 		// Missing stylesheet: carry on with fallback fonts rather than hanging the app.
 		link.onerror = resolve;
+	});
+};
+
+/**
+ * Loads every listed face once the page is idle: the font list shows each name in its own
+ * face, and would otherwise open with them still loading. Only the letters of its name, in
+ * its regular weight, so it's a small download each, and after the first paint.
+ */
+export const preloadFontList = () => {
+	const idle = window.requestIdleCallback ?? ((fn) => setTimeout(fn, 500));
+	idle(() => {
+		for (const f of FONTS)
+			if (!GENERIC.has(f.family))
+				document.fonts.load(`400 16px ${cssFamily(f.family)}`, f.family).catch(() => {});
 	});
 };
 

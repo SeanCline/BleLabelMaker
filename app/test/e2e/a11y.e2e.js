@@ -126,7 +126,8 @@ test("the bar and the rail are toolbars: one Tab stop for their buttons, arrows 
 		});
 	const stops = (sel) =>
 		page.$$eval(
-			`${sel} button, ${sel} summary`,
+			// Fields keep their own stops, the page-drawn lists' buttons (role=combobox) among them.
+			`${sel} button:not([role="combobox"]), ${sel} summary`,
 			(b) => b.filter((x) => x.tabIndex === 0 && x.checkVisibility()).length,
 		);
 	assert.equal(await stops("#quickbar"), 1);
@@ -140,10 +141,8 @@ test("the bar and the rail are toolbars: one Tab stop for their buttons, arrows 
 	assert.equal(await focused(), "Font", "on into the font menu");
 	// In a field, the arrows are the field's (a list drawn by the page may open on them).
 	await page.keyboard.press("ArrowRight");
-	assert.equal(
-		await page.evaluate(() => document.activeElement.closest("select")?.ariaLabel),
-		"Font",
-	);
+	assert.equal(await page.evaluate(() => document.activeElement.getAttribute("role")), "combobox");
+	assert.equal(await focused(), "Font", "still on the font menu");
 	await page.focus('#quickbar [data-style="underline"]');
 	assert.equal(await stops("#quickbar"), 1, "still one stop, now on the last button used");
 	assert.equal(await page.$eval('#quickbar [data-style="underline"]', (b) => b.tabIndex), 0);

@@ -114,6 +114,20 @@ test("continuous labels round-trip", () => {
 	assert.deepEqual(parse(serialize(doc)).doc, doc);
 });
 
+test("QR codes from before kinds open as the kind their data is; a bad kind is refused", () => {
+	const doc = createDocument({ widthMm: 40, heightMm: 12, continuous: false });
+	doc.elements.push(createQr(doc, { kind: "wifi", data: "WIFI:T:WPA;S:Home;P:x;;", level: "H" }));
+	assert.deepEqual(parse(serialize(doc)).doc, doc);
+	const raw = JSON.parse(serialize(doc));
+	delete raw.elements[1].kind;
+	const kindOf = () => /** @type {any} */ (parse(JSON.stringify(raw)).doc.elements[1]).kind;
+	assert.equal(kindOf(), "wifi");
+	raw.elements[1].data = "Bin A-12";
+	assert.equal(kindOf(), "text");
+	raw.elements[1].kind = "fax";
+	assert.throws(() => parse(JSON.stringify(raw)), /QR content type/);
+});
+
 test("shapes validate and round-trip", () => {
 	const doc = sampleDoc();
 	doc.elements.push(createShape(doc, { shape: "ellipse", fill: true, rotation: 90 }));

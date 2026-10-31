@@ -3,7 +3,7 @@
 // keep their own Tab stop and their own arrow keys, so nothing in it is out of reach.
 import { $$ } from "./dom.js";
 
-const FIELDS = "input, select, textarea";
+const FIELDS = "input, select, textarea, [role='combobox']";
 const CONTROLS = `button, summary, ${FIELDS}`;
 
 /**
@@ -27,7 +27,7 @@ export const rovingToolbar = (toolbar, { vertical = false } = {}) => {
 		const all = buttons();
 		if (!all.includes(current)) current = all[0] ?? null;
 		for (const b of $$("button, summary", /** @type {any} */ (toolbar)))
-			b.tabIndex = b === current ? 0 : -1;
+			if (!b.matches(FIELDS)) b.tabIndex = b === current ? 0 : -1;
 	};
 	toolbar.addEventListener("focusin", (ev) => {
 		const t = /** @type {HTMLElement} */ (ev.target);

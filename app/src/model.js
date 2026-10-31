@@ -18,9 +18,10 @@ import { mapText, normalize } from "./richtext.js";
  *   ditherEmoji: boolean}} TextElement
  * @typedef {Box & {type: "shape", shape: "rect"|"ellipse"|"line", strokeMm: number,
  *   fill: boolean, radiusMm: number}} ShapeElement
- * @typedef {Box & {type: "barcode", data: string, symbology: "CODE128"|"EAN13"|"UPCA",
+ * @typedef {Box & {type: "barcode", data: string, symbology: "CODE128"|"CODE39"|"EAN13"|"EAN8"|"UPCA"|"ITF14",
  *   showText: boolean, textFont: string}} BarcodeElement
- * @typedef {Box & {type: "qr", data: string, level: "L"|"M"|"Q"|"H"}} QrElement
+ * @typedef {Box & {type: "qr", kind: import("./qrcontent.js").QrKind, data: string,
+ *   level: "auto"|"L"|"M"|"Q"|"H"}} QrElement kind: what the data is written as (qrcontent.js)
  * @typedef {Box & {type: "image", src: string, mode: "dither"|"threshold", level: number,
  *   invert: boolean, fit: "contain"|"cover"|"stretch", zoom: number, panX: number, panY: number}} ImageElement
  *   panX, panY: where the picture sits in its box, 0–1 across and down: 0 lines its left
@@ -63,8 +64,8 @@ export const VALIGN = ["top", "middle", "bottom"];
 export const WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
 export const ROTATIONS = [0, 90, 180, 270];
 export const SHAPES = ["rect", "ellipse", "line"];
-export const BARCODE_TYPES = ["CODE128", "EAN13", "UPCA"];
-export const QR_LEVELS = ["L", "M", "Q", "H"];
+export const BARCODE_TYPES = ["CODE128", "CODE39", "EAN13", "EAN8", "UPCA", "ITF14"];
+export const QR_LEVELS = ["auto", "L", "M", "Q", "H"];
 export const IMAGE_MODES = ["dither", "threshold"];
 export const FIRST_LINE_SCALES = [1, 1.5, 2];
 // contain: the whole picture, letterboxed; cover: fills the box, cropping what sticks out.
@@ -195,8 +196,9 @@ export const createQr = (doc, props = {}) => ({
 	w: 9,
 	h: 9,
 	rotation: 0,
+	kind: "link",
 	data: "https://example.com",
-	level: "M",
+	level: "auto",
 	...props,
 });
 

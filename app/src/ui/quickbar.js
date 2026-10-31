@@ -274,6 +274,8 @@ document.addEventListener(
 	"keydown",
 	(ev) => {
 		if (ev.key !== "Escape") return;
+		// An open list (dropdown.js) in them closes first, on its own Esc.
+		if (/** @type {Element} */ (ev.target).matches?.('[aria-expanded="true"]')) return;
 		if (!settings.hidden) {
 			ev.stopPropagation();
 			closeSettings();

@@ -11,7 +11,9 @@ import {
 	hasEmoji,
 } from "../fonts.js";
 import { clamp, round } from "../units.js";
-import { $, $$ } from "./dom.js";
+import { $, $$, el } from "./dom.js";
+import { dropdown } from "./dropdown.js";
+import { SYMBOLOGIES } from "../barcode.js";
 import { REPO_URL } from "../app-info.js";
 import { state, history, updateElement, selected, subscribe, undo, redo } from "./store.js";
 import { rotateElement } from "./actions.js";
@@ -93,6 +95,13 @@ export const syncProps = (root, element) => {
 	}
 	for (const node of $$("[data-show-if]", root)) node.hidden = !element[node.dataset.showIf];
 	// Only worth offering while there's an emoji to print.
+	// A choice's description: the one picked in the list it names.
+	for (const node of $$("[data-hint-of]", root)) {
+		const list = /** @type {HTMLSelectElement} */ (
+			$(`select[data-prop="${node.dataset.hintOf}"]`, root)
+		);
+		node.textContent = list?.selectedOptions[0]?.dataset.hint ?? "";
+	}
 	for (const node of $$("[data-show-if-emoji]", root))
 		node.hidden = !hasEmoji(textOf(element.text ?? ""));
 	// A stretched picture fills its box both ways, so it has nowhere to move to. Disabled
@@ -224,14 +233,30 @@ for (const sel of $$(".font-select")) {
 	sel.replaceChildren(
 		// Each name in its own face, so the list shows how they look without picking each one.
 		...FONTS.map((f) => {
-			const option = new Option(f.label, f.family);
+			const option = new Option(f.label ?? f.family, f.family);
 			option.style.fontFamily = cssFamily(f.family);
 			return option;
 		}),
 		document.createElement("hr"),
-		new Option("Request a font…", REQUEST_FONT),
+		// Not a font: it opens a request on GitHub, and its icon says it goes elsewhere.
+		el(
+			"option",
+			{ value: REQUEST_FONT, dataset: { icon: "message-square-share" } },
+			"Request a font…",
+		),
 	);
+	dropdown(sel, { className: "font-dropdown" });
 }
+for (const sel of $$(".barcode-format"))
+	sel.replaceChildren(
+		...Object.entries(SYMBOLOGIES).map(([value, { name, hint }]) =>
+			el("option", { value, dataset: { hint } }, name),
+		),
+	);
+// Every list in the bar and the settings is drawn by the page, so they all look alike. The
+// Field menu is the exception: it's a button that opens a native list (styles.css).
+for (const sel of $$("#quickbar select, #settings select"))
+	if (!sel.closest(".field-picker")) dropdown(/** @type {HTMLSelectElement} */ (sel));
 
 // ---------------------------------------------------------------------------
 // Panel rendering

@@ -127,6 +127,9 @@ select,
 input[type="number"],
 input[type="text"],
 input[type="search"],
+input[type="tel"],
+input[type="email"],
+input[type="url"],
 textarea {
 	background: var(--surface);
 	border: 1px solid var(--border);
@@ -1154,8 +1157,98 @@ h3.section {
 	font-size: 12.5px;
 	color: var(--muted);
 }
-.prop-row :is(select, input, .segmented) {
+.prop-row :is(select, .dropdown, input, .segmented) {
 	color: var(--text);
+}
+/* A row whose box is several lines tall keeps its name beside the first. */
+.prop-row.top {
+	align-items: start;
+}
+/* A select drawn by the page (dropdown.js): a button that looks like a select, and its list,
+   where each option can have an icon or its own font. */
+.dropdown {
+	display: inline-flex;
+	align-items: center;
+	gap: var(--gap-small);
+	min-width: 0;
+	padding: 4px 6px 4px 8px;
+	text-align: left;
+	cursor: default;
+}
+.dropdown:hover {
+	background: var(--surface);
+	border-color: var(--muted);
+}
+.dropdown-choice,
+.dropdown-option {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	min-width: 0;
+}
+.dropdown-face {
+	flex: 1;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr);
+	min-width: 0;
+}
+.dropdown-choice {
+	grid-area: 1 / 1;
+}
+.dropdown-choice.unseen {
+	visibility: hidden;
+}
+.dropdown-text {
+	overflow: hidden;
+	white-space: nowrap;
+	text-overflow: ellipsis;
+}
+.dropdown > .icon:last-child {
+	flex: none;
+	opacity: 0.6;
+}
+.dropdown-list {
+	position: fixed;
+	inset: auto;
+	margin: 0;
+	padding: 4px 0;
+	overflow-y: auto;
+	background: var(--surface);
+	color: var(--text);
+	border: 1px solid var(--border);
+	border-radius: var(--radius);
+	box-shadow: var(--shadow);
+}
+.dropdown-option {
+	padding: 7px 12px;
+	white-space: nowrap;
+	cursor: default;
+}
+.dropdown-option.active {
+	background: var(--surface-2);
+}
+.dropdown-option[aria-selected="true"] {
+	font-weight: 600;
+}
+.dropdown-option[aria-disabled="true"] {
+	color: var(--muted);
+}
+.dropdown-option.after-rule {
+	border-top: 1px solid var(--border);
+	margin-top: 4px;
+	padding-top: 11px;
+}
+/* The text a QR code holds, as it is: a vCard runs to several lines. */
+#qrRaw {
+	margin: var(--gap-tight) 0 0;
+	padding: 6px 8px;
+	max-height: 10em;
+	overflow: auto;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+	font-size: 11.5px;
+	background: var(--surface-2);
+	border-radius: 6px;
 }
 /* A slider with its value beside it, on one line. */
 .slider-row {
@@ -1165,7 +1258,7 @@ h3.section {
 	flex: 1;
 	min-width: 0;
 }
-.settings :is(select, input[type="number"], .segmented.fill),
+.settings :is(select, .dropdown, input[type="number"], .segmented.fill),
 .panel-rows :is(select, input[type="number"], .segmented.fill, #btnConnect) {
 	height: 30px;
 }
@@ -1611,41 +1704,11 @@ button.link {
 .quickbar .qb-data {
 	width: 12em;
 }
-.quickbar .font-select {
-	max-width: 10em;
+.quickbar .qr-kind-dropdown {
+	width: 7.5em;
 }
-/* Each font's name is in its own face (panels.js). A plain list shows that on a computer but
-   not on a phone; where the list can be styled, it's drawn by the page, so phones show it too. */
-@supports (appearance: base-select) {
-	.font-select,
-	.font-select::picker(select) {
-		appearance: base-select;
-	}
-	.font-select {
-		white-space: nowrap;
-		overflow: hidden;
-		text-overflow: ellipsis;
-	}
-	.font-select::picker(select) {
-		background: var(--surface);
-		color: var(--text);
-		border: 1px solid var(--border);
-		border-radius: var(--radius);
-		box-shadow: var(--shadow);
-		padding: 4px 0;
-	}
-	.font-select option {
-		padding: 7px 12px;
-		white-space: nowrap;
-	}
-	.font-select option:is(:hover, :focus-visible) {
-		background: var(--surface-2);
-	}
-	.font-select hr {
-		border: 0;
-		border-top: 1px solid var(--border);
-		margin: 4px 0;
-	}
+.quickbar .font-dropdown {
+	width: 10em;
 }
 .quickbar [data-style][aria-pressed="mixed"] {
 	background: color-mix(in srgb, var(--accent) 30%, transparent);
@@ -1665,8 +1728,8 @@ button.link {
 	.quickbar.compact button {
 		padding: 5px;
 	}
-	.quickbar.compact .font-select {
-		max-width: 7.5em;
+	.quickbar.compact .font-dropdown {
+		width: 7.5em;
 	}
 	.quickbar.compact .qb-label {
 		position: absolute;

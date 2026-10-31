@@ -29,3 +29,30 @@ export const encodeQr = (text, level = "M") => {
 		);
 	}
 };
+
+export const QR_LEVEL_NAMES = { L: "Low", M: "Medium", Q: "Quartile", H: "High" };
+
+/**
+ * The code for `text` in a square `side` dots across, with its square size in dots. "auto"
+ * makes the squares as big as the space allows, up to `enough` dots, then takes the most
+ * error correction that keeps them that big: bigger squares help every scan, while error
+ * correction only helps once a label is scratched.
+ * @param {string} text
+ * @param {"auto"|"L"|"M"|"Q"|"H"} level
+ * @param {number} side
+ * @param {number} enough
+ */
+export const fitQr = (text, level, side, enough) => {
+	const sized = (qr, l) => ({ qr, level: l, unit: Math.floor(side / (qr.size + QR_QUIET * 2)) });
+	if (level !== "auto") return sized(encodeQr(text, level), level);
+	const fits = [sized(encodeQr(text, "L"), "L")];
+	for (const l of /** @type {const} */ (["M", "Q", "H"])) {
+		try {
+			fits.push(sized(encodeQr(text, l), l));
+		} catch {
+			break; // more correction only makes it bigger
+		}
+	}
+	const target = Math.min(fits[0].unit, enough);
+	return fits.findLast((f) => f.unit >= target);
+};

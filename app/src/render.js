@@ -114,8 +114,9 @@ export const clearRenderCache = () => {
  * @param {import("./model.js").Doc} doc
  * @param {HTMLCanvasElement} canvas
  * @param {{dots?: import("./units.js").DotScale}} [options] the printer's resolution
- * @returns {Promise<{fittedSizes: Map<string, number>, warnings: Map<string, string>}>}
- *   font sizes chosen by fit-to-box (pt), and per-element problems worth telling the user
+ * @returns {Promise<{fittedSizes: Map<string, number>, warnings: Map<string, string>,
+ *   notes: Map<string, string>}>} font sizes chosen by fit-to-box (pt), per-element problems
+ *   worth telling the user, and what a painter chose by itself (a QR code's auto level)
  */
 export const renderLabel = async (doc, canvas, { dots = dotScale() } = {}) => {
 	const { width, height } = labelDots(doc.label, dots);
@@ -128,6 +129,7 @@ export const renderLabel = async (doc, canvas, { dots = dotScale() } = {}) => {
 
 	const fittedSizes = new Map();
 	const warnings = new Map();
+	const notes = new Map();
 	for (const e of doc.elements) {
 		const draw = DRAW[e.type];
 		if (!draw) continue;
@@ -153,13 +155,14 @@ export const renderLabel = async (doc, canvas, { dots = dotScale() } = {}) => {
 			elementCache.delete(elementCache.keys().next().value);
 		if (drawn.fittedPx) fittedSizes.set(e.id, drawn.fittedPx / dots.pt(1));
 		if (drawn.warning) warnings.set(e.id, drawn.warning);
+		if (drawn.note) notes.set(e.id, drawn.note);
 		ctx.drawImage(drawn.canvas, box.x, box.y);
 	}
 
 	const image = ctx.getImageData(0, 0, width, height);
 	threshold(image);
 	ctx.putImageData(image, 0, 0);
-	return { fittedSizes, warnings };
+	return { fittedSizes, warnings, notes };
 };
 
 /** Draws one element into its own canvas the size of its box, rotated into place. */
@@ -174,7 +177,13 @@ const drawElement = async (draw, e, box, dots) => {
 		o.setTransform(1, 0, 0, 1, 0, 0);
 		o.putImageData(result.process(o.getImageData(0, 0, canvas.width, canvas.height)), 0, 0);
 	}
-	return { canvas, fittedPx: result?.fittedPx, warning: result?.warning, retry: result?.retry };
+	return {
+		canvas,
+		fittedPx: result?.fittedPx,
+		warning: result?.warning,
+		note: result?.note,
+		retry: result?.retry,
+	};
 };
 
 // Each element type's painter (src/painters/): it draws into a local frame (0,0)–(box.w,
@@ -184,9 +193,10 @@ const drawElement = async (draw, e, box, dots) => {
  * @typedef {(ctx: CanvasRenderingContext2D, e: any, box: {w: number, h: number},
  *   dots: import("./units.js").DotScale) => Promise<PaintResult | null | void> | PaintResult
  *   | null | void} Painter
- * @typedef {{fittedPx?: number, warning?: string, retry?: boolean,
+ * @typedef {{fittedPx?: number, warning?: string, note?: string, retry?: boolean,
  *   process?: (image: ImageData) => ImageData}} PaintResult fittedPx: the font size fit chose;
- *   warning: a problem worth telling; retry: don't cache; process: a pass over the drawn pixels
+ *   warning: a problem worth telling; note: something else it chose; retry: don't cache;
+ *   process: a pass over the drawn pixels
  */
 /** @type {Record<string, Painter>} */
 const DRAW = {

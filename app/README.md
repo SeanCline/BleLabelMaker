@@ -109,6 +109,10 @@ bottom of the font list asks for a Google Font to be added.
   down the label's left (or drop a picture on the page), then drag to move and
   use the handles to resize. The toolbar's last button lists everything on the
   label, for picking what's hidden under something else.
+  A QR code can hold text, a link, Wi-Fi (phones join the network), a phone
+  number, a text message, an email or a contact: pick one under _Format_ and fill
+  in its fields. Its error correction picks itself unless you set one. Barcodes
+  come as Code 128, Code 39, EAN-13, EAN-8, UPC-A and ITF-14.
   Double-click text to type on the label (on a phone, tap text that's
   already selected). The bar over what's selected has
   its main settings (B, I and U work on a selection while typing); More… opens

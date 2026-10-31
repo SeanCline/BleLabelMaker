@@ -7,6 +7,8 @@ import {
 	CODE128_PATTERNS,
 	eanCheckDigit,
 	BarcodeError,
+	CODE39_PATTERNS,
+	ITF_PATTERNS,
 } from "../src/barcode.js";
 import { encodeQr, QrError } from "../src/qr.js";
 
@@ -41,7 +43,14 @@ const scan1d = ({ modules, quiet }, { scale = 2, height = 40 } = {}) => {
 		for (let y = 0; y < height; y++)
 			for (let s = 0; s < scale; s++) lum[y * w + (quiet + i) * scale + s] = 0;
 	});
-	return scan(lum, w, height, [BarcodeFormat.CODE_128, BarcodeFormat.EAN_13, BarcodeFormat.UPC_A]);
+	return scan(lum, w, height, [
+		BarcodeFormat.CODE_128,
+		BarcodeFormat.CODE_39,
+		BarcodeFormat.EAN_13,
+		BarcodeFormat.EAN_8,
+		BarcodeFormat.UPC_A,
+		BarcodeFormat.ITF,
+	]);
 };
 
 const scanQr = ({ size, dark }, { scale = 3, quiet = 2 } = {}) => {
@@ -109,6 +118,38 @@ test("UPC-A scans as UPC-A with the right check digit", () => {
 	const r = encodeBarcode("UPCA", "03600029145");
 	assert.equal(r.text, "036000291452");
 	assert.deepEqual(scan1d(r), { text: "036000291452", format: "UPC_A" });
+});
+
+test("Code 39 and ITF pattern tables are well-formed: three wide of nine, two of five", () => {
+	assert.equal(CODE39_PATTERNS.length, 44);
+	for (const p of CODE39_PATTERNS) assert.equal([...p].filter((c) => c === "w").length, 3, p);
+	assert.equal(new Set(CODE39_PATTERNS).size, 44);
+	assert.equal(ITF_PATTERNS.length, 10);
+	for (const p of ITF_PATTERNS) assert.equal([...p].filter((c) => c === "w").length, 2, p);
+});
+
+test("Code 39 scans back every character it has, in capitals", () => {
+	for (const text of ["ASSET-0042", "0123456789", "ABCDEFGHIJKLM", "NOPQRSTUVWXYZ", "A B-C.$/+%"])
+		assert.deepEqual(scan1d(encodeBarcode("CODE39", text)), { text, format: "CODE_39" });
+	assert.equal(encodeBarcode("CODE39", "bin 7").text, "BIN 7", "lower case prints as capitals");
+	assert.throws(() => encodeBarcode("CODE39", "a_b"), /can't encode “_”/);
+	assert.throws(() => encodeBarcode("CODE39", "a*b"), /can't encode “\*”/);
+});
+
+test("EAN-8 and ITF-14 add and check their check digits, and scan", () => {
+	const ean8 = encodeBarcode("EAN8", "9638507");
+	assert.equal(ean8.text, "96385074");
+	assert.equal(ean8.modules.length, 67);
+	assert.deepEqual(scan1d(ean8), { text: "96385074", format: "EAN_8" });
+	assert.throws(() => encodeBarcode("EAN8", "96385075"), /should be 4/);
+	assert.throws(() => encodeBarcode("EAN8", "123"), /7 digits/);
+
+	// The carton code for the UPC-A 012345678905: the same check digit, one level up.
+	const itf = encodeBarcode("ITF14", "0001234567890");
+	assert.equal(itf.text, "00012345678905");
+	assert.deepEqual(scan1d(itf), { text: "00012345678905", format: "ITF" });
+	assert.throws(() => encodeBarcode("ITF14", "00012345678906"), /should be 5/);
+	assert.throws(() => encodeBarcode("ITF14", "12A"), /digits only/);
 });
 
 test("QR codes scan back, including UTF-8 text", () => {

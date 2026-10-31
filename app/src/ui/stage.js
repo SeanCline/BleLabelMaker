@@ -41,12 +41,15 @@ const overlay = $("#overlay");
 let renderToken = 0;
 let fitted = new Map();
 let warnings = new Map();
+let notes = new Map();
 const drawn = signal();
 
 /** Font sizes (pt) chosen by fit-to-box in the last render, keyed by element id. */
 export const fittedSizes = () => fitted;
 /** Per-element problems from the last render (e.g. a barcode too narrow to scan). */
 export const renderWarnings = () => warnings;
+/** What painters chose by themselves in the last render (a QR code's auto level). */
+export const renderNotes = () => notes;
 export const onDrawn = drawn.on;
 
 /** @type {() => import("../fields.js").FieldContext} */
@@ -82,7 +85,7 @@ const render = async () => {
 	const scratch = document.createElement("canvas");
 	const result = await renderLabel(doc, scratch, { dots: currentScale() });
 	if (token !== renderToken) return latestRender;
-	({ fittedSizes: fitted, warnings } = result);
+	({ fittedSizes: fitted, warnings, notes } = result);
 	if (canvas.width !== scratch.width) canvas.width = scratch.width;
 	if (canvas.height !== scratch.height) canvas.height = scratch.height;
 	canvas.getContext("2d", { willReadFrequently: true }).drawImage(scratch, 0, 0);

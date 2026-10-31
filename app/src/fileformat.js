@@ -19,6 +19,7 @@ import {
 } from "./model.js";
 import { STORAGE_ID, REPO_URL } from "./app-info.js";
 import { STYLE_PROPS } from "./richtext.js";
+import { QR_KIND_NAMES, detectKind } from "./qrcontent.js";
 
 const FORMAT_ID = `${STORAGE_ID}-label`;
 export const CURRENT_VERSION = 1;
@@ -208,6 +209,11 @@ const checkElement = (raw, where) => {
 	if (e.type === "qr") {
 		return {
 			...box,
+			// Codes saved before they had kinds: the kind that would have written the data.
+			kind:
+				raw.kind === undefined
+					? detectKind(str(e.data, `${where} QR data`))
+					: oneOf(raw.kind, QR_KIND_NAMES, `${where} QR content type`),
 			data: str(e.data, `${where} QR data`),
 			level: oneOf(e.level, QR_LEVELS, `${where} error correction`),
 		};

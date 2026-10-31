@@ -103,4 +103,4 @@ export const download = (name, text, type = "application/json") => {
 };
 
 export const isTyping = (target) =>
-	target?.matches?.("input, textarea, select, [contenteditable]") ?? false;
+	target?.matches?.("input, textarea, select, [contenteditable], [role='combobox']") ?? false;

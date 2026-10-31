@@ -1,7 +1,7 @@
 // Entry point. Each ui/ module wires its own part of the page on import; this file only
 // boots them in order and exposes a small handle for tests and the console.
 import "./ui/errors.js";
-import { installFontStylesheet } from "./fonts.js";
+import { installFontStylesheet, preloadFontList } from "./fonts.js";
 import { clearRenderCache } from "./render.js";
 import { state, notify, currentFile, undo, redo } from "./ui/store.js";
 import { drawCanvas, scheduleCanvas } from "./ui/stage.js";
@@ -16,6 +16,7 @@ import "./ui/new-label.js";
 import "./ui/welcome.js";
 import "./ui/text-insert.js";
 import "./ui/quickbar.js";
+import "./ui/qr-builder.js";
 import "./ui/ruler.js";
 import "./ui/report.js";
 import { historyEntries, historyReady, historySaved } from "./ui/history-panel.js";
@@ -34,6 +35,8 @@ const ready = Promise.all([
 	historyReady,
 	sharedReady,
 ]);
+// After the label is drawn, so the faces it uses come first.
+ready.then(preloadFontList);
 
 // Offline support. Skipped on file:// and in browsers without service workers; the app
 // works the same online either way.

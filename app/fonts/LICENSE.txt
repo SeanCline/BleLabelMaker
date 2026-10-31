@@ -8,7 +8,7 @@ each one is. Every family's license follows in full.
   Bebas Neue           SIL Open Font License 1.1
   Roboto Slab          Apache License 2.0
   Lora                 SIL Open Font License 1.1
-  JetBrains Mono       SIL Open Font License 1.1
+  Roboto Mono          SIL Open Font License 1.1
   Permanent Marker     Apache License 2.0
   Pacifico             SIL Open Font License 1.1
   Noto Emoji           SIL Open Font License 1.1
@@ -716,15 +716,15 @@ FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
 
 ==============================================================================
-JetBrains Mono (SIL Open Font License 1.1)
-https://raw.githubusercontent.com/google/fonts/main/ofl/jetbrainsmono/OFL.txt
+Roboto Mono (SIL Open Font License 1.1)
+https://raw.githubusercontent.com/google/fonts/main/ofl/robotomono/OFL.txt
 ==============================================================================
 
-Copyright 2020 The JetBrains Mono Project Authors (https://github.com/JetBrains/JetBrainsMono)
+Copyright 2015 The Roboto Mono Project Authors (https://github.com/googlefonts/robotomono)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
-
-This license is copied below, and is also available with a FAQ at: https://scripts.sil.org/OFL
+This license is copied below, and is also available with a FAQ at:
+https://openfontlicense.org
 
 
 -----------------------------------------------------------
@@ -740,7 +740,7 @@ with others.
 
 The OFL allows the licensed fonts to be used, studied, modified and
 redistributed freely as long as they are not sold by themselves. The
-fonts, including any derivative works, can be bundled, embedded,
+fonts, including any derivative works, can be bundled, embedded, 
 redistributed and/or sold with any software provided that any reserved
 names are not used by derivative works. The fonts and derivatives,
 however, cannot be released under any other type of license. The

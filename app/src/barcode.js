@@ -6,11 +6,49 @@
 
 export class BarcodeError extends Error {}
 
-// The blank needed either side, in modules, for each symbology.
-const SYMBOLOGIES = {
-	CODE128: { quiet: 10 },
-	EAN13: { quiet: 11 },
-	UPCA: { quiet: 9 },
+// Each symbology's name, what it's for, and the blank it needs either side, in modules.
+export const SYMBOLOGIES = {
+	CODE128: {
+		name: "Code 128",
+		hint: "Any letters, digits and punctuation. The narrowest for most text.",
+		quiet: 10,
+	},
+	CODE39: {
+		name: "Code 39",
+		hint: "Capitals, digits, spaces and - . $ / + %. Wider, but almost any scanner reads it.",
+		quiet: 10,
+	},
+	EAN13: {
+		name: "EAN-13",
+		hint: "13-digit product code, as on shop goods. The check digit is added for you.",
+		quiet: 11,
+	},
+	EAN8: {
+		name: "EAN-8",
+		hint: "8-digit product code for small packets. The check digit is added for you.",
+		quiet: 7,
+	},
+	UPCA: {
+		name: "UPC-A",
+		hint: "12-digit product code, as in North American shops. The check digit is added for you.",
+		quiet: 9,
+	},
+	ITF14: {
+		name: "ITF-14",
+		hint: "14-digit code for shipping cartons. The check digit is added for you.",
+		quiet: 10,
+	},
+};
+
+// Code 39 and ITF draw each element narrow or wide. Scanners accept a wide one 2 to 3 times
+// a narrow one; 3 is the most forgiving, and whole modules keep every bar a whole dot count.
+const WIDE = 3;
+/** Bars and spaces alternating, from "n" (narrow) and "w" (wide), starting with a bar. */
+const narrowWide = (pattern, out, bar = true) => {
+	for (const c of pattern) {
+		for (let i = 0; i < (c === "w" ? WIDE : 1); i++) out.push(bar ? 1 : 0);
+		bar = !bar;
+	}
 };
 
 // Code 128 bar/space widths for values 0–106 (106 = stop, which has a 7th element).
@@ -163,6 +201,90 @@ const encodeEan13 = (data, { name = "EAN-13", digits = 13 } = {}) => {
 	return { modules: [...bits].map(Number), text: digits === 12 ? full.slice(1) : full };
 };
 
+const encodeEan8 = (data) => {
+	const raw = data.replace(/\s+/g, "");
+	if (!/^\d+$/.test(raw)) throw new BarcodeError("EAN-8 uses digits only.");
+	if (raw.length !== 7 && raw.length !== 8)
+		throw new BarcodeError("EAN-8 needs 7 digits (the check digit is added for you) or all 8.");
+	const check = gtinCheckDigit(raw.slice(0, 7));
+	if (raw.length === 8 && Number(raw[7]) !== check)
+		throw new BarcodeError(
+			`The last digit should be ${check} (check digit). Leave it off and it's added for you.`,
+		);
+	const full = raw.slice(0, 7) + check;
+	let bits = "101";
+	for (let i = 0; i < 4; i++) bits += EAN_L[Number(full[i])];
+	bits += "01010";
+	for (let i = 4; i < 8; i++) bits += EAN_R[Number(full[i])];
+	bits += "101";
+	return { modules: [...bits].map(Number), text: full };
+};
+
+/** The GS1 check digit for any length: weights 3 and 1, from the rightmost digit leftwards. */
+const gtinCheckDigit = (digits) => {
+	let sum = 0;
+	for (let i = 0; i < digits.length; i++)
+		sum += Number(digits[digits.length - 1 - i]) * (i % 2 ? 1 : 3);
+	return (10 - (sum % 10)) % 10;
+};
+
+// Code 39: nine elements a character, three of them wide; * starts and stops every code.
+const C39_CHARS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ-. $/+%*";
+export const CODE39_PATTERNS = (
+	"nnnwwnwnn wnnwnnnnw nnwwnnnnw wnwwnnnnn nnnwwnnnw wnnwwnnnn nnwwwnnnn nnnwnnwnw wnnwnnwnn " +
+	"nnwwnnwnn wnnnnwnnw nnwnnwnnw wnwnnwnnn nnnnwwnnw wnnnwwnnn nnwnwwnnn nnnnnwwnw wnnnnwwnn " +
+	"nnwnnwwnn nnnnwwwnn wnnnnnnww nnwnnnnww wnwnnnnwn nnnnwnnww wnnnwnnwn nnwnwnnwn nnnnnnwww " +
+	"wnnnnnwwn nnwnnnwwn nnnnwnwwn wwnnnnnnw nwwnnnnnw wwwnnnnnn nwnnwnnnw wwnnwnnnn nwwnwnnnn " +
+	"nwnnnnwnw wwnnnnwnn nwwnnnwnn nwnwnwnnn nwnwnnnwn nwnnnwnwn nnnwnwnwn nwnnwnwnn"
+).split(" ");
+
+const encodeCode39 = (data) => {
+	// Code 39 has no lower case; scanners read the capitals either way.
+	const text = data.toUpperCase();
+	if (!text) throw new BarcodeError("Enter something to encode.");
+	for (const ch of text)
+		if (ch === "*" || !C39_CHARS.includes(ch))
+			throw new BarcodeError(
+				`Code 39 can't encode “${ch}”. Use letters, digits, spaces and - . $ / + %.`,
+			);
+	const modules = [];
+	[...("*" + text + "*")].forEach((ch, i) => {
+		if (i) modules.push(0); // the narrow gap between characters
+		narrowWide(CODE39_PATTERNS[C39_CHARS.indexOf(ch)], modules);
+	});
+	return { modules, text };
+};
+
+// Interleaved 2 of 5: five elements a digit, two of them wide. Digits go in pairs, the first
+// drawn in the bars and the second in the spaces between them.
+export const ITF_PATTERNS = "nnwwn wnnnw nwnnw wwnnn nnwnw wnwnn nwwnn nnnww wnnwn nwnwn".split(
+	" ",
+);
+
+const encodeItf14 = (data) => {
+	const raw = data.replace(/\s+/g, "");
+	if (!/^\d+$/.test(raw)) throw new BarcodeError("ITF-14 uses digits only.");
+	if (raw.length !== 13 && raw.length !== 14)
+		throw new BarcodeError("ITF-14 needs 13 digits (the check digit is added for you) or all 14.");
+	const check = gtinCheckDigit(raw.slice(0, 13));
+	if (raw.length === 14 && Number(raw[13]) !== check)
+		throw new BarcodeError(
+			`The last digit should be ${check} (check digit). Leave it off and it's added for you.`,
+		);
+	const full = raw.slice(0, 13) + check;
+	const modules = [1, 0, 1, 0];
+	for (let i = 0; i < full.length; i += 2) {
+		const bars = ITF_PATTERNS[Number(full[i])];
+		const spaces = ITF_PATTERNS[Number(full[i + 1])];
+		for (let k = 0; k < 5; k++) {
+			narrowWide(bars[k], modules, true);
+			narrowWide(spaces[k], modules, false);
+		}
+	}
+	narrowWide("wnn", modules);
+	return { modules, text: full };
+};
+
 /**
  * @returns {{modules: number[], text: string, quiet: number}} text is the human-readable line
  * (with the computed check digit for EAN/UPC)
@@ -170,11 +292,14 @@ const encodeEan13 = (data, { name = "EAN-13", digits = 13 } = {}) => {
 export const encodeBarcode = (symbology, data) => {
 	const spec = SYMBOLOGIES[symbology];
 	if (!spec) throw new BarcodeError(`Unknown barcode type ${symbology}.`);
-	const result =
-		symbology === "CODE128"
-			? encodeCode128(data)
-			: symbology === "EAN13"
-				? encodeEan13(data)
-				: encodeEan13(data, { name: "UPC-A", digits: 12 });
+	const encode = {
+		CODE128: encodeCode128,
+		CODE39: encodeCode39,
+		EAN13: encodeEan13,
+		EAN8: encodeEan8,
+		UPCA: (d) => encodeEan13(d, { name: "UPC-A", digits: 12 }),
+		ITF14: encodeItf14,
+	}[symbology];
+	const result = encode(data);
 	return { ...result, quiet: spec.quiet };
 };

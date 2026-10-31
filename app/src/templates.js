@@ -74,7 +74,14 @@ export const TEMPLATES = [
 			const code = Math.min(area.h, area.w / 2);
 			const words = area.w - code - 1;
 			return [
-				createQr(doc, { x: area.x, y: area.y, w: round(code), h: round(code), data: "Bin A-12" }),
+				createQr(doc, {
+					x: area.x,
+					y: area.y,
+					w: round(code),
+					h: round(code),
+					kind: "text",
+					data: "Bin A-12",
+				}),
 				createText(doc, {
 					x: round(area.x + code + 1),
 					y: area.y,

@@ -1,6 +1,7 @@
 // Plain-language names for elements, shared by the Elements list, the canvas description
 // for screen readers, and announcements.
 import { textOf } from "../richtext.js";
+import { summarise } from "../qrcontent.js";
 
 const SHAPE_NAMES = { rect: "Box", ellipse: "Circle", line: "Line" };
 const TYPE_NAMES = {
@@ -17,7 +18,8 @@ export const typeName = (e) =>
 /** Short content summary, e.g. the first line of text or the encoded data. */
 export const contentOf = (e) => {
 	if (e.type === "text") return textOf(e.text).split("\n")[0] || "(empty text)";
-	if (e.type === "barcode" || e.type === "qr") return e.data || "(empty)";
+	if (e.type === "barcode") return e.data || "(empty)";
+	if (e.type === "qr") return summarise(e.kind, e.data) || "(empty)";
 	return "";
 };
 

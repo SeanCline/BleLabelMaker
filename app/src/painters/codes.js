@@ -1,7 +1,7 @@
 // Barcodes and QR codes, in whole dots so every bar and square scans.
 import { cssFamily } from "../fonts.js";
 import { encodeBarcode } from "../barcode.js";
-import { encodeQr, QR_QUIET } from "../qr.js";
+import { fitQr, QR_LEVEL_NAMES } from "../qr.js";
 import { drawUnavailable } from "./common.js";
 
 // Human-readable line under 1D barcodes, in mm.
@@ -56,15 +56,18 @@ export const drawBarcode = (ctx, e, box, dots) => {
 	return null;
 };
 
-export const drawQr = (ctx, e, box) => {
-	let qr;
+// Squares this big (in mm) scan easily; auto error correction stops growing them here.
+const QR_ENOUGH_MM = 0.5;
+
+export const drawQr = (ctx, e, box, dots) => {
+	const side = Math.min(box.w, box.h);
+	let fit;
 	try {
-		qr = encodeQr(e.data, e.level);
+		fit = fitQr(e.data, e.level, side, Math.round(dots.mm(QR_ENOUGH_MM)));
 	} catch (err) {
 		return drawUnavailable(ctx, box, err.message);
 	}
-	const side = Math.min(box.w, box.h);
-	const unit = Math.floor(side / (qr.size + QR_QUIET * 2));
+	const { qr, unit } = fit;
 	if (unit < 1)
 		return drawUnavailable(
 			ctx,
@@ -78,10 +81,13 @@ export const drawQr = (ctx, e, box) => {
 	for (let y = 0; y < qr.size; y++)
 		for (let x = 0; x < qr.size; x++)
 			if (qr.dark(x, y)) ctx.fillRect(x0 + x * unit, y0 + y * unit, unit, unit);
+	// What auto chose, for the settings to show.
+	const note = e.level === "auto" ? QR_LEVEL_NAMES[fit.level] : undefined;
 	if (unit === 1)
 		return {
+			note,
 			warning:
 				"Each QR square is one printer dot, too small for most phones. Make it bigger or use less text.",
 		};
-	return null;
+	return { note };
 };

@@ -86,6 +86,18 @@ const ICONS = [
 	"heading",
 	"search",
 	"bug",
+	// What a QR code holds, and a Wi-Fi network's visibility
+	"text",
+	"link",
+	"wifi",
+	"phone",
+	"message-square-text",
+	"mail",
+	"contact-round",
+	"eye",
+	"eye-off",
+	// Request a font, in the font list
+	"message-square-share",
 ];
 
 // Drawn here, in Lucide's style (24 grid, 2 px round strokes), where it has nothing that fits.
