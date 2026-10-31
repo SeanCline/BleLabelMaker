@@ -327,7 +327,7 @@ What a print job sends:
 | density | `1F 11 02 n`                     | n = 1 light, 2 normal, 4 dark (sent after init; Normal by default) |
 | copies  | `1F 11 21 n`                     | The printer repeats the next image n times                         |
 | image   | `1D 76 30 00 xL xH yL yH` + data | GS v 0: raster, x = bytes/row, y = rows                            |
-| feed    | `1B 64 17`                       | ESC d 23 (continuous paper only)                                   |
+| feed    | `1B 64 17`                       | ESC d 23 (continuous paper only; clears the tear bar on a D30)     |
 
 There is one sequence per paper type. The label decides which one is
 used: pre-cut sizes use gaps, and _Continuous roll_ uses the continuous one.
@@ -461,13 +461,13 @@ running the browser tests in Firefox too.
    the copy count `1F 11 21`. If only one comes out, the printer may ignore
    it, and the fix is to repeat the image instead.
 5. Check that the margins match the guides, and that text near the edges
-   isn't clipped by the print head (the head may be 12 mm wide even on 14 and
-   15 mm stock).
+   isn't clipped by the print head (confirmed on a D30 with 12 mm labels).
 6. After connecting, the status line should show battery and "labels loaded".
    If it shows nothing, the D30 may not send status over BLE. Printing still
    works.
 7. Open the cover, then take the labels out. The status line and a warning
-   should report each. If the two are swapped, swap the `05`/`06` meanings in
+   should report each (the cover is confirmed as `05` on a D30; out of labels
+   is still to check). If the two are swapped, swap the `05`/`06` meanings in
    `printers/phomemo/status.js`.
 8. Print the same label at Light, Normal and Dark and compare.
 9. Scan a printed Code 128 and a QR code with a phone.

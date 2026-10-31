@@ -18,6 +18,7 @@ const model = (name, more = {}) => ({
 	// The head spans the tape's height, so a label goes through on its side.
 	labelTurn: 90,
 	dotsPerMm: 8,
+	// Clears the tear bar after a continuous label (confirmed on a D30).
 	feedLines: 23,
 	feedAfter: "each",
 	presets: D_SERIES_12,

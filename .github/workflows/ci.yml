@@ -8,13 +8,16 @@ on:
 permissions:
   contents: read
 
+# The usual output, plus a reporter that puts each failure on the commit as an annotation:
+# job logs need admin rights to read, annotations don't.
+env:
+  REPORTERS: >-
+    --test-reporter=spec --test-reporter-destination=stdout
+    --test-reporter=./test/github-reporter.mjs --test-reporter-destination=stdout
+
 jobs:
   test:
     runs-on: ubuntu-26.04
-    env:
-      REPORTERS: >-
-        --test-reporter=spec --test-reporter-destination=stdout
-        --test-reporter=./test/github-reporter.mjs --test-reporter-destination=stdout
     defaults:
       run:
         working-directory: app
@@ -27,9 +30,9 @@ jobs:
           cache-dependency-path: app/package-lock.json
       - run: npm ci
       - run: npm run lint
-      # npm run coverage, step by step: npm test and npm run test:e2e under c8, plus a reporter
-      # that puts each failure on the commit as an annotation. Node only takes reporter options
-      # before the file patterns, so these call node directly.
+      # npm run coverage, step by step: npm test and npm run test:e2e under c8, with the
+      # reporters. Node only takes reporter options before the file patterns, so these call node
+      # directly.
       - run: npx c8 --reporter=none node --test $REPORTERS "test/*.test.js"
       # The Ubuntu image ships Google Chrome at /usr/bin/google-chrome, which the e2e harness finds.
       # The harness adds what ran in the browser to the same coverage.
@@ -57,7 +60,8 @@ jobs:
       - run: npm ci
       # The image installs Firefox from Mozilla's own packages; the harness is told where.
       - run: echo "FIREFOX_PATH=$(command -v firefox)" >> "$GITHUB_ENV"
-      - run: npm run test:e2e
+      # npm run test:e2e, with the reporters.
+      - run: node --test --test-concurrency=3 $REPORTERS "test/e2e/*.e2e.js"
         env:
           BROWSER: firefox
 
