@@ -257,7 +257,6 @@ summary:has(> .icon) {
 /* Looks like the bar's other buttons (Batch beside Print), with an arrow for its menu. */
 .menu > summary.file-button {
 	padding: 6px 8px 6px 12px;
-	border-radius: var(--radius-control);
 }
 .file-button .chevron {
 	width: 14px;
@@ -1233,6 +1232,14 @@ h3.section {
 .dropdown-option[aria-disabled="true"] {
 	color: var(--muted);
 }
+.dropdown-group {
+	padding: 8px 12px 2px;
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--muted);
+}
 .dropdown-option.after-rule {
 	border-top: 1px solid var(--border);
 	margin-top: 4px;
@@ -1703,9 +1710,6 @@ button.link {
 }
 .quickbar .qb-data {
 	width: 12em;
-}
-.quickbar .qr-kind-dropdown {
-	width: 7.5em;
 }
 .quickbar .font-dropdown {
 	width: 10em;

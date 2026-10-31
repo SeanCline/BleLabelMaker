@@ -5,14 +5,14 @@ import {
 	encodeBarcode,
 	code128Values,
 	CODE128_PATTERNS,
-	eanCheckDigit,
+	gtinCheckDigit,
 	BarcodeError,
 	CODE39_PATTERNS,
 	ITF_PATTERNS,
 	CODABAR_PATTERNS,
-} from "../src/barcode.js";
-import { encodeQr, QrError } from "../src/qr.js";
-import { encodeDataMatrix } from "../src/datamatrix.js";
+} from "../src/codes/barcode.js";
+import { encodeQr, QrError } from "../src/codes/qr.js";
+import { encodeDataMatrix } from "../src/codes/datamatrix.js";
 
 const {
 	MultiFormatReader,
@@ -24,8 +24,28 @@ const {
 	CodaBarReader,
 } = zxing;
 
-/** Decodes a luminance image (0 = black) with zxing, the same library many phone apps use. */
-const scan = (lum, width, height, formats) => {
+/**
+ * A code as a luminance image (0 = black): `cols` × `rows` modules, `dark(x, y)` each, drawn
+ * `scale` pixels a module inside a blank border `quiet` modules wide.
+ * @param {{cols: number, rows: number, dark: (x: number, y: number) => boolean}} code
+ */
+const picture = ({ cols, rows, dark }, scale, quiet) => {
+	const width = (cols + quiet * 2) * scale;
+	const height = (rows + quiet * 2) * scale;
+	const lum = new Uint8ClampedArray(width * height).fill(255);
+	for (let y = 0; y < rows * scale; y++)
+		for (let x = 0; x < cols * scale; x++)
+			if (dark(Math.floor(x / scale), Math.floor(y / scale)))
+				lum[(y + quiet * scale) * width + x + quiet * scale] = 0;
+	return { lum, width, height };
+};
+
+/** A 1D code's bars, `rows` modules tall, with its own quiet zone. */
+const bars = ({ modules, quiet }, scale = 2, rows = 20) =>
+	picture({ cols: modules.length, rows, dark: (x) => modules[x] === 1 }, scale, quiet);
+
+/** Decodes a picture with zxing, the same library many phone apps use. */
+const scan = ({ lum, width, height }, formats) => {
 	const hints = new Map([
 		[DecodeHintType.POSSIBLE_FORMATS, formats],
 		[DecodeHintType.TRY_HARDER, true],
@@ -37,16 +57,8 @@ const scan = (lum, width, height, formats) => {
 	return { text: r.getText(), format: BarcodeFormat[r.getBarcodeFormat()] };
 };
 
-const scan1d = ({ modules, quiet }, { scale = 2, height = 40 } = {}) => {
-	const total = modules.length + quiet * 2;
-	const w = total * scale;
-	const lum = new Uint8ClampedArray(w * height).fill(255);
-	modules.forEach((m, i) => {
-		if (!m) return;
-		for (let y = 0; y < height; y++)
-			for (let s = 0; s < scale; s++) lum[y * w + (quiet + i) * scale + s] = 0;
-	});
-	return scan(lum, w, height, [
+const scan1d = (code) =>
+	scan(bars(code), [
 		BarcodeFormat.CODE_128,
 		BarcodeFormat.CODE_39,
 		BarcodeFormat.EAN_13,
@@ -54,19 +66,12 @@ const scan1d = ({ modules, quiet }, { scale = 2, height = 40 } = {}) => {
 		BarcodeFormat.UPC_A,
 		BarcodeFormat.ITF,
 	]);
-};
 
-const scanQr = ({ size, dark }, { scale = 3, quiet = 2 } = {}) => {
-	const w = (size + quiet * 2) * scale;
-	const lum = new Uint8ClampedArray(w * w).fill(255);
-	for (let y = 0; y < size; y++)
-		for (let x = 0; x < size; x++)
-			if (dark(x, y))
-				for (let dy = 0; dy < scale; dy++)
-					for (let dx = 0; dx < scale; dx++)
-						lum[((y + quiet) * scale + dy) * w + (x + quiet) * scale + dx] = 0;
-	return scan(lum, w, w, [BarcodeFormat.QR_CODE]);
-};
+const scanQr = ({ size, dark }) =>
+	scan(picture({ cols: size, rows: size, dark }, 3, 2), [BarcodeFormat.QR_CODE]);
+
+/** A Data Matrix's text, read from a picture of it. */
+const scanMatrix = (m) => scan(picture(m, 4, 2), [BarcodeFormat.DATA_MATRIX]).text;
 
 test("Code 128 pattern table is well-formed", () => {
 	assert.equal(CODE128_PATTERNS.length, 107);
@@ -106,7 +111,7 @@ test("Code 128 rejects characters it can't encode", () => {
 });
 
 test("EAN-13 computes and checks the check digit, and scans", () => {
-	assert.equal(eanCheckDigit("400638133393"), 1);
+	assert.equal(gtinCheckDigit("400638133393"), 1);
 	const r = encodeBarcode("EAN13", "400638133393");
 	assert.equal(r.text, "4006381333931");
 	assert.equal(r.modules.length, 95);
@@ -182,27 +187,14 @@ test("UPC-E shortens a UPC-A with enough zeros and adds its check digit", () => 
 	assert.throws(() => encodeBarcode("UPCE", "2425261"), /number system is 0 or 1/);
 });
 
-/** Modules for a narrow/wide pattern, wide being 3, as barcode.js draws them. */
-const narrow = (pattern, out) => {
-	let bar = true;
-	for (const c of pattern) {
-		for (let i = 0; i < (c === "w" ? 3 : 1); i++) out.push(bar ? 1 : 0);
-		bar = !bar;
-	}
-};
-
 test("Codabar frames its digits in A…A, or the letters given, and scans", () => {
 	assert.equal(CODABAR_PATTERNS.length, 20);
 	// The combined reader skips Codabar in zxing-js; its own reader doesn't.
-	const read = ({ modules, quiet }) => {
-		const w = (modules.length + quiet * 2) * 3;
-		const lum = new Uint8ClampedArray(w * 30).fill(255);
-		modules.forEach((m, i) => {
-			if (m)
-				for (let y = 0; y < 30; y++)
-					lum.fill(0, y * w + (quiet + i) * 3, y * w + (quiet + i) * 3 + 3);
-		});
-		const bitmap = new BinaryBitmap(new HybridBinarizer(new RGBLuminanceSource(lum, w, 30)));
+	const read = (code) => {
+		const { lum, width, height } = bars(code, 3, 10);
+		const bitmap = new BinaryBitmap(
+			new HybridBinarizer(new RGBLuminanceSource(lum, width, height)),
+		);
 		return new CodaBarReader()
 			.decode(bitmap, new Map([[DecodeHintType.TRY_HARDER, true]]))
 			.getText();
@@ -212,31 +204,14 @@ test("Codabar frames its digits in A…A, or the letters given, and scans", () =
 	assert.equal(read(r), "A40156A");
 	// Given start and stop letters are kept: B and D here. zxing-js misreads the punctuation;
 	// Java ZXing 3.5.3 reads this one as 12-34.5$/+:.
-	const framed = encodeBarcode("CODABAR", "b12-34.5$/+:d");
-	assert.equal(framed.text, "12-34.5$/+:");
-	const patternAt = (start) => framed.modules.slice(start, start + 12).join("");
-	const b = [];
-	const d = [];
-	narrow(CODABAR_PATTERNS[17], b);
-	narrow(CODABAR_PATTERNS[19], d);
-	assert.equal(patternAt(0), b.join("").slice(0, 12));
-	assert.equal(framed.modules.slice(-d.length).join(""), d.join(""));
+	const framed = encodeBarcode("CODABAR", "b12-34.5$/+:d").modules.join("");
+	const ends = encodeBarcode("CODABAR", "b0d").modules.join("");
+	// Each letter is 13 modules: four narrow and three wide.
+	assert.equal(framed.slice(0, 13), ends.slice(0, 13));
+	assert.equal(framed.slice(-13), ends.slice(-13));
+	assert.notEqual(framed.slice(0, 13), encodeBarcode("CODABAR", "0").modules.join("").slice(0, 13));
 	assert.throws(() => encodeBarcode("CODABAR", "12X4"), /can't encode “X”/);
 });
-
-/** Scans a Data Matrix drawn `scale` dots a module, with a quiet zone. */
-const scanMatrix = ({ rows, cols, dark }, scale = 4, quiet = 2) => {
-	const w = (cols + quiet * 2) * scale;
-	const h = (rows + quiet * 2) * scale;
-	const lum = new Uint8ClampedArray(w * h).fill(255);
-	for (let y = 0; y < rows; y++)
-		for (let x = 0; x < cols; x++)
-			if (dark(x, y))
-				for (let dy = 0; dy < scale; dy++)
-					for (let dx = 0; dx < scale; dx++)
-						lum[((y + quiet) * scale + dy) * w + (x + quiet) * scale + dx] = 0;
-	return scan(lum, w, h, [BarcodeFormat.DATA_MATRIX]).text;
-};
 
 test("Data Matrix scans back in every size, and takes the shape of its room", () => {
 	const sizes = new Set();

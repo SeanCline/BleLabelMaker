@@ -1,4 +1,4 @@
-import { round } from "./units.js";
+import { clamp, round } from "./units.js";
 import { DEFAULT_PRINTER } from "./printers/index.js";
 import { plainText } from "./layout.js";
 import { FIELD } from "./fields.js";
@@ -18,9 +18,10 @@ import { mapText, normalize } from "./richtext.js";
  *   ditherEmoji: boolean}} TextElement
  * @typedef {Box & {type: "shape", shape: "rect"|"ellipse"|"line", strokeMm: number,
  *   fill: boolean, radiusMm: number}} ShapeElement
- * @typedef {Box & {type: "barcode", data: string, symbology: "CODE128"|"CODE39"|"EAN13"|"EAN8"|"UPCA"|"UPCE"|"ITF14"|"CODABAR"|"DATAMATRIX",
- *   showText: boolean, textFont: string}} BarcodeElement
- * @typedef {Box & {type: "qr", kind: import("./qrcontent.js").QrKind, data: string,
+ * @typedef {Box & {type: "barcode", data: string,
+ *   symbology: keyof typeof import("./codes/barcode.js").SYMBOLOGIES, showText: boolean,
+ *   textFont: string}} BarcodeElement
+ * @typedef {Box & {type: "qr", kind: import("./codes/qrcontent.js").QrKind, data: string,
  *   level: "auto"|"L"|"M"|"Q"|"H"}} QrElement kind: what the data is written as (qrcontent.js)
  * @typedef {Box & {type: "image", src: string, mode: "dither"|"threshold", level: number,
  *   invert: boolean, fit: "contain"|"cover"|"stretch", zoom: number, panX: number, panY: number}} ImageElement
@@ -64,17 +65,6 @@ export const VALIGN = ["top", "middle", "bottom"];
 export const WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
 export const ROTATIONS = [0, 90, 180, 270];
 export const SHAPES = ["rect", "ellipse", "line"];
-export const BARCODE_TYPES = [
-	"CODE128",
-	"CODE39",
-	"EAN13",
-	"EAN8",
-	"UPCA",
-	"UPCE",
-	"ITF14",
-	"CODABAR",
-	"DATAMATRIX",
-];
 export const QR_LEVELS = ["auto", "L", "M", "Q", "H"];
 export const IMAGE_MODES = ["dither", "threshold"];
 export const FIRST_LINE_SCALES = [1, 1.5, 2];
@@ -317,8 +307,8 @@ export const clampToLabel = (e, label) => {
 		...e,
 		w,
 		h,
-		x: round(Math.min(Math.max(e.x, 0), label.widthMm - w), 3),
-		y: round(Math.min(Math.max(e.y, 0), label.heightMm - h), 3),
+		x: round(clamp(e.x, 0, label.widthMm - w), 3),
+		y: round(clamp(e.y, 0, label.heightMm - h), 3),
 	};
 };
 

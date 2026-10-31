@@ -11,9 +11,9 @@ import {
 	hasEmoji,
 } from "../fonts.js";
 import { clamp, round } from "../units.js";
-import { $, $$, el } from "./dom.js";
+import { $, $$, el, showChoice } from "./dom.js";
 import { dropdown } from "./dropdown.js";
-import { SYMBOLOGIES } from "../barcode.js";
+import { SYMBOLOGIES } from "../codes/barcode.js";
 import { REPO_URL } from "../app-info.js";
 import { state, history, updateElement, selected, subscribe, undo, redo } from "./store.js";
 import { rotateElement } from "./actions.js";
@@ -82,14 +82,7 @@ export const syncProps = (root, element) => {
 			input.value =
 				typeof element[prop] === "number" ? String(round(element[prop], 3)) : (element[prop] ?? "");
 	}
-	for (const group of $$("[data-radio]", root)) {
-		for (const b of $$("button", group)) {
-			b.setAttribute(
-				"aria-pressed",
-				String(b.dataset.value === String(element[group.dataset.radio])),
-			);
-		}
-	}
+	for (const group of $$("[data-radio]", root)) showChoice(group, element[group.dataset.radio]);
 	for (const node of $$("[data-show-for]", root)) {
 		node.hidden = !node.dataset.showFor.split(" ").includes(element.shape);
 	}
@@ -253,10 +246,6 @@ for (const sel of $$(".barcode-format"))
 			el("option", { value, dataset: { hint } }, name),
 		),
 	);
-// Every list in the bar and the settings is drawn by the page, so they all look alike. The
-// Field menu is the exception: it's a button that opens a native list (styles.css).
-for (const sel of $$("#quickbar select, #settings select"))
-	if (!sel.closest(".field-picker")) dropdown(/** @type {HTMLSelectElement} */ (sel));
 
 // ---------------------------------------------------------------------------
 // Panel rendering

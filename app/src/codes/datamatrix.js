@@ -217,12 +217,13 @@ const draw = (size, cw) => {
 };
 
 /**
- * The Data Matrix for `text`. With room given (in any unit), it's the size whose squares come
- * out biggest there, a rectangle on a long thin label; otherwise the smallest that holds it.
+ * The Data Matrix for `text`. With room given (in printer dots), it's the size whose squares
+ * come out biggest there, a rectangle on a long thin label, and `unit` is their size in whole
+ * dots; otherwise it's the smallest that holds it.
  * @param {string} text
  * @param {{width: number, height: number}} [room]
  * @param {number} [quiet] blank modules around it, which the room has to hold too
- * @returns {{rows: number, cols: number, dark: (x: number, y: number) => boolean}}
+ * @returns {{rows: number, cols: number, dark: (x: number, y: number) => boolean, unit: number}}
  */
 export const encodeDataMatrix = (text, room, quiet = 1) => {
 	if (!text) throw new BarcodeError("Enter something to encode.");
@@ -230,14 +231,13 @@ export const encodeDataMatrix = (text, room, quiet = 1) => {
 	const fits = SIZES.filter((s) => s.data >= cw.length);
 	if (!fits.length) throw new BarcodeError("Too much data for a Data Matrix.");
 	const unit = (s) =>
-		room ? Math.min(room.width / (s.cols + quiet * 2), room.height / (s.rows + quiet * 2)) : 0;
-	// Whole printer dots decide what's biggest; fewer modules win a tie.
+		room
+			? Math.floor(Math.min(room.width / (s.cols + quiet * 2), room.height / (s.rows + quiet * 2)))
+			: 0;
+	// The biggest squares win; fewer of them break a tie.
 	const best = fits.reduce((a, b) =>
-		Math.floor(unit(b)) > Math.floor(unit(a)) ||
-		(Math.floor(unit(b)) === Math.floor(unit(a)) && b.rows * b.cols < a.rows * a.cols)
-			? b
-			: a,
+		unit(b) > unit(a) || (unit(b) === unit(a) && b.rows * b.cols < a.rows * a.cols) ? b : a,
 	);
 	const data = pad(cw, best.data);
-	return draw(best, [...data, ...reedSolomon(data, best.ecc)]);
+	return { ...draw(best, [...data, ...reedSolomon(data, best.ecc)]), unit: unit(best) };
 };

@@ -33,6 +33,7 @@ src/
   caretmap.js    caret positions on laid-out text, for the inline editor
   render.js      document → canvas at printer resolution, 1-bit; element cache
   painters/      how each element type draws: text, shapes, codes, image
+  codes/         barcode.js (1D), datamatrix.js, qr.js, and qrcontent.js (what a QR code holds)
   raster.js      canvas pixels → printer-oriented 1bpp rows, centred on the head
   printjob.js    design → labels to print (batch, copies, counter) → job bytes
   print.js       a whole print without UI: plan, connect, check, render, send, outcome
@@ -44,7 +45,7 @@ src/
   printhistory.js  print history entries, export/import
   share.js       labels as links
   report.js      diagnostics, bug and "it works" reports, GitHub issue links
-  fonts.js, emoji.js, barcode.js, datamatrix.js, qr.js, qrcontent.js, snap.js
+  fonts.js, emoji.js, snap.js
   app.js         entry point: boots the ui/ modules
   ui/
     dom.js       DOM helpers, toast, best-effort localStorage
@@ -58,6 +59,7 @@ src/
     actions.js   add, delete, duplicate, rotate and arrange elements, each one undo step
     layers.js    the Elements list: pick from it, restack by grip or Alt+arrows
     quickbar.js  the bar over the label (the selection's essentials) and the settings sheet
+    menus.js     the header's drop-down menus: closing on click-away and Esc
     qr-builder.js  a QR code's kind and fields, in the settings and its main one on the bar
     toolbar.js   arrow keys between a toolbar's controls, one Tab stop for its buttons
     dropdown.js  a select drawn by the page over a hidden native one: icons, fonts in their own face
@@ -230,13 +232,13 @@ different lists.
   to whole dots.
 - Barcodes (`"type": "barcode"`, with `data`, `symbology` = `CODE128` / `CODE39` /
   `EAN13` / `EAN8` / `UPCA` / `UPCE` / `ITF14` / `CODABAR` / `DATAMATRIX`, and
-  `showText`) are encoded by `src/barcode.js`, and Data Matrix by `src/datamatrix.js`
+  `showText`) are encoded by `src/codes/barcode.js`, and Data Matrix by `src/codes/datamatrix.js`
   (ASCII encodation, single-block sizes up to 48×48, in the square or rectangle whose
   squares come out biggest in the box). QR codes
   (`"type": "qr"`, with `kind`, `data` and `level` = `auto`/`L`/`M`/`Q`/`H`) use the
   vendored `qrcode-generator` with UTF-8 text. A QR code has no content type of
   its own: phones act on the text's format. `kind` (`text`, `link`, `wifi`,
-  `phone`, `sms`, `email`, `contact`) says which format `src/qrcontent.js`
+  `phone`, `sms`, `email`, `contact`) says which format `src/codes/qrcontent.js`
   writes from the builder's fields and reads back; `data` is still what's
   encoded, and files without `kind` get the one their data matches. Escaping
   skips `{…}` fields, so batches work in every kind. `auto` makes the squares as

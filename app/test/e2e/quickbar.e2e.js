@@ -137,6 +137,11 @@ test("each kind of element gets its own bar, and new ones start where their cont
 	assert.equal((await appState(page)).doc.elements.at(-1).data, "JAM-1");
 	assert.equal(await visible(page, '#quickbar [data-qb="text"]'), false);
 
+	// A QR code's data field too, whatever it holds: here a link, typed over.
+	await page.click("#addQr");
+	await page.keyboard.type("example.com/jam");
+	assert.equal((await appState(page)).doc.elements.at(-1).data, "https://example.com/jam");
+
 	await page.click("#addShape");
 	const plain = await labelPixels(page);
 	await page.click('#quickbar [data-qb="shape"] [data-prop="fill"]');
@@ -149,7 +154,7 @@ test("each kind of element gets its own bar, and new ones start where their cont
 	await page.keyboard.press("a");
 	await page.keyboard.up("Control");
 	assert.equal(await visible(page, '#quickbar [data-qb="multi"]'), true);
-	assert.equal(await page.$eval("#multiCount", (c) => c.textContent), "4 selected");
+	assert.equal(await page.$eval("#multiCount", (c) => c.textContent), "5 selected");
 	assert.equal(await visible(page, '#quickbar [data-qb-action="more"]'), false);
 
 	// The list of elements closes once one is picked from it.

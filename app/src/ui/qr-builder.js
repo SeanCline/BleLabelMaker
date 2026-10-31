@@ -8,8 +8,8 @@ import {
 	decodeContent,
 	encodeContent,
 	primaryField,
-} from "../qrcontent.js";
-import { $, $$, el, icon } from "./dom.js";
+} from "../codes/qrcontent.js";
+import { $, $$, el, icon, showChoice } from "./dom.js";
 import { dropdown } from "./dropdown.js";
 import { hasBatch, onBatchChange } from "./batch.js";
 import { history, selected, subscribe, updateElement } from "./store.js";
@@ -33,7 +33,7 @@ const write = (key, value) => {
 	updateElement(e.id, { data: encodeContent(e.kind, values) }, `${e.id}:data`);
 };
 
-/** @param {import("../qrcontent.js").QrKind} kind */
+/** @param {import("../codes/qrcontent.js").QrKind} kind */
 const setKind = (kind) => {
 	const e = current();
 	if (!e || kind === e.kind) return;
@@ -48,10 +48,9 @@ for (const menu of $$(".qr-kind")) {
 		),
 	);
 	menu.addEventListener("change", () => setKind(menu.value));
-	dropdown(menu, { className: "qr-kind-dropdown" });
 }
 
-/** @param {import("../qrcontent.js").QrField} f */
+/** @param {import("../codes/qrcontent.js").QrField} f */
 const row = (f) => {
 	const dataset = { qrField: f.key };
 	if (f.input === "choice")
@@ -62,10 +61,10 @@ const row = (f) => {
 			el(
 				"span",
 				{ className: "segmented fill", role: "group", "aria-label": f.label, dataset },
-				...f.options.map(([, name, glyph], i) =>
+				...f.options.map(([value, name, glyph]) =>
 					el(
 						"button",
-						{ type: "button", dataset: { option: String(i) }, "aria-pressed": "false" },
+						{ type: "button", dataset: { value: String(value) }, "aria-pressed": "false" },
 						icon(glyph),
 						` ${name}`,
 					),
@@ -115,14 +114,8 @@ const sync = () => {
 		/** @type {HTMLElement} */ (shown).hidden = !!f.when && !f.when(values);
 		const control = $("[data-qr-field]", shown);
 		const value = values[f.key];
-		if (f.input === "choice") {
-			const at = Math.max(
-				0,
-				f.options.findIndex(([v]) => v === (value ?? f.options[0][0])),
-			);
-			for (const b of $$("button", control))
-				b.setAttribute("aria-pressed", String(b.dataset.option === String(at)));
-		} else if (document.activeElement !== control)
+		if (f.input === "choice") showChoice(control, value ?? f.options[0][0]);
+		else if (document.activeElement !== control)
 			/** @type {HTMLInputElement} */ (control).value = String(
 				value ?? (control instanceof HTMLSelectElement ? control.options[0].value : ""),
 			);
@@ -154,13 +147,14 @@ fieldsBox.addEventListener("input", (ev) => {
 		write(control.dataset.qrField, /** @type {HTMLInputElement} */ (control).value);
 });
 fieldsBox.addEventListener("click", (ev) => {
-	const b = /** @type {HTMLElement} */ (ev.target).closest("button[data-option]");
+	const b = /** @type {HTMLElement} */ (ev.target).closest("[data-qr-field] button");
 	if (!(b instanceof HTMLElement)) return;
 	const choice = /** @type {HTMLElement} */ (b.closest("[data-qr-field]"));
 	const e = current();
 	const f = e && QR_KINDS[e.kind].fields.find((x) => x.key === choice.dataset.qrField);
-	if (!f) return;
-	write(f.key, f.options[Number(b.dataset.option)][0]);
+	const option = f?.options.find(([value]) => String(value) === b.dataset.value);
+	if (!option) return;
+	write(f.key, option[0]);
 	history.seal();
 });
 primary.addEventListener("input", () => {

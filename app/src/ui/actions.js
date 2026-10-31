@@ -15,7 +15,7 @@ import {
 	placeCopies,
 } from "../model.js";
 import { clamp, round } from "../units.js";
-import { encodeBarcode } from "../barcode.js";
+import { encodeBarcode } from "../codes/barcode.js";
 import { $, $$, el, toast, announce, focusBarField, DRAG_SLACK_PX } from "./dom.js";
 import { describeElement } from "./describe.js";
 import { importImageFile, fitBox } from "./images.js";

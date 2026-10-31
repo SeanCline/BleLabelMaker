@@ -9,7 +9,7 @@ import {
 	bluetoothAvailable,
 	serialAvailable,
 } from "../transport.js";
-import { $, $$, el, toast } from "./dom.js";
+import { $, $$, el, showChoice, toast } from "./dom.js";
 import {
 	settings,
 	saveSettings,
@@ -179,11 +179,6 @@ const renderFeed = () => {
 	$("#setFeedReset").hidden = settings.feedLines === model.feedLines;
 };
 
-/** A group of buttons, one per value of a setting: the setting's is pressed. */
-const showChoice = (group, value) => {
-	for (const b of $$("button", group))
-		b.setAttribute("aria-pressed", String(b.dataset.value === value));
-};
 const changeSetting = (key, value) => {
 	settings[key] = value;
 	saveSettings();

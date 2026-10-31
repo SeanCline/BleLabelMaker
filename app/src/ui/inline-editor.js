@@ -226,7 +226,7 @@ const STYLE_KEYS = { b: "fontWeight", i: "italic", u: "underline" };
  * selected while typing on `e` (with nothing selected, what's typed next), else all of them.
  * @param {import("../model.js").TextElement} e
  */
-export const selectedLooks = (e) => {
+const selectedLooks = (e) => {
 	const t = inline?.id === e.id ? inline.textarea : null;
 	const from = t?.selectionStart ?? 0;
 	const to = t?.selectionEnd ?? textOf(e.text).length;

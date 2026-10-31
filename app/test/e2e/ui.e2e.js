@@ -978,5 +978,29 @@ test("the font menu is drawn by the page: each face in itself, by mouse or keys,
 	await page.keyboard.press("Escape");
 	assert.equal(await open(), false);
 	assert.equal(await page.$eval("#settings", (s) => s.hidden), false);
+	// A space typed among letters is part of the name; on its own, it opens the list.
+	await page.keyboard.type("roboto m");
+	assert.equal(await font(), "Roboto Mono");
+	assert.equal(await open(), false);
+	await new Promise((r) => setTimeout(r, 700));
+	await page.keyboard.press(" ");
+	assert.equal(await open(), true);
+	assert.deepEqual(page.errors, []);
+});
+
+test("the menus' lists are drawn by the page too, with their groups named", async () => {
+	const page = await env.open();
+	await page.click("#labelChip");
+	await page.click(".label-panel .dropdown");
+	const groups = await page.$$eval(".label-panel .dropdown-list:popover-open [role=group]", (all) =>
+		all.map((g) => [g.getAttribute("aria-label"), g.querySelectorAll("[role=option]").length]),
+	);
+	assert.deepEqual(
+		groups.map(([name]) => name),
+		["Pre-cut labels", "Continuous tape"],
+	);
+	assert.ok(groups[0][1] > 1, "the pre-cut sizes, and Custom");
+	await page.click(".label-panel .dropdown-list [role=group]:last-child [role=option]");
+	assert.equal((await appState(page)).doc.label.continuous, true);
 	assert.deepEqual(page.errors, []);
 });

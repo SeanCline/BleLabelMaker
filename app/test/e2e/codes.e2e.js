@@ -119,7 +119,7 @@ test("the QR builder writes Wi-Fi for a phone to join, and Auto picks the correc
 	);
 	await typeInto(page, '#qrFields [data-qr-field="ssid"]', "Shed; 2.4GHz");
 	await typeInto(page, '#qrFields [data-qr-field="password"]', "hunter2");
-	await page.click('#qrFields [data-qr-field="hidden"] [data-option="1"]');
+	await page.click('#qrFields [data-qr-field="hidden"] [data-value="true"]');
 	const wifi = "WIFI:T:WPA;S:Shed\\; 2.4GHz;P:hunter2;H:true;;";
 	assert.equal((await appState(page)).doc.elements[0].data, wifi);
 	assert.equal(scan(await printAndCapture(page), [BarcodeFormat.QR_CODE]), wifi);

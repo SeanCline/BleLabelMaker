@@ -16,11 +16,15 @@ import "./ui/new-label.js";
 import "./ui/welcome.js";
 import "./ui/text-insert.js";
 import "./ui/quickbar.js";
+import "./ui/menus.js";
 import "./ui/qr-builder.js";
+import { dropdowns } from "./ui/dropdown.js";
 import "./ui/ruler.js";
 import "./ui/report.js";
 import { historyEntries, historyReady, historySaved } from "./ui/history-panel.js";
 
+// Each module has filled its lists by now; they're all drawn by the page from here on.
+dropdowns();
 notify();
 
 const ready = Promise.all([

@@ -1,7 +1,7 @@
 // What a QR code holds. A QR code has no content type: phones decide what to offer from the
 // text's format (https:// opens a page, WIFI: joins a network, BEGIN:VCARD adds a contact).
 // Each kind here is a few fields that write that format, and read it back to edit.
-import { FIELD } from "./fields.js";
+import { FIELD } from "../fields.js";
 
 /** @typedef {"text"|"link"|"wifi"|"phone"|"sms"|"email"|"contact"} QrKind */
 

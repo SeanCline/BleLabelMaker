@@ -1,7 +1,7 @@
-import qrcode from "./vendor/qrcode-generator.js";
+import qrcode from "../vendor/qrcode-generator.js";
 
 // Scanners want a light border; 2 modules is enough for phone cameras and saves label space.
-export const QR_QUIET = 2;
+const QR_QUIET = 2;
 
 // The library defaults to Latin-1; URLs and labels with accents or emoji need UTF-8.
 const encoder = new TextEncoder();

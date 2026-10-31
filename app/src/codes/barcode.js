@@ -184,64 +184,59 @@ const EAN_PARITY = [
 	"LGGLGL",
 ];
 
-export const eanCheckDigit = (twelve) => {
+/** The GS1 check digit for any length: weights 3 and 1, from the rightmost digit leftwards. */
+export const gtinCheckDigit = (digits) => {
 	let sum = 0;
-	for (let i = 0; i < 12; i++) sum += Number(twelve[i]) * (i % 2 ? 3 : 1);
+	for (let i = 0; i < digits.length; i++)
+		sum += Number(digits[digits.length - 1 - i]) * (i % 2 ? 1 : 3);
 	return (10 - (sum % 10)) % 10;
 };
 
-const encodeEan13 = (data, { name = "EAN-13", digits = 13 } = {}) => {
-	const raw = data.replace(/\s+/g, "");
-	if (!/^\d+$/.test(raw)) throw new BarcodeError(`${name} uses digits only.`);
-	if (raw.length !== digits - 1 && raw.length !== digits) {
-		throw new BarcodeError(
-			`${name} needs ${digits - 1} digits (the check digit is added for you) or all ${digits}.`,
-		);
-	}
-	// UPC-A is EAN-13 with a leading zero.
-	const padded = (digits === 12 ? "0" : "") + raw;
-	const body = padded.slice(0, 12);
-	const check = eanCheckDigit(body);
-	if (padded.length === 13 && Number(padded[12]) !== check) {
+/** `body`'s check digit, which must be `given` when one was typed. */
+const checkDigit = (body, given) => {
+	const check = gtinCheckDigit(body);
+	if (given !== undefined && Number(given) !== check)
 		throw new BarcodeError(
 			`The last digit should be ${check} (check digit). Leave it off and it's added for you.`,
 		);
-	}
-	const full = body + check;
+	return check;
+};
+
+/**
+ * A GS1 number (EAN, UPC, ITF-14) of `length` digits, check digit included: typed without
+ * it, it's added; typed with it, it's checked.
+ */
+const gtin = (data, name, length) => {
+	const raw = data.replace(/\s+/g, "");
+	if (!/^\d+$/.test(raw)) throw new BarcodeError(`${name} uses digits only.`);
+	if (raw.length !== length - 1 && raw.length !== length)
+		throw new BarcodeError(
+			`${name} needs ${length - 1} digits (the check digit is added for you) or all ${length}.`,
+		);
+	const body = raw.slice(0, length - 1);
+	return body + checkDigit(body, raw[length - 1]);
+};
+
+/** EAN-13, or UPC-A: an EAN-13 with a leading zero, which isn't printed. */
+const encodeEan13 = (data, upc = false) => {
+	const full = upc ? `0${gtin(data, "UPC-A", 12)}` : gtin(data, "EAN-13", 13);
 	const parity = EAN_PARITY[Number(full[0])];
 	let bits = "101";
 	for (let i = 1; i <= 6; i++) bits += (parity[i - 1] === "L" ? EAN_L : EAN_G)[Number(full[i])];
 	bits += "01010";
 	for (let i = 7; i <= 12; i++) bits += EAN_R[Number(full[i])];
 	bits += "101";
-	return { modules: [...bits].map(Number), text: digits === 12 ? full.slice(1) : full };
+	return { modules: [...bits].map(Number), text: upc ? full.slice(1) : full };
 };
 
 const encodeEan8 = (data) => {
-	const raw = data.replace(/\s+/g, "");
-	if (!/^\d+$/.test(raw)) throw new BarcodeError("EAN-8 uses digits only.");
-	if (raw.length !== 7 && raw.length !== 8)
-		throw new BarcodeError("EAN-8 needs 7 digits (the check digit is added for you) or all 8.");
-	const check = gtinCheckDigit(raw.slice(0, 7));
-	if (raw.length === 8 && Number(raw[7]) !== check)
-		throw new BarcodeError(
-			`The last digit should be ${check} (check digit). Leave it off and it's added for you.`,
-		);
-	const full = raw.slice(0, 7) + check;
+	const full = gtin(data, "EAN-8", 8);
 	let bits = "101";
 	for (let i = 0; i < 4; i++) bits += EAN_L[Number(full[i])];
 	bits += "01010";
 	for (let i = 4; i < 8; i++) bits += EAN_R[Number(full[i])];
 	bits += "101";
 	return { modules: [...bits].map(Number), text: full };
-};
-
-/** The GS1 check digit for any length: weights 3 and 1, from the rightmost digit leftwards. */
-const gtinCheckDigit = (digits) => {
-	let sum = 0;
-	for (let i = 0; i < digits.length; i++)
-		sum += Number(digits[digits.length - 1 - i]) * (i % 2 ? 1 : 3);
-	return (10 - (sum % 10)) % 10;
 };
 
 // Code 39: nine elements a character, three of them wide; * starts and stops every code.
@@ -278,16 +273,7 @@ export const ITF_PATTERNS = "nnwwn wnnnw nwnnw wwnnn nnwnw wnwnn nwwnn nnnww wnn
 );
 
 const encodeItf14 = (data) => {
-	const raw = data.replace(/\s+/g, "");
-	if (!/^\d+$/.test(raw)) throw new BarcodeError("ITF-14 uses digits only.");
-	if (raw.length !== 13 && raw.length !== 14)
-		throw new BarcodeError("ITF-14 needs 13 digits (the check digit is added for you) or all 14.");
-	const check = gtinCheckDigit(raw.slice(0, 13));
-	if (raw.length === 14 && Number(raw[13]) !== check)
-		throw new BarcodeError(
-			`The last digit should be ${check} (check digit). Leave it off and it's added for you.`,
-		);
-	const full = raw.slice(0, 13) + check;
+	const full = gtin(data, "ITF-14", 14);
 	const modules = [1, 0, 1, 0];
 	for (let i = 0; i < full.length; i += 2) {
 		const bars = ITF_PATTERNS[Number(full[i])];
@@ -341,29 +327,23 @@ const encodeUpce = (data) => {
 	if (!/^\d+$/.test(raw)) throw new BarcodeError("UPC-E uses digits only.");
 	let ns;
 	let six;
-	let given = null;
+	let given;
 	if (raw.length === 6) [ns, six] = ["0", raw];
 	else if (raw.length === 7 || raw.length === 8) {
-		[ns, six] = [raw[0], raw.slice(1, 7)];
-		if (raw.length === 8) given = Number(raw[7]);
+		[ns, six, given] = [raw[0], raw.slice(1, 7), raw[7]];
 	} else if (raw.length === 11 || raw.length === 12) {
 		six = compressUpca(raw.slice(0, 11));
 		if (!six)
 			throw new BarcodeError(
 				"That UPC-A doesn't shorten to UPC-E: it needs more zeros. Use UPC-A.",
 			);
-		ns = raw[0];
-		if (raw.length === 12) given = Number(raw[11]);
+		[ns, given] = [raw[0], raw[11]];
 	} else
 		throw new BarcodeError(
 			"UPC-E needs 6 digits (or 7 with the number system), or a UPC-A to shorten.",
 		);
 	if (ns !== "0" && ns !== "1") throw new BarcodeError("UPC-E's number system is 0 or 1.");
-	const check = gtinCheckDigit(expandUpce(ns, six));
-	if (given !== null && given !== check)
-		throw new BarcodeError(
-			`The last digit should be ${check} (check digit). Leave it off and it's added for you.`,
-		);
+	const check = checkDigit(expandUpce(ns, six), given);
 	const parity = UPCE_PARITY[check];
 	let bits = "101";
 	for (let i = 0; i < 6; i++) {
@@ -412,7 +392,7 @@ export const encodeBarcode = (symbology, data) => {
 		CODE39: encodeCode39,
 		EAN13: encodeEan13,
 		EAN8: encodeEan8,
-		UPCA: (d) => encodeEan13(d, { name: "UPC-A", digits: 12 }),
+		UPCA: (d) => encodeEan13(d, true),
 		ITF14: encodeItf14,
 		UPCE: encodeUpce,
 		CODABAR: encodeCodabar,

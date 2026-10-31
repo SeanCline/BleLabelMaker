@@ -8,7 +8,7 @@ export const APP_DESCRIPTION =
 export const DISCLAIMER = `${APP_NAME} is not affiliated with any label maker manufacturer. Label maker models are trademarks of their respective owners.`;
 // Where the source lives and where bug reports go ("owner/repository" on GitHub). Like the
 // name, `npm run name` stamps it into index.html.
-export const GITHUB_REPO = "SeanCline/BleLabelMaker";
+const GITHUB_REPO = "SeanCline/BleLabelMaker";
 export const REPO_URL = `https://github.com/${GITHUB_REPO}`;
 // Kept equal to package.json's version (a test checks), so bug reports say which build.
 export const APP_VERSION = "0.1.0";

@@ -7,8 +7,8 @@ import {
 	detectKind,
 	encodeContent,
 	summarise,
-} from "../src/qrcontent.js";
-import { fitQr } from "../src/qr.js";
+} from "../src/codes/qrcontent.js";
+import { fitQr } from "../src/codes/qr.js";
 
 test("each kind writes the format phones act on", () => {
 	assert.equal(encodeContent("link", { url: "example.com/a" }), "https://example.com/a");

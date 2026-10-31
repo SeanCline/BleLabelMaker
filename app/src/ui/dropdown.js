@@ -4,7 +4,7 @@
 // may not: Firefox shows every font name in the same face. It's the WAI-ARIA select-only
 // combobox: the focus stays on the button, and the list is a popover beside it in the page,
 // so a click in it is a click inside whatever holds the select.
-import { el, icon } from "./dom.js";
+import { $$, el, icon } from "./dom.js";
 
 const VALUE = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, "value");
 let count = 0;
@@ -39,6 +39,19 @@ export const dropdown = (select, { className = "" } = {}) => {
 		button.setAttribute(attr, value);
 		if (attr !== "title") list.setAttribute(attr, value);
 	}
+	// A select named by a <label> around it names the button the same way (it goes first in the
+	// label); the list takes the label's own words, without the options' text.
+	const label = select.closest("label");
+	if (label && !list.hasAttribute("aria-label")) {
+		const words = [...label.childNodes].filter((n) => n.nodeType === Node.TEXT_NODE);
+		list.setAttribute(
+			"aria-label",
+			words
+				.map((n) => n.textContent)
+				.join(" ")
+				.trim(),
+		);
+	}
 	// Before the select, so a <label> around both names and focuses the button.
 	select.before(button);
 	select.after(list);
@@ -54,10 +67,11 @@ export const dropdown = (select, { className = "" } = {}) => {
 	};
 	// Every option is in the button, unseen but the one picked, so it's as wide as the widest,
 	// as a native select is: picking another doesn't move what's beside it.
+	const options = () => [...select.options];
 	const refresh = () => {
 		const picked = select.selectedOptions[0];
 		face.replaceChildren(
-			...[...select.options].map((option) => {
+			...options().map((option) => {
 				const choice = el("span", {
 					className: `dropdown-choice${option === picked ? "" : " unseen"}`,
 				});
@@ -84,9 +98,8 @@ export const dropdown = (select, { className = "" } = {}) => {
 		attributes: true,
 	});
 
-	const options = () => [...select.options];
 	let active = -1;
-	const items = () => /** @type {HTMLElement[]} */ ([...list.children]);
+	const items = () => /** @type {HTMLElement[]} */ ($$(".dropdown-option", list));
 	const highlight = (i) => {
 		active = i;
 		items().forEach((item, j) => item.classList.toggle("active", j === i));
@@ -129,20 +142,34 @@ export const dropdown = (select, { className = "" } = {}) => {
 	const isOpen = () => button.getAttribute("aria-expanded") === "true";
 	const open = () => {
 		if (isOpen() || select.disabled) return;
+		const item = (option, i) => {
+			const node = el("div", {
+				id: `${id}-${i}`,
+				className: "dropdown-option",
+				role: "option",
+				title: option.title,
+				"aria-selected": String(option.selected),
+				"aria-disabled": String(option.disabled),
+			});
+			look(option, node);
+			// A rule in the select (<hr>) is a line above the option after it.
+			if (option.previousElementSibling instanceof HTMLHRElement) node.classList.add("after-rule");
+			return node;
+		};
+		// An <optgroup> is a group with its name over its options, as a native list shows it.
+		let i = 0;
 		list.replaceChildren(
-			...options().map((option, i) => {
-				const item = el("div", {
-					id: `${id}-${i}`,
-					className: "dropdown-option",
-					role: "option",
-					"aria-selected": String(option.selected),
-					"aria-disabled": String(option.disabled),
-				});
-				look(option, item);
-				// A rule in the select (<hr>) is a line above the option after it.
-				if (option.previousElementSibling instanceof HTMLHRElement)
-					item.classList.add("after-rule");
-				return item;
+			...[...select.children].flatMap((child) => {
+				if (child instanceof HTMLOptionElement) return [item(child, i++)];
+				if (!(child instanceof HTMLOptGroupElement)) return [];
+				return [
+					el(
+						"div",
+						{ role: "group", "aria-label": child.label, title: child.title },
+						el("div", { className: "dropdown-group", "aria-hidden": "true" }, child.label),
+						...[...child.children].map((option) => item(option, i++)),
+					),
+				];
 			}),
 		);
 		list.showPopover();
@@ -183,15 +210,16 @@ export const dropdown = (select, { className = "" } = {}) => {
 		const i = items().indexOf(/** @type {HTMLElement} */ (item));
 		if (i < 0 || options()[i].disabled) return;
 		close();
-		button.focus();
 		choose(i);
 	});
 
-	// Typing a name jumps to it, as in any list: letters typed close together are one name.
+	// Typing a name jumps to it, as in any list: letters typed close together are one name, and
+	// a space among them is part of it ("roboto m").
 	let typed = "";
 	let typedAt = 0;
+	const typing = () => Date.now() - typedAt <= 600;
 	const typeAhead = (key) => {
-		typed = Date.now() - typedAt > 600 ? key : typed + key;
+		typed = typing() ? typed + key : key;
 		typedAt = Date.now();
 		const all = options();
 		const from = isOpen() ? active : select.selectedIndex;
@@ -207,17 +235,16 @@ export const dropdown = (select, { className = "" } = {}) => {
 	button.addEventListener("keydown", (ev) => {
 		if (ev.ctrlKey || ev.metaKey) return;
 		const all = options();
+		const letter = ev.key.length === 1 && !ev.altKey && (ev.key !== " " || typing());
+		// Any other key ends a name being typed, so the next letter starts a new one.
+		if (!letter) typedAt = 0;
 		let handled = true;
-		if (!isOpen()) {
-			if (
-				["ArrowDown", "ArrowUp", "Enter", " "].includes(ev.key) ||
-				(ev.altKey && ev.key === "ArrowDown")
-			)
-				open();
-			else if (ev.key.length === 1 && !ev.altKey) {
-				const i = typeAhead(ev.key);
-				if (i >= 0) choose(i);
-			} else handled = false;
+		if (letter) {
+			const i = typeAhead(ev.key);
+			if (i >= 0) isOpen() ? highlight(i) : choose(i);
+		} else if (!isOpen()) {
+			if (["ArrowDown", "ArrowUp", "Enter", " "].includes(ev.key)) open();
+			else handled = false;
 		} else if (ev.key === "ArrowDown") highlight(next(active, 1));
 		else if (ev.key === "ArrowUp") highlight(next(active, -1));
 		else if (ev.key === "Home") highlight(next(-1, 1));
@@ -229,20 +256,32 @@ export const dropdown = (select, { className = "" } = {}) => {
 			close();
 			choose(picked);
 		} else if (ev.key === "Escape") close();
-		else if (ev.key === "Tab") {
-			close();
+		else {
+			// Tab closes the list and moves on as usual.
+			if (ev.key === "Tab") close();
 			handled = false;
-		} else if (ev.key.length === 1 && !ev.altKey) {
-			const i = typeAhead(ev.key);
-			if (i >= 0) highlight(i);
-		} else handled = false;
+		}
 		if (!handled) return;
 		ev.preventDefault();
 		// The list's keys, not the page's: Escape would close the settings, letters are shortcuts.
 		ev.stopPropagation();
 	});
+	// A button clicks when Space comes up, which would open or close the list again: Space has
+	// already done its part going down.
+	button.addEventListener("keyup", (ev) => {
+		if (ev.key === " ") ev.preventDefault();
+	});
 	button.addEventListener("blur", close);
 
 	refresh();
 	return button;
+};
+
+/**
+ * Every select on the page drawn by the page, so all of them look alike. The Field menu is
+ * the exception: it's a button that opens a native list (styles.css).
+ */
+export const dropdowns = () => {
+	for (const select of $$("select"))
+		if (!select.closest(".field-picker")) dropdown(/** @type {HTMLSelectElement} */ (select));
 };

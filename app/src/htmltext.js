@@ -40,7 +40,7 @@ const WEIGHTS = { normal: 400, bold: 700, bolder: 700, lighter: 300 };
  * attributes and sheets even there, and say so in the console for each, so they're renamed to
  * be read as text, and sheets (Word's) dropped.
  */
-export const parseHtml = (/** @type {string} */ html) =>
+const parseHtml = (/** @type {string} */ html) =>
 	new DOMParser().parseFromString(
 		html
 			.replace(/<style[\s\S]*?<\/style>/gi, "")
@@ -82,7 +82,7 @@ const styleOf = (/** @type {HTMLElement} */ node, /** @type {Style} */ outer) =>
  * @param {Document} doc from parseHtml
  * @returns {Span[]}
  */
-export const spansFromHtml = (doc) => {
+const spansFromHtml = (doc) => {
 	/** @type {({style: Style, char: string, keep: boolean} | "break")[]} */
 	const units = [];
 	const walk = (/** @type {Node} */ node, /** @type {Style} */ style, pre) => {
@@ -136,7 +136,7 @@ export const spansFromHtml = (doc) => {
 };
 
 /** Whether any of the pasted text says how it looks, rather than leaving it all to the box. */
-export const isFormatted = (/** @type {Span[]} */ spans) =>
+const isFormatted = (/** @type {Span[]} */ spans) =>
 	spans.some(({ style }) => Object.keys(style).length > 0);
 
 /**

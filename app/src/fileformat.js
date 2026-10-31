@@ -1,6 +1,5 @@
 import {
 	ALIGN,
-	BARCODE_TYPES,
 	IMAGE_MODES,
 	IMAGE_FITS,
 	FIRST_LINE_SCALES,
@@ -19,7 +18,11 @@ import {
 } from "./model.js";
 import { STORAGE_ID, REPO_URL } from "./app-info.js";
 import { STYLE_PROPS } from "./richtext.js";
-import { QR_KIND_NAMES, detectKind } from "./qrcontent.js";
+import { QR_KIND_NAMES, detectKind } from "./codes/qrcontent.js";
+import { SYMBOLOGIES } from "./codes/barcode.js";
+
+// Formats are listed where they're encoded, so a new one is added in one place.
+const SYMBOLOGY_NAMES = Object.keys(SYMBOLOGIES);
 
 const FORMAT_ID = `${STORAGE_ID}-label`;
 export const CURRENT_VERSION = 1;
@@ -201,20 +204,21 @@ const checkElement = (raw, where) => {
 		return {
 			...box,
 			data: str(e.data, `${where} barcode data`),
-			symbology: oneOf(e.symbology, BARCODE_TYPES, `${where} barcode type`),
+			symbology: oneOf(e.symbology, SYMBOLOGY_NAMES, `${where} barcode type`),
 			showText: bool(e.showText, `${where} show text`),
 			textFont: str(e.textFont, `${where} caption font`) || "Roboto Condensed",
 		};
 	}
 	if (e.type === "qr") {
+		const data = str(e.data, `${where} QR data`);
 		return {
 			...box,
 			// Codes saved before they had kinds: the kind that would have written the data.
 			kind:
 				raw.kind === undefined
-					? detectKind(str(e.data, `${where} QR data`))
+					? detectKind(data)
 					: oneOf(raw.kind, QR_KIND_NAMES, `${where} QR content type`),
-			data: str(e.data, `${where} QR data`),
+			data,
 			level: oneOf(e.level, QR_LEVELS, `${where} error correction`),
 		};
 	}

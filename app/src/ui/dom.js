@@ -56,11 +56,17 @@ export const announce = (msg) => {
 	requestAnimationFrame(() => (a.textContent = msg));
 };
 
-/** Puts the cursor in the bar's first field for an element type (a code's data), ready to type over. */
+/** Puts the cursor in the bar's data field for an element type (a code's), ready to type over. */
 export const focusBarField = (type) => {
-	const field = $(`#quickbar [data-qb="${type}"] [data-prop]`);
+	const field = $(`#quickbar [data-qb="${type}"] .qb-data`);
 	field?.focus();
 	field?.select?.();
+};
+
+/** A group of buttons, one per value (data-value): the one for `value` is pressed. */
+export const showChoice = (group, value) => {
+	for (const b of $$("button", group))
+		b.setAttribute("aria-pressed", String(b.dataset.value === String(value)));
 };
 
 /** "1 label", "2 labels": a count and its noun, which gets an s unless there's one. */
