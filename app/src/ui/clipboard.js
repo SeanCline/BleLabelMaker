@@ -3,9 +3,9 @@
 // which is what lets elements travel to another label, tab or window.
 import { parseBatch } from "../batch.js";
 import { serializeElements, parseElements } from "../fileformat.js";
-import { formattedSpans } from "../htmltext.js";
+import { formattedSpans } from "../text/htmltext.js";
 import { createText, normalizeText } from "../model.js";
-import { fromSpans } from "../richtext.js";
+import { fromSpans } from "../text/richtext.js";
 import { isTyping, toast } from "./dom.js";
 import { state, history, selectedElements, updateElement } from "./store.js";
 import { openBatch, setBatch } from "./batch.js";

@@ -6,8 +6,15 @@
 // textarea's own caret, which drifted wherever its wrapping differed from the label's.
 
 import { layoutTextBox, localSize, quarterOf, QUARTER } from "../render.js";
-import { caretMap, caretAt, indexAt, lineOf, nearestStop, selectionRects } from "../caretmap.js";
-import { BOLD, cssFont, fontInfo, nearestWeight } from "../fonts.js";
+import {
+	caretMap,
+	caretAt,
+	indexAt,
+	lineOf,
+	nearestStop,
+	selectionRects,
+} from "../text/caretmap.js";
+import { BOLD, cssFont, fontInfo, nearestWeight } from "../text/fonts.js";
 import {
 	applyEdit,
 	diffText,
@@ -17,8 +24,8 @@ import {
 	stylesBetween,
 	textOf,
 	typingStyle,
-} from "../richtext.js";
-import { formattedSpans, toHtml } from "../htmltext.js";
+} from "../text/richtext.js";
+import { formattedSpans, toHtml } from "../text/htmltext.js";
 import { $, el, DRAG_SLACK_PX } from "./dom.js";
 import { rememberCaret } from "./caret.js";
 import { placeStyle } from "./viewport.js";
@@ -487,9 +494,9 @@ export const startInlineEdit = (id, caret) => {
 		handles,
 		group: `inline-${++editSeq}`,
 		goalX: null,
-		/** @type {{at: number, style: import("../richtext.js").Style} | null} */
+		/** @type {{at: number, style: import("../text/richtext.js").Style} | null} */
 		pending: null,
-		/** @type {{at: number, removed: number, value: string, spans: import("../richtext.js").Span[]} | null} */
+		/** @type {{at: number, removed: number, value: string, spans: import("../text/richtext.js").Span[]} | null} */
 		pasting: null,
 	};
 	listenForTyping(textarea, id);

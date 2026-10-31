@@ -26,11 +26,14 @@ src/
   model.js       document model, element factories, arranging, margins
   fileformat.js  .label serialize / parse / validate; copied-elements format
   fields.js      {date}, {n}, {1}… filled in per label
-  richtext.js    text with formatted parts (runs): editing, styling, normalizing
-  htmltext.js    formatted text on the clipboard: runs to HTML and back
+  text/          the text engine
+    richtext.js  text with formatted parts (runs): editing, styling, normalizing
+    htmltext.js  formatted text on the clipboard: runs to HTML and back
+    layout.js    text wrapping and fit-to-box (pure, measure fn injected)
+    caretmap.js  caret positions on laid-out text, for the inline editor
+    fonts.js     the font list, and loading each face before it's drawn
+    emoji.js     the emoji picker's list and its search
   batch.js       batch lists: lines, spreadsheet cells, CSV
-  layout.js      text wrapping and fit-to-box (pure, measure fn injected)
-  caretmap.js    caret positions on laid-out text, for the inline editor
   render.js      document → canvas at printer resolution, 1-bit; element cache
   painters/      how each element type draws: text, shapes, codes, image
   codes/         barcode.js (1D), datamatrix.js, qr.js, and qrcontent.js (what a QR code holds)
@@ -45,12 +48,13 @@ src/
   printhistory.js  print history entries, export/import
   share.js       labels as links
   report.js      diagnostics, bug and "it works" reports, GitHub issue links
-  fonts.js, emoji.js, snap.js
+  snap.js        smart guides: what a moved or resized box snaps to
   app.js         entry point: boots the ui/ modules
   ui/
     dom.js       DOM helpers, toast, best-effort localStorage
     store.js     editor state, commit/undo, selection, subscribe, autosave
-    stage.js     preview canvas, overlay, drag/resize/box-select
+    canvas.js    the preview: drawn at printer resolution, fields filled in, what a draw found
+    stage.js     the overlay over it: select, box-select, move, resize, pan and pinch a picture
     inline-editor.js  typing on the label: hidden textarea, caret and selection from caretmap
     viewport.js  fit, zoom and pan
     ruler.js     millimetre rulers with the selection's extent and the pointer
@@ -60,6 +64,7 @@ src/
     layers.js    the Elements list: pick from it, restack by grip or Alt+arrows
     quickbar.js  the bar over the label (the selection's essentials) and the settings sheet
     menus.js     the header's drop-down menus: closing on click-away and Esc
+    date-dialog.js  Date or time…: date and time fields chosen from a few questions
     qr-builder.js  a QR code's kind and fields, in the settings and its main one on the bar
     toolbar.js   arrow keys between a toolbar's controls, one Tab stop for its buttons
     dropdown.js  a select drawn by the page over a hidden native one: icons, fonts in their own face

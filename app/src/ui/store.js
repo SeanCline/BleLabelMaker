@@ -1,5 +1,5 @@
 import { createDocument, normalizeText } from "../model.js";
-import { STYLE_PROPS, retext } from "../richtext.js";
+import { STYLE_PROPS, retext } from "../text/richtext.js";
 import { parse, serialize } from "../fileformat.js";
 import { History } from "../history.js";
 import { loadText, storeJson } from "./dom.js";

@@ -1,12 +1,12 @@
 // Downloads the app's fonts from Google Fonts into fonts/ and writes fonts/fonts.css, so the
 // app never needs the network at runtime, and fonts/LICENSE.txt with each family's license
-// from the google/fonts repository. Re-run after changing FONTS in src/fonts.js:
+// from the google/fonts repository. Re-run after changing FONTS in src/text/fonts.js:
 //   node tools/fetch-fonts.mjs
 // or, to rewrite only the licenses:
 //   node tools/fetch-fonts.mjs --licenses
 import { mkdir, writeFile, rm } from "node:fs/promises";
 import { createHash } from "node:crypto";
-import { FONTS, EMOJI_MONO_GOOGLE } from "../src/fonts.js";
+import { FONTS, EMOJI_MONO_GOOGLE } from "../src/text/fonts.js";
 
 const OUT = new URL("../fonts/", import.meta.url);
 // Labels are short Latin-script text; skipping Cyrillic/Greek/Vietnamese subsets keeps the

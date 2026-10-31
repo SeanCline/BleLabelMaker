@@ -90,6 +90,33 @@ test("a field from the bar goes in where the cursor was on the label", async () 
 	assert.deepEqual(page.errors, []);
 });
 
+test("Date or time… asks which, and puts the fields for it where the cursor was", async () => {
+	const page = await env.open();
+	await typeOnLabel(page);
+	await page.$eval(".inline-edit", (t) => t.setSelectionRange(0, 11));
+	await page.select("#quickbar .insert-field", "date-time");
+	assert.equal(await page.$eval("#dateDialog", (d) => d.open), true);
+	await page.click('#dateShow [data-value="both"]');
+	await page.select("#datePrefix", "Use by");
+	await typeInto(page, "#dateOffset", "3");
+	await page.select("#dateFormat", "iso");
+	// The preview is today's date and time, as it would print now.
+	assert.match(
+		await page.$eval("#datePreview", (p) => p.textContent),
+		/^Use by: \d{4}-\d\d-\d\d \d\d?:\d\d/,
+	);
+	await page.click('#dateDialog button[value="insert"]');
+	assert.equal((await first(page)).text, "Use by: {date+3d:iso} {time}");
+	// It remembers, so the next one is a click away; only the time leaves the date's rows out.
+	await page.select("#quickbar .insert-field", "date-time");
+	assert.equal(await page.$eval("#datePrefix", (s) => s.value), "Use by");
+	await page.click('#dateShow [data-value="time"]');
+	assert.equal(await page.$eval("#dateOffset", (i) => i.closest("[data-date-only]").hidden), true);
+	await page.click('#dateDialog button[value="cancel"]');
+	assert.equal((await first(page)).text, "Use by: {date+3d:iso} {time}", "cancel inserts nothing");
+	assert.deepEqual(page.errors, []);
+});
+
 test("More… opens the rest of the settings under the bar; Esc or clicking away closes them", async () => {
 	const page = await env.open();
 	assert.equal(await visible(page, "#settings"), false);

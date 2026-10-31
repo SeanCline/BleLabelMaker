@@ -6,7 +6,7 @@ import { fieldsUsed } from "../fields.js";
 import { clamp } from "../units.js";
 import { $, el, toast, plural } from "./dom.js";
 import { showVirtualOutput } from "./virtual-output.js";
-import { setFieldContext } from "./stage.js";
+import { setFieldContext } from "./canvas.js";
 import { state, subscribe } from "./store.js";
 import { batchData, previewRow, previewedOnly, onBatchChange } from "./batch.js";
 import { settings, saveSettings, currentPrinter } from "./settings.js";

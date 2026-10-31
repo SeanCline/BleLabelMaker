@@ -5,7 +5,7 @@ import { labelDots, contentLengthMm } from "../render.js";
 import { storageKey } from "../app-info.js";
 import { $, el, loadJson, storeJson } from "./dom.js";
 import { state, history, commit, amend, subscribe } from "./store.js";
-import { onDrawn, previewDocument } from "./stage.js";
+import { onDrawn, previewDocument } from "./canvas.js";
 import { currentPrinter, currentScale, onModelChange } from "./settings.js";
 
 const presetKey = (l) => `${l.widthMm}x${l.heightMm}`;

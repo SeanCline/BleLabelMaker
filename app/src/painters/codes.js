@@ -1,5 +1,5 @@
 // Barcodes and QR codes, in whole dots so every bar and square scans.
-import { cssFamily } from "../fonts.js";
+import { cssFamily } from "../text/fonts.js";
 import { encodeBarcode, SYMBOLOGIES } from "../codes/barcode.js";
 import { encodeDataMatrix } from "../codes/datamatrix.js";
 import { fitQr, QR_LEVEL_NAMES } from "../codes/qr.js";

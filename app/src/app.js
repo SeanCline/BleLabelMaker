@@ -1,10 +1,11 @@
 // Entry point. Each ui/ module wires its own part of the page on import; this file only
 // boots them in order and exposes a small handle for tests and the console.
 import "./ui/errors.js";
-import { installFontStylesheet, preloadFontList } from "./fonts.js";
+import { installFontStylesheet, preloadFontList } from "./text/fonts.js";
 import { clearRenderCache } from "./render.js";
 import { state, notify, currentFile, undo, redo } from "./ui/store.js";
-import { drawCanvas, scheduleCanvas } from "./ui/stage.js";
+import { drawCanvas, scheduleCanvas } from "./ui/canvas.js";
+import "./ui/stage.js";
 import { loadFile, sharedReady } from "./ui/files.js";
 import { print } from "./ui/printing.js";
 import { simulateVirtual } from "./ui/printer-menu.js";

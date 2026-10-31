@@ -1,4 +1,4 @@
-import { mapText, textOf } from "./richtext.js";
+import { mapText, textOf } from "./text/richtext.js";
 
 // Fields in text, barcode and QR data: {date}, {date+30d:iso}, {time}, {n}, {n:000}, {1},
 // {Column name}, and {0} for a batch row's whole line. The document keeps the template; each

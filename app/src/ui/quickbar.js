@@ -3,8 +3,8 @@
 // to the typing; several selected elements get aligning and spacing.
 // The bar is a [data-panel] like the settings' sections, so panels.js binds its fields.
 import { boundsOf } from "../model.js";
-import { BOLD, fontInfo, nearestWeight, weightsFor } from "../fonts.js";
-import { clearStyle } from "../richtext.js";
+import { BOLD, fontInfo, nearestWeight, weightsFor } from "../text/fonts.js";
+import { clearStyle } from "../text/richtext.js";
 import { $, $$ } from "./dom.js";
 import {
 	state,
@@ -17,7 +17,7 @@ import {
 import { deleteSelected, duplicateSelected } from "./actions.js";
 import { syncProps } from "./panels.js";
 import { rovingToolbar } from "./toolbar.js";
-import { onDrawn } from "./stage.js";
+import { onDrawn } from "./canvas.js";
 import {
 	inlineEdit,
 	onInlineChange,

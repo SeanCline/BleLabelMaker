@@ -13,7 +13,7 @@ import { $, $$, el, icon, showChoice } from "./dom.js";
 import { dropdown } from "./dropdown.js";
 import { hasBatch, onBatchChange } from "./batch.js";
 import { history, selected, subscribe, updateElement } from "./store.js";
-import { onDrawn, renderNotes } from "./stage.js";
+import { onDrawn, renderNotes } from "./canvas.js";
 
 const fieldsBox = $("#qrFields");
 const primary = /** @type {HTMLInputElement} */ ($("#quickbar [data-qr-primary]"));

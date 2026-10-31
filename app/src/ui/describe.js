@@ -1,6 +1,6 @@
 // Plain-language names for elements, shared by the Elements list, the canvas description
 // for screen readers, and announcements.
-import { textOf } from "../richtext.js";
+import { textOf } from "../text/richtext.js";
 import { summarise } from "../codes/qrcontent.js";
 
 const SHAPE_NAMES = { rect: "Box", ellipse: "Circle", line: "Line" };

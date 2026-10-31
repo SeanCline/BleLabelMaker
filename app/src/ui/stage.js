@@ -1,16 +1,16 @@
+// The label's overlay: the printable-area guide and a box over each element, and what the
+// pointer does there: select, box-select, move, resize, pan and pinch-zoom a picture. The
+// preview under it is canvas.js.
 import { LIMITS, printableArea, boundsOf } from "../model.js";
-import { renderLabel, localSize, quarterOf, QUARTER } from "../render.js";
+import { localSize, quarterOf, QUARTER } from "../render.js";
 import { pictureFrame, pictureSize } from "../painters/image.js";
-import { fillDocument } from "../fields.js";
-import { ensureFontsFor } from "../fonts.js";
 import { clamp, round } from "../units.js";
-import { textOf } from "../richtext.js";
-import { currentScale, onModelChange } from "./settings.js";
+import { textOf } from "../text/richtext.js";
 import { snapTargets, snapMove, snapResize } from "../snap.js";
 import { $, el, focusBarField, DRAG_SLACK_PX } from "./dom.js";
-import { describeLabel } from "./describe.js";
-import { sizeStage, placeStyle, pct } from "./viewport.js";
-import { inlineEdit, relayoutInline, startInlineEdit, onEditingChange } from "./inline-editor.js";
+import { placeStyle, pct } from "./viewport.js";
+import { relayoutInline, startInlineEdit, onEditingChange } from "./inline-editor.js";
+import { onDrawn, scheduleCanvas } from "./canvas.js";
 import {
 	state,
 	history,
@@ -25,92 +25,13 @@ import {
 	elementById,
 	subscribe,
 } from "./store.js";
-import { signal } from "./signal.js";
 
 export const SNAP_MM = 0.25;
 // Guides grab within this many screen pixels, whatever the zoom.
 const GUIDE_PX = 6;
 
-const canvas = $("#labelCanvas");
 const paper = $("#paper");
 const overlay = $("#overlay");
-
-// ---------------------------------------------------------------------------
-// Canvas
-
-let renderToken = 0;
-let fitted = new Map();
-let warnings = new Map();
-let notes = new Map();
-const drawn = signal();
-
-/** Font sizes (pt) chosen by fit-to-box in the last render, keyed by element id. */
-export const fittedSizes = () => fitted;
-/** Per-element problems from the last render (e.g. a barcode too narrow to scan). */
-export const renderWarnings = () => warnings;
-/** What painters chose by themselves in the last render (a QR code's auto level). */
-export const renderNotes = () => notes;
-export const onDrawn = drawn.on;
-
-/** @type {() => import("../fields.js").FieldContext} */
-let fieldContext = () => ({ now: new Date(), n: 1, row: null, columns: null });
-/**
- * Sets what fields show on the preview (the batch row being previewed, the next counter
- * value). The print code fills each label itself.
- */
-export const setFieldContext = (fn) => {
-	fieldContext = fn;
-	scheduleCanvas();
-};
-
-/** The document as the preview shows it: fields filled in for the row and number in view. */
-export const previewDocument = () =>
-	// The text being typed on the label stays as typed, so the caret lines up with it.
-	fillDocument(state.doc, fieldContext(), { except: inlineEdit()?.id });
-
-// The newest render. One that a newer render overtakes resolves with it instead, so waiting on
-// any render waits until the canvas shows the document as it is now.
-let latestRender = Promise.resolve();
-
-/** Resolves once the canvas shows the current document with its real fonts. */
-export const drawCanvas = () => (latestRender = render());
-
-const render = async () => {
-	const token = ++renderToken;
-	const doc = previewDocument();
-	await ensureFontsFor(doc);
-	if (token !== renderToken) return latestRender;
-	// Off-screen first: a render that waits on an image can overlap a newer one, and two
-	// renders sharing the visible canvas would leave pieces of the older label on it.
-	const scratch = document.createElement("canvas");
-	const result = await renderLabel(doc, scratch, { dots: currentScale() });
-	if (token !== renderToken) return latestRender;
-	({ fittedSizes: fitted, warnings, notes } = result);
-	if (canvas.width !== scratch.width) canvas.width = scratch.width;
-	if (canvas.height !== scratch.height) canvas.height = scratch.height;
-	canvas.getContext("2d", { willReadFrequently: true }).drawImage(scratch, 0, 0);
-	canvas.setAttribute("aria-label", describeLabel(doc));
-	// A picture's size is known once it's drawn, and with it where its pan handle goes.
-	const picked = selected();
-	if (picked?.type === "image") syncBox(picked, state.doc.label);
-	sizeStage();
-	// The editor was laid out when the text changed, perhaps before a newly picked font had
-	// loaded or before the label's new length set its scale; now both are settled.
-	relayoutInline();
-	drawn.emit();
-};
-
-let queued = false;
-// Another model may print at another resolution, which the preview shows.
-onModelChange(() => scheduleCanvas());
-export const scheduleCanvas = () => {
-	if (queued) return;
-	queued = true;
-	requestAnimationFrame(() => {
-		queued = false;
-		drawCanvas();
-	});
-};
 
 // ---------------------------------------------------------------------------
 // Overlay: printable-area guide, selection boxes, handles
@@ -560,6 +481,12 @@ overlay.addEventListener("dblclick", (ev) => {
 	} else {
 		focusBarField(e.type);
 	}
+});
+
+// A picture's size is known once it's drawn, and with it where its pan handle goes.
+onDrawn(() => {
+	const picked = selected();
+	if (picked?.type === "image") syncBox(picked, state.doc.label);
 });
 
 const redraw = () => {

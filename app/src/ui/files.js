@@ -5,7 +5,7 @@ import { $, toast, download } from "./dom.js";
 import { state, loadState, currentFile } from "./store.js";
 import { addImageFile } from "./actions.js";
 import { keepStorage } from "./idb.js";
-import { textOf } from "../richtext.js";
+import { textOf } from "../text/richtext.js";
 
 const slugFor = (doc) => {
 	const text = doc.elements.find((e) => e.type === "text")?.text ?? "";

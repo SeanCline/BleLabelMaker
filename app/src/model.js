@@ -1,8 +1,8 @@
 import { clamp, round } from "./units.js";
 import { DEFAULT_PRINTER } from "./printers/index.js";
-import { plainText } from "./layout.js";
+import { plainText } from "./text/layout.js";
 import { FIELD } from "./fields.js";
-import { mapText, normalize } from "./richtext.js";
+import { mapText, normalize } from "./text/richtext.js";
 
 /**
  * The document model, as saved in .label files (see DESIGN.md). Units are mm and pt.
@@ -10,7 +10,7 @@ import { mapText, normalize } from "./richtext.js";
  *   autoLength (continuous only, and only present when set): the length follows the content
  * @typedef {{id: string, x: number, y: number, w: number, h: number}} Rect
  * @typedef {Rect & {rotation: 0|90|180|270}} Box
- * @typedef {Box & {type: "text", text: import("./richtext.js").RichText, fontFamily: string,
+ * @typedef {Box & {type: "text", text: import("./text/richtext.js").RichText, fontFamily: string,
  *   fontSizePt: number,
  *   fontWeight: number, italic: boolean, align: "left"|"center"|"right",
  *   vAlign: "top"|"middle"|"bottom", fit: boolean, invert: boolean, letterSpacingPt: number,

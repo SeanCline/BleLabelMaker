@@ -17,7 +17,7 @@ import {
 	normalizeText,
 } from "./model.js";
 import { STORAGE_ID, REPO_URL } from "./app-info.js";
-import { STYLE_PROPS } from "./richtext.js";
+import { STYLE_PROPS } from "./text/richtext.js";
 import { QR_KIND_NAMES, detectKind } from "./codes/qrcontent.js";
 import { SYMBOLOGIES } from "./codes/barcode.js";
 
@@ -249,7 +249,7 @@ const checkElement = (raw, where) => {
 
 /**
  * A text's `text`: a string, or runs, each a string or a [style, string] pair.
- * @returns {import("./richtext.js").RichText}
+ * @returns {import("./text/richtext.js").RichText}
  */
 const richText = (v, what) => {
 	if (typeof v === "string") return v;
@@ -259,14 +259,14 @@ const richText = (v, what) => {
 		const part = `${what} part ${i + 1}`;
 		if (!Array.isArray(run) || run.length !== 2 || !isObject(run[0]))
 			throw new LabelFileError(`${part} must be text, or a style and text.`);
-		return /** @type {[import("./richtext.js").Style, string]} */ ([
+		return /** @type {[import("./text/richtext.js").Style, string]} */ ([
 			checkStyle(run[0], part),
 			str(run[1], part),
 		]);
 	});
 };
 
-/** @returns {import("./richtext.js").Style} */
+/** @returns {import("./text/richtext.js").Style} */
 const checkStyle = (style, where) => {
 	const known = /** @type {readonly string[]} */ (STYLE_PROPS);
 	const unknown = Object.keys(style).find((k) => !known.includes(k));

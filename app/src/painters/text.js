@@ -1,10 +1,10 @@
 // Text: laid out the way the inline editor's caret expects (layoutTextBox), and drawn run by
 // run so formatted words, a larger first line and dithered emoji all line up with it.
 import { dotScale } from "../units.js";
-import { alignOffset, layoutText, stackLetters, graphemes, LINE_HEIGHT } from "../layout.js";
+import { alignOffset, layoutText, stackLetters, graphemes, LINE_HEIGHT } from "../text/layout.js";
 import { toOneBit } from "../raster.js";
-import { cssFont, hasEmoji } from "../fonts.js";
-import { textOf, unitStyles } from "../richtext.js";
+import { cssFont, hasEmoji } from "../text/fonts.js";
+import { textOf, unitStyles } from "../text/richtext.js";
 import { makeCanvas } from "./common.js";
 
 /**

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { wrapText, layoutText, LINE_HEIGHT } from "../src/layout.js";
+import { wrapText, layoutText, LINE_HEIGHT } from "../src/text/layout.js";
 import { monoMeasure, monoRange } from "./helpers.js";
 
 // Each char is 5 units wide at size 10.

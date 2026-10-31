@@ -2,7 +2,7 @@
 // after the list is on screen, so a long list opens at once and each picture pops in as it's
 // drawn.
 import { renderLabel } from "../render.js";
-import { ensureFontsFor } from "../fonts.js";
+import { ensureFontsFor } from "../text/fonts.js";
 import { currentScale } from "./settings.js";
 
 /**

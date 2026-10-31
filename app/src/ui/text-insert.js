@@ -1,11 +1,12 @@
-// The emoji picker, and putting emoji and fields into text.
-import { searchEmoji } from "../emoji.js";
-import { plainText } from "../layout.js";
-import { applyEdit, textOf } from "../richtext.js";
+// The emoji picker, and putting emoji, fields and dates into text.
+import { searchEmoji } from "../text/emoji.js";
+import { plainText } from "../text/layout.js";
+import { applyEdit, textOf } from "../text/richtext.js";
 import { $, el } from "./dom.js";
 import { history, selected, updateElement, elementById } from "./store.js";
 import { inlineEdit, startInlineEdit } from "./inline-editor.js";
 import { rememberCaret, takeCaret } from "./caret.js";
+import { pickDateTime } from "./date-dialog.js";
 
 const emojiDialog = $("#emojiDialog");
 let emojiCallback = null;
@@ -78,11 +79,15 @@ $(".insert-emoji", bar).addEventListener("click", () => {
 	if (t) pickEmoji((char) => insert(t.e, t.caret, char));
 });
 const menu = /** @type {HTMLSelectElement} */ ($(".insert-field", bar));
+// The menu's entry that asks which date or time, rather than inserting one.
+const DATE_TIME = "date-time";
 menu.addEventListener("change", () => {
 	const value = menu.value;
 	menu.value = "";
 	const t = target();
-	if (t && value) insert(t.e, t.caret, value);
+	if (!t || !value) return;
+	if (value === DATE_TIME) pickDateTime((text) => insert(t.e, t.caret, text));
+	else insert(t.e, t.caret, value);
 });
 
 // Text fields keep their text plain as it's typed or pasted (see plainText), before the app

@@ -3,7 +3,7 @@
 // and what to tell; anything else that prints (a script, a test) can use this as it is.
 import { planLabels, buildJobs, sentPart } from "./printjob.js";
 import { renderLabel, withAutoLength } from "./render.js";
-import { ensureFontsFor } from "./fonts.js";
+import { ensureFontsFor } from "./text/fonts.js";
 import { SendError, VirtualPrinter } from "./transport.js";
 import { dotScale } from "./units.js";
 

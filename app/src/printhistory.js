@@ -1,7 +1,7 @@
 import { parse, serialize, LabelFileError } from "./fileformat.js";
 import { STORAGE_ID, REPO_URL } from "./app-info.js";
-import { plainText } from "./layout.js";
-import { textOf } from "./richtext.js";
+import { plainText } from "./text/layout.js";
+import { textOf } from "./text/richtext.js";
 
 export const HISTORY_FORMAT = `${STORAGE_ID}-history`;
 const HISTORY_VERSION = 1;

@@ -9,7 +9,7 @@ import {
 	nearestWeight,
 	fontInfo,
 	hasEmoji,
-} from "../fonts.js";
+} from "../text/fonts.js";
 import { clamp, round } from "../units.js";
 import { $, $$, el, showChoice } from "./dom.js";
 import { dropdown } from "./dropdown.js";
@@ -17,7 +17,7 @@ import { SYMBOLOGIES } from "../codes/barcode.js";
 import { REPO_URL } from "../app-info.js";
 import { state, history, updateElement, selected, subscribe, undo, redo } from "./store.js";
 import { rotateElement } from "./actions.js";
-import { fittedSizes, onDrawn, renderWarnings } from "./stage.js";
+import { fittedSizes, onDrawn, renderWarnings } from "./canvas.js";
 import { inlineEdit, onInlineChange } from "./inline-editor.js";
 import {
 	STYLE_PROPS,
@@ -27,7 +27,7 @@ import {
 	setStyle,
 	stylesBetween,
 	textOf,
-} from "../richtext.js";
+} from "../text/richtext.js";
 
 // The list is kept short on purpose, so one that's asked for is worth adding. Asking is the
 // list's last choice, where someone who didn't find theirs ends up.

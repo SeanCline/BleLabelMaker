@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { EMOJI, searchEmoji } from "../src/emoji.js";
+import { EMOJI, searchEmoji } from "../src/text/emoji.js";
 
 test("every picker emoji has a name and appears once", () => {
 	assert.ok(EMOJI.length > 150);

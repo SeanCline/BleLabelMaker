@@ -12,14 +12,14 @@ import {
 	stylesBetween,
 	textOf,
 	typingStyle,
-} from "../src/richtext.js";
+} from "../src/text/richtext.js";
 import { createText, normalizeText } from "../src/model.js";
-import { spansForBox, toHtml } from "../src/htmltext.js";
+import { spansForBox, toHtml } from "../src/text/htmltext.js";
 import { fillDocument, fieldsUsed } from "../src/fields.js";
-import { layoutText } from "../src/layout.js";
+import { layoutText } from "../src/text/layout.js";
 import { monoMeasure } from "./helpers.js";
 
-/** @typedef {import("../src/richtext.js").RichText} RichText */
+/** @typedef {import("../src/text/richtext.js").RichText} RichText */
 
 const BOLD = { fontWeight: 700 };
 const base = { fontWeight: 400, italic: false, underline: false };

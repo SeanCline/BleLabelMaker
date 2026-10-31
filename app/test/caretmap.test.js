@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { wrapLines, layoutText, stackLetters, LINE_HEIGHT } from "../src/layout.js";
+import { wrapLines, layoutText, stackLetters, LINE_HEIGHT } from "../src/text/layout.js";
 import {
 	caretMap,
 	caretAt,
@@ -8,7 +8,7 @@ import {
 	lineOf,
 	nearestStop,
 	selectionRects,
-} from "../src/caretmap.js";
+} from "../src/text/caretmap.js";
 import { monoMeasure, monoRange } from "./helpers.js";
 
 // Each char is 5 units wide at size 10.
