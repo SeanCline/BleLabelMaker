@@ -818,7 +818,12 @@ test("the caret is at the label's scale when an auto-length label shrinks for ty
 	await page.keyboard.press("End");
 	await page.keyboard.type("x");
 	await page.keyboard.press("Backspace");
-	assert.ok(Math.abs((await caret()) - before) < 0.5, `${before} at first, ${await caret()} after`);
+	// As painted: Firefox can be read mid-layout, between the key and the next frame.
+	await page.evaluate(
+		() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+	);
+	const after = await caret();
+	assert.ok(Math.abs(after - before) < 0.5, `${before} at first, ${after} after`);
 	assert.deepEqual(page.errors, []);
 });
 
