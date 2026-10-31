@@ -536,11 +536,11 @@
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#braces" /></svg>
 							<select class="insert-field" aria-label="Insert a field">
 								<option value="" hidden disabled selected>Insert a field</option>
-								<option value="date-time">Date or time…</option>
 								<option value="{date}">Today's date</option>
 								<option value="{date+30d}">Date in 30 days</option>
 								<option value="{date:iso}">Date as 2026-12-31</option>
 								<option value="{time}">Time</option>
+								<option value="{date} {time}">Date and time</option>
 								<option value="{n}">Counter (1, 2, 3…)</option>
 								<option value="{n:000}">Counter (001, 002…)</option>
 								<option value="{1}">Batch column 1</option>
@@ -840,6 +840,12 @@
 							rows="3"
 							aria-labelledby="textHeading"
 						></textarea>
+						<p class="hint" data-show-if-date hidden>
+							Dates count from the day it prints: <code>{date+30d}</code> is 30 days on, and
+							<code>-</code> goes back. Use <code>d</code>, <code>w</code>, <code>m</code> or
+							<code>y</code>. Add <code>:iso</code> for 2026-12-31, or <code>:num</code> for your
+							usual numbers.
+						</p>
 						<div class="prop-row" data-show-if-emoji hidden>
 							<span id="emojiLabel">Emoji</span>
 							<span
@@ -1229,65 +1235,6 @@
 					Nothing matches. Any emoji can also be typed or pasted straight into the text.
 				</p>
 				<div class="dialog-actions row"><button value="cancel">Cancel</button></div>
-			</form>
-		</dialog>
-
-		<dialog id="dateDialog" aria-labelledby="dateTitle">
-			<form method="dialog" class="stack">
-				<h2 id="dateTitle">Date or time</h2>
-				<div class="prop-row">
-					<span id="dateShowLabel">Show</span>
-					<span class="segmented fill" id="dateShow" role="group" aria-labelledby="dateShowLabel">
-						<button type="button" data-value="date">Date</button>
-						<button type="button" data-value="time">Time</button>
-						<button type="button" data-value="both">Both</button>
-					</span>
-				</div>
-				<label class="prop-row">
-					Before it
-					<select id="datePrefix">
-						<option value="">Nothing</option>
-						<option>Best before</option>
-						<option>Use by</option>
-						<option>Expires</option>
-						<option>Opened</option>
-						<option>Made</option>
-						<option>Packed</option>
-						<option>Frozen</option>
-					</select>
-				</label>
-				<div class="prop-row" data-date-only>
-					<span id="dateOffsetLabel">From today</span>
-					<span class="with-unit" role="group" aria-labelledby="dateOffsetLabel">
-						<input
-							type="number"
-							id="dateOffset"
-							min="-999"
-							max="999"
-							step="1"
-							value="0"
-							aria-label="How far from today"
-						/>
-						<select id="dateUnit" aria-label="Unit">
-							<option value="d">days</option>
-							<option value="w">weeks</option>
-							<option value="m">months</option>
-							<option value="y">years</option>
-						</select>
-					</span>
-				</div>
-				<label class="prop-row" data-date-only>
-					Format
-					<select id="dateFormat"></select>
-				</label>
-				<p class="hint">
-					<span id="datePreview" class="date-preview"></span><br />
-					It's filled in each time the label prints.
-				</p>
-				<div class="dialog-actions row">
-					<button value="cancel">Cancel</button>
-					<button value="insert" class="primary">Insert</button>
-				</div>
 			</form>
 		</dialog>
 

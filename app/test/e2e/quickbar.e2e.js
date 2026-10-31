@@ -90,30 +90,18 @@ test("a field from the bar goes in where the cursor was on the label", async () 
 	assert.deepEqual(page.errors, []);
 });
 
-test("Date or time… asks which, and puts the fields for it where the cursor was", async () => {
+test("a date from the Field menu says how to count other days, and so do the settings", async () => {
 	const page = await env.open();
+	await (await bar(page, '[data-qb-action="more"]')).click();
+	const hint = () => visible(page, "#textProps [data-show-if-date]");
+	assert.equal(await hint(), false, "no date, nothing to explain");
 	await typeOnLabel(page);
-	await page.$eval(".inline-edit", (t) => t.setSelectionRange(0, 11));
-	await page.select("#quickbar .insert-field", "date-time");
-	assert.equal(await page.$eval("#dateDialog", (d) => d.open), true);
-	await page.click('#dateShow [data-value="both"]');
-	await page.select("#datePrefix", "Use by");
-	await typeInto(page, "#dateOffset", "3");
-	await page.select("#dateFormat", "iso");
-	// The preview is today's date and time, as it would print now.
-	assert.match(
-		await page.$eval("#datePreview", (p) => p.textContent),
-		/^Use by: \d{4}-\d\d-\d\d \d\d?:\d\d/,
-	);
-	await page.click('#dateDialog button[value="insert"]');
-	assert.equal((await first(page)).text, "Use by: {date+3d:iso} {time}");
-	// It remembers, so the next one is a click away; only the time leaves the date's rows out.
-	await page.select("#quickbar .insert-field", "date-time");
-	assert.equal(await page.$eval("#datePrefix", (s) => s.value), "Use by");
-	await page.click('#dateShow [data-value="time"]');
-	assert.equal(await page.$eval("#dateOffset", (i) => i.closest("[data-date-only]").hidden), true);
-	await page.click('#dateDialog button[value="cancel"]');
-	assert.equal((await first(page)).text, "Use by: {date+3d:iso} {time}", "cancel inserts nothing");
+	await page.$eval(".inline-edit", (t) => t.setSelectionRange(11, 11));
+	await page.select("#quickbar .insert-field", "{date} {time}");
+	assert.equal((await first(page)).text, "Hello world{date} {time}");
+	assert.match(await page.$eval("#toast", (t) => t.textContent), /\{date\+30d\} is 30 days/);
+	await (await bar(page, '[data-qb-action="more"]')).click();
+	assert.equal(await hint(), true);
 	assert.deepEqual(page.errors, []);
 });
 

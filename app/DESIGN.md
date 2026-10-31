@@ -64,7 +64,6 @@ src/
     layers.js    the Elements list: pick from it, restack by grip or Alt+arrows
     quickbar.js  the bar over the label (the selection's essentials) and the settings sheet
     menus.js     the header's drop-down menus: closing on click-away and Esc
-    date-dialog.js  Date or time…: date and time fields chosen from a few questions
     qr-builder.js  a QR code's kind and fields, in the settings and its main one on the bar
     toolbar.js   arrow keys between a toolbar's controls, one Tab stop for its buttons
     dropdown.js  a select drawn by the page over a hidden native one: icons, fonts in their own face

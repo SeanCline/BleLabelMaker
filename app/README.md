@@ -86,8 +86,7 @@ bottom of the font list asks for a Google Font to be added.
 - **Fields** fill themselves in when the label prints. Type them, or pick one
   from the _Field_ menu (`{ }` on the bar while typing):
   - `{date}`, `{date+30d}` (also `-1w`, `+3m`, `+1y`), `{date:iso}` for
-    2026-12-31, `{time}`. _Date or time…_ in the menu writes these for you, with
-    words like "Best before" ahead of them.
+    2026-12-31, `{time}`
   - `{n}` or `{n:000}`: a number that goes up with every label printed. _Next
     number_, under the arrow beside Print, sets where it continues.
   - `{{` and `}}` print a literal brace.

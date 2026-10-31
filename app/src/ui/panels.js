@@ -87,6 +87,9 @@ export const syncProps = (root, element) => {
 		node.hidden = !node.dataset.showFor.split(" ").includes(element.shape);
 	}
 	for (const node of $$("[data-show-if]", root)) node.hidden = !element[node.dataset.showIf];
+	// How to change a date's days, said while there's a date to change.
+	for (const node of $$("[data-show-if-date]", root))
+		node.hidden = !/\{date/i.test(textOf(element.text ?? ""));
 	// Only worth offering while there's an emoji to print.
 	// A choice's description: the one picked in the list it names.
 	for (const node of $$("[data-hint-of]", root)) {

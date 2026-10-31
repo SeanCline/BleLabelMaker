@@ -1245,14 +1245,6 @@ h3.section {
 	margin-top: 4px;
 	padding-top: 11px;
 }
-/* What "Date or time…" will insert, as it would print today. */
-.date-preview {
-	color: var(--text);
-	font-weight: 600;
-}
-#dateDialog {
-	width: min(380px, calc(100vw - 32px));
-}
 /* The text a QR code holds, as it is: a vCard runs to several lines. */
 #qrRaw {
 	margin: var(--gap-tight) 0 0;
