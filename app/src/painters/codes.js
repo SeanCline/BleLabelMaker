@@ -1,13 +1,26 @@
 // Barcodes and QR codes, in whole dots so every bar and square scans.
 import { cssFamily } from "../fonts.js";
-import { encodeBarcode } from "../barcode.js";
+import { encodeBarcode, SYMBOLOGIES } from "../barcode.js";
+import { encodeDataMatrix } from "../datamatrix.js";
 import { fitQr, QR_LEVEL_NAMES } from "../qr.js";
 import { drawUnavailable } from "./common.js";
 
-// Human-readable line under 1D barcodes, in mm.
+// The human-readable line under a barcode, in mm.
 const BARCODE_TEXT_MM = 2.25;
 
+/** The barcode's text under it, in the space it left: `textH` dots tall. */
+const drawCaption = (ctx, e, text, box, textH) => {
+	ctx.font = `600 ${textH}px ${cssFamily(e.textFont)}`;
+	ctx.textAlign = "center";
+	ctx.textBaseline = "bottom";
+	ctx.fillText(text, box.w / 2, box.h, box.w);
+};
+
+const captionHeight = (e, box, dots) =>
+	e.showText ? Math.min(Math.round(dots.mm(BARCODE_TEXT_MM)), Math.floor(box.h * 0.4)) : 0;
+
 export const drawBarcode = (ctx, e, box, dots) => {
+	if (SYMBOLOGIES[e.symbology]?.matrix) return drawDataMatrix(ctx, e, box, dots);
 	let enc;
 	try {
 		enc = encodeBarcode(e.symbology, e.data);
@@ -24,9 +37,7 @@ export const drawBarcode = (ctx, e, box, dots) => {
 			"Too much data for this width. Make the barcode wider or shorten the data.",
 		);
 
-	const textH = e.showText
-		? Math.min(Math.round(dots.mm(BARCODE_TEXT_MM)), Math.floor(box.h * 0.4))
-		: 0;
+	const textH = captionHeight(e, box, dots);
 	const barsH = box.h - textH;
 	const width = enc.modules.length * unit;
 	const x0 = Math.floor((box.w - width) / 2);
@@ -42,16 +53,48 @@ export const drawBarcode = (ctx, e, box, dots) => {
 		ctx.fillRect(x0 + i * unit, 0, (j - i) * unit, barsH);
 		i = j;
 	}
-	if (textH) {
-		ctx.font = `600 ${textH}px ${cssFamily(e.textFont)}`;
-		ctx.textAlign = "center";
-		ctx.textBaseline = "bottom";
-		ctx.fillText(enc.text, box.w / 2, box.h, box.w);
-	}
+	if (textH) drawCaption(ctx, e, enc.text, box, textH);
 	if (unit === 1)
 		return {
 			warning:
 				"Bars are one printer dot wide, which may not scan reliably. Make the barcode wider.",
+		};
+	return null;
+};
+
+// Data Matrix keeps a one-square blank border inside its box, as a QR code keeps its own.
+const MATRIX_QUIET = 1;
+
+/** A Data Matrix, in the size and shape (square or rectangle) that fits its box best. */
+const drawDataMatrix = (ctx, e, box, dots) => {
+	const textH = captionHeight(e, box, dots);
+	const room = { width: box.w, height: box.h - textH };
+	let m;
+	try {
+		m = encodeDataMatrix(e.data, room, MATRIX_QUIET);
+	} catch (err) {
+		return drawUnavailable(ctx, box, err.message);
+	}
+	const across = m.cols + MATRIX_QUIET * 2;
+	const down = m.rows + MATRIX_QUIET * 2;
+	const unit = Math.floor(Math.min(room.width / across, room.height / down));
+	if (unit < 1)
+		return drawUnavailable(
+			ctx,
+			box,
+			"Too much data for this size. Make the code bigger or the data shorter.",
+		);
+	const x0 = Math.floor((room.width - m.cols * unit) / 2);
+	const y0 = Math.floor((room.height - m.rows * unit) / 2);
+	ctx.fillStyle = "#000";
+	for (let y = 0; y < m.rows; y++)
+		for (let x = 0; x < m.cols; x++)
+			if (m.dark(x, y)) ctx.fillRect(x0 + x * unit, y0 + y * unit, unit, unit);
+	if (textH) drawCaption(ctx, e, e.data, box, textH);
+	if (unit === 1)
+		return {
+			warning:
+				"Each square is one printer dot, too small for most scanners. Make it bigger or use less data.",
 		};
 	return null;
 };

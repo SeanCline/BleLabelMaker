@@ -44,7 +44,7 @@ src/
   printhistory.js  print history entries, export/import
   share.js       labels as links
   report.js      diagnostics, bug and "it works" reports, GitHub issue links
-  fonts.js, emoji.js, barcode.js, qr.js, qrcontent.js, snap.js
+  fonts.js, emoji.js, barcode.js, datamatrix.js, qr.js, qrcontent.js, snap.js
   app.js         entry point: boots the ui/ modules
   ui/
     dom.js       DOM helpers, toast, best-effort localStorage
@@ -229,7 +229,10 @@ different lists.
   Outlines are drawn entirely inside the box, at `strokeMm` thickness rounded
   to whole dots.
 - Barcodes (`"type": "barcode"`, with `data`, `symbology` = `CODE128` / `CODE39` /
-  `EAN13` / `EAN8` / `UPCA` / `ITF14`, and `showText`) are encoded by `src/barcode.js`. QR codes
+  `EAN13` / `EAN8` / `UPCA` / `UPCE` / `ITF14` / `CODABAR` / `DATAMATRIX`, and
+  `showText`) are encoded by `src/barcode.js`, and Data Matrix by `src/datamatrix.js`
+  (ASCII encodation, single-block sizes up to 48×48, in the square or rectangle whose
+  squares come out biggest in the box). QR codes
   (`"type": "qr"`, with `kind`, `data` and `level` = `auto`/`L`/`M`/`Q`/`H`) use the
   vendored `qrcode-generator` with UTF-8 text. A QR code has no content type of
   its own: phones act on the text's format. `kind` (`text`, `link`, `wifi`,

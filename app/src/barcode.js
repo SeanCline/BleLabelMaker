@@ -33,10 +33,26 @@ export const SYMBOLOGIES = {
 		hint: "12-digit product code, as in North American shops. The check digit is added for you.",
 		quiet: 9,
 	},
+	UPCE: {
+		name: "UPC-E",
+		hint: "Short UPC for small packets: 6 digits, or a UPC-A with enough zeros to shorten.",
+		quiet: 9,
+	},
 	ITF14: {
 		name: "ITF-14",
 		hint: "14-digit code for shipping cartons. The check digit is added for you.",
 		quiet: 10,
+	},
+	CODABAR: {
+		name: "Codabar",
+		hint: "Digits and - $ : / . +, as on library books. Starts and ends with A unless you give A–D.",
+		quiet: 10,
+	},
+	DATAMATRIX: {
+		name: "Data Matrix",
+		hint: "A 2D code that suits a narrow label: it picks the square or rectangle that fits best.",
+		quiet: 1,
+		matrix: true,
 	},
 };
 
@@ -285,6 +301,105 @@ const encodeItf14 = (data) => {
 	return { modules, text: full };
 };
 
+// UPC-E: a UPC-A whose zeros can be left out, in six digits. The number system (0 or 1) and the
+// check digit aren't drawn as digits: they choose each digit's parity.
+const UPCE_PARITY = [
+	"EEEOOO",
+	"EEOEOO",
+	"EEOOEO",
+	"EEOOOE",
+	"EOEEOO",
+	"EOOEEO",
+	"EOOOEE",
+	"EOEOEO",
+	"EOEOOE",
+	"EOOEOE",
+];
+
+/** The UPC-A (without its check digit) that a number system and six UPC-E digits stand for. */
+const expandUpce = (ns, d) => {
+	const last = Number(d[5]);
+	if (last <= 2) return ns + d[0] + d[1] + d[5] + "0000" + d[2] + d[3] + d[4];
+	if (last === 3) return ns + d[0] + d[1] + d[2] + "00000" + d[3] + d[4];
+	if (last === 4) return ns + d[0] + d[1] + d[2] + d[3] + "00000" + d[4];
+	return ns + d.slice(0, 5) + "0000" + d[5];
+};
+
+/** The six UPC-E digits for an 11-digit UPC-A body, if it has the zeros to shorten. */
+const compressUpca = (a) => {
+	const candidates = [
+		a.slice(1, 3) + a.slice(8, 11) + a[3],
+		a.slice(1, 4) + a.slice(9, 11) + "3",
+		a.slice(1, 5) + a[10] + "4",
+		a.slice(1, 6) + a[10],
+	];
+	return candidates.find((d) => expandUpce(a[0], d) === a) ?? null;
+};
+
+const encodeUpce = (data) => {
+	const raw = data.replace(/\s+/g, "");
+	if (!/^\d+$/.test(raw)) throw new BarcodeError("UPC-E uses digits only.");
+	let ns;
+	let six;
+	let given = null;
+	if (raw.length === 6) [ns, six] = ["0", raw];
+	else if (raw.length === 7 || raw.length === 8) {
+		[ns, six] = [raw[0], raw.slice(1, 7)];
+		if (raw.length === 8) given = Number(raw[7]);
+	} else if (raw.length === 11 || raw.length === 12) {
+		six = compressUpca(raw.slice(0, 11));
+		if (!six)
+			throw new BarcodeError(
+				"That UPC-A doesn't shorten to UPC-E: it needs more zeros. Use UPC-A.",
+			);
+		ns = raw[0];
+		if (raw.length === 12) given = Number(raw[11]);
+	} else
+		throw new BarcodeError(
+			"UPC-E needs 6 digits (or 7 with the number system), or a UPC-A to shorten.",
+		);
+	if (ns !== "0" && ns !== "1") throw new BarcodeError("UPC-E's number system is 0 or 1.");
+	const check = gtinCheckDigit(expandUpce(ns, six));
+	if (given !== null && given !== check)
+		throw new BarcodeError(
+			`The last digit should be ${check} (check digit). Leave it off and it's added for you.`,
+		);
+	const parity = UPCE_PARITY[check];
+	let bits = "101";
+	for (let i = 0; i < 6; i++) {
+		// Number system 1 swaps odd and even.
+		const even = (parity[i] === "E") === (ns === "0");
+		bits += (even ? EAN_G : EAN_L)[Number(six[i])];
+	}
+	bits += "010101";
+	return { modules: [...bits].map(Number), text: ns + six + check };
+};
+
+// Codabar: seven elements a character, two or three of them wide; A, B, C or D start and stop it.
+const CODABAR_CHARS = "0123456789-$:/.+ABCD";
+export const CODABAR_PATTERNS = (
+	"nnnnnww nnnnwwn nnnwnnw wwnnnnn nnwnnwn wnnnnwn nwnnnnw nwnnwnn nwwnnnn wnnwnnn " +
+	"nnnwwnn nnwwnnn wnnnwnw wnwnnnw wnwnwnn nnwnwnw nnwwnwn nwnwnnw nnnwnww nnnwwwn"
+).split(" ");
+
+const encodeCodabar = (data) => {
+	const upper = data.toUpperCase().replace(/\s+/g, "");
+	// Given start and stop letters are kept (they can mean something to the system reading
+	// it); otherwise it's A to A, the usual.
+	const framed = /^[A-D].*[A-D]$/.test(upper) && upper.length > 1 ? upper : `A${upper}A`;
+	const body = framed.slice(1, -1);
+	if (!body) throw new BarcodeError("Enter something to encode.");
+	for (const ch of body)
+		if (!"0123456789-$:/.+".includes(ch))
+			throw new BarcodeError(`Codabar can't encode “${ch}”. Use digits and - $ : / . +.`);
+	const modules = [];
+	[...framed].forEach((ch, i) => {
+		if (i) modules.push(0);
+		narrowWide(CODABAR_PATTERNS[CODABAR_CHARS.indexOf(ch)], modules);
+	});
+	return { modules, text: body };
+};
+
 /**
  * @returns {{modules: number[], text: string, quiet: number}} text is the human-readable line
  * (with the computed check digit for EAN/UPC)
@@ -299,7 +414,11 @@ export const encodeBarcode = (symbology, data) => {
 		EAN8: encodeEan8,
 		UPCA: (d) => encodeEan13(d, { name: "UPC-A", digits: 12 }),
 		ITF14: encodeItf14,
+		UPCE: encodeUpce,
+		CODABAR: encodeCodabar,
 	}[symbology];
+	// Data Matrix is 2D: its painter draws it with encodeDataMatrix, sized to its box.
+	if (!encode) throw new BarcodeError(`${spec.name} isn't a row of bars.`);
 	const result = encode(data);
 	return { ...result, quiet: spec.quiet };
 };

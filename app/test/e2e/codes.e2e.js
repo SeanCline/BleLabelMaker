@@ -169,3 +169,15 @@ test("the barcode's format comes with what it takes; a Code 39 made in the UI sc
 	);
 	assert.deepEqual(page.errors, []);
 });
+
+test("a Data Matrix made in the UI takes a rectangle on a long label, and scans", async () => {
+	const page = await env.open();
+	await clearLabel(page);
+	await page.click("#addBarcode");
+	await openSettings(page);
+	await page.select("#barcodeProps select.barcode-format", "DATAMATRIX");
+	await typeInto(page, '#barcodeProps [data-prop="data"]', "ASSET-0042");
+	assert.equal(scan(await printAndCapture(page), [BarcodeFormat.DATA_MATRIX]), "ASSET-0042");
+	assert.equal(await page.$eval("#elementWarning", (w) => w.hidden), true, "squares big enough");
+	assert.deepEqual(page.errors, []);
+});
