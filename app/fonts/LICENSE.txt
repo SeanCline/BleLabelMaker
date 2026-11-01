@@ -1,17 +1,19 @@
 Fonts bundled with this app, downloaded from Google Fonts by tools/fetch-fonts.mjs.
 The .woff2 files are named by a hash of their download address; fonts.css says which family
-each one is. Every family's license follows in full.
+each one is. mdi.woff2 and mdi.json are the icon font and its names, from npm (@mdi/font and
+@mdi/svg 7.4.47). Every family's license follows in full.
 
-  Inter                SIL Open Font License 1.1
-  Roboto Condensed     SIL Open Font License 1.1
-  Oswald               SIL Open Font License 1.1
-  Bebas Neue           SIL Open Font License 1.1
-  Roboto Slab          Apache License 2.0
-  Lora                 SIL Open Font License 1.1
-  Roboto Mono          SIL Open Font License 1.1
-  Permanent Marker     Apache License 2.0
-  Pacifico             SIL Open Font License 1.1
-  Noto Emoji           SIL Open Font License 1.1
+  Inter                   SIL Open Font License 1.1
+  Roboto Condensed        SIL Open Font License 1.1
+  Oswald                  SIL Open Font License 1.1
+  Bebas Neue              SIL Open Font License 1.1
+  Roboto Slab             Apache License 2.0
+  Lora                    SIL Open Font License 1.1
+  Roboto Mono             SIL Open Font License 1.1
+  Permanent Marker        Apache License 2.0
+  Pacifico                SIL Open Font License 1.1
+  Noto Emoji              SIL Open Font License 1.1
+  Material Design Icons   Pictogrammers Free License (Apache License 2.0)
 
 ==============================================================================
 Inter (SIL Open Font License 1.1)
@@ -1218,3 +1220,29 @@ INCLUDING ANY GENERAL, SPECIAL, INDIRECT, INCIDENTAL, OR CONSEQUENTIAL
 DAMAGES, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF THE USE OR INABILITY TO USE THE FONT SOFTWARE OR FROM
 OTHER DEALINGS IN THE FONT SOFTWARE.
+
+==============================================================================
+Material Design Icons (Pictogrammers Free License (Apache License 2.0))
+https://cdn.jsdelivr.net/npm/@mdi/font@7.4.47/LICENSE
+==============================================================================
+
+Pictogrammers Free License
+--------------------------
+
+This icon collection is released as free, open source, and GPL friendly by
+the [Pictogrammers](http://pictogrammers.com/) icon group. You may use it
+for commercial projects, open source projects, or anything really.
+
+# Icons: Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+Some of the icons are redistributed under the Apache 2.0 license. All other
+icons are either redistributed under their respective licenses or are
+distributed under the Apache 2.0 license.
+
+# Fonts: Apache 2.0 (https://www.apache.org/licenses/LICENSE-2.0)
+All web and desktop fonts are distributed under the Apache 2.0 license. Web
+and desktop fonts contain some icons that are redistributed under the Apache
+2.0 license. All other icons are either redistributed under their respective
+licenses or are distributed under the Apache 2.0 license.
+
+# Code: MIT (https://opensource.org/licenses/MIT)
+The MIT license applies to all non-font and non-icon files.

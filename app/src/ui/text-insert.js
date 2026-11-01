@@ -1,5 +1,6 @@
-// The emoji picker, and putting emoji and fields into text.
+// The emoji and icon picker, and putting emoji, icons and fields into text.
 import { searchEmoji } from "../text/emoji.js";
+import { loadIcons, searchIcons } from "../text/icons.js";
 import { plainText } from "../text/layout.js";
 import { applyEdit, textOf } from "../text/richtext.js";
 import { $, el, toast } from "./dom.js";
@@ -9,20 +10,61 @@ import { rememberCaret, takeCaret } from "./caret.js";
 
 const emojiDialog = $("#emojiDialog");
 let emojiCallback = null;
+// A few hundred buttons draw at once; past that a search is too broad to scroll through anyway.
+const MAX_ICONS = 240;
+/** @type {import("../text/icons.js").Icon[] | null} */
+let icons = null;
 // Enter in the search box submits the form with its first button: the first match.
 const renderEmojiGrid = () => {
-	const found = searchEmoji($("#emojiSearch").value);
+	const query = $("#emojiSearch").value;
+	const found = searchEmoji(query);
+	// Shown as they print, in outline: with its emoji selector Chromium draws one in colour.
 	$("#emojiGrid").replaceChildren(
 		...found.map((e) =>
-			el("button", { value: e.char, textContent: e.char, title: e.words, "aria-label": e.words }),
+			el("button", {
+				value: e.char,
+				textContent: plainText(e.char),
+				title: e.words,
+				"aria-label": e.words,
+			}),
 		),
 	);
-	$("#emojiNone").hidden = found.length > 0;
+	const iconsFound = icons ? searchIcons(icons, query) : [];
+	$("#iconGrid").replaceChildren(
+		...iconsFound.slice(0, MAX_ICONS).map((i) =>
+			el("button", {
+				value: i.char,
+				textContent: i.char,
+				title: i.name,
+				"aria-label": `${i.name} icon`,
+			}),
+		),
+	);
+	// Offline before the icons were ever fetched, they're left out rather than promised.
+	const hint = $("#iconHint");
+	if (!icons) hint.textContent = "Loading icons…";
+	else if (!icons.length) hint.textContent = "";
+	else if (!query.trim())
+		hint.textContent = `Search to find one of ${icons.length.toLocaleString()} icons.`;
+	else if (iconsFound.length > MAX_ICONS)
+		hint.textContent = `And ${(iconsFound.length - MAX_ICONS).toLocaleString()} more: add a word to narrow it down.`;
+	else hint.textContent = "";
+	hint.hidden = !hint.textContent;
+	$("#emojiHeading").hidden = found.length === 0;
+	$("#iconHeading").hidden = hint.hidden && iconsFound.length === 0;
+	$("#emojiNone").hidden = found.length + iconsFound.length > 0 || !hint.hidden;
 };
 $("#emojiSearch").addEventListener("input", renderEmojiGrid);
 const pickEmoji = (cb) => {
 	emojiCallback = cb;
 	$("#emojiSearch").value = "";
+	if (!icons?.length) {
+		icons = null;
+		loadIcons().then((list) => {
+			icons = list;
+			if (emojiDialog.open) renderEmojiGrid();
+		});
+	}
 	renderEmojiGrid();
 	emojiDialog.showModal();
 	$("#emojiSearch").focus();

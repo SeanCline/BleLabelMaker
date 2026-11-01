@@ -201,7 +201,9 @@ The app is licensed under the MIT License ([LICENSE.txt](../LICENSE.txt)).
 Bundled third-party files keep their own licenses, in a `LICENSE.txt` next to them:
 
 - `fonts/`: fonts from Google Fonts, under the SIL Open Font License 1.1 or the
-  Apache License 2.0 (each family's license is in `fonts/LICENSE.txt`).
+  Apache License 2.0, and [Material Design Icons](https://pictogrammers.com/library/mdi/)
+  under the Pictogrammers Free License, Apache License 2.0 (each license is in
+  `fonts/LICENSE.txt`).
 - `src/vendor/`: [qrcode-generator](https://github.com/kazuhikoarase/qrcode-generator), MIT.
 
 ## Credits

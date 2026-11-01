@@ -1,4 +1,5 @@
 import { stylesIn, textOf } from "./richtext.js";
+import { ICON_FONT, hasIcon } from "./icons.js";
 
 // A short curated list beats a giant picker: on a 9 mm tall label only a few faces read well.
 export const FONTS = [
@@ -97,17 +98,19 @@ export const nearestWeight = (family, weight) =>
 
 // Emoji in text come from the outline font: colour emoji glyphs fall apart when thresholded
 // to black and white (light ones like ❄️ vanish). Listed after the text face so it only
-// supplies what that face lacks.
+// supplies what that face lacks. The icon font can go first: its unicode-range (styles.css)
+// is only its own characters, so it's never fetched for, or measured by, anything else.
+const ICONS = `"${ICON_FONT}"`;
 export const cssFamily = (family) =>
-	`${GENERIC.has(family) ? family : `"${family}", sans-serif`}, "${EMOJI_MONO_FONT}"`;
+	`${ICONS}, ${GENERIC.has(family) ? family : `"${family}", sans-serif`}, "${EMOJI_MONO_FONT}"`;
 
 // Colour emoji, for text set to dither them: whichever colour emoji font the system has.
 // They come before the generic family, which on some systems has monochrome symbols (❤).
 const COLOR_EMOJI_FONTS = `"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji"`;
 const colorFamily = (family) =>
 	GENERIC.has(family)
-		? `${COLOR_EMOJI_FONTS}, ${family}`
-		: `"${family}", ${COLOR_EMOJI_FONTS}, sans-serif`;
+		? `${ICONS}, ${COLOR_EMOJI_FONTS}, ${family}`
+		: `${ICONS}, "${family}", ${COLOR_EMOJI_FONTS}, sans-serif`;
 
 const EMOJI_RE = /\p{Extended_Pictographic}/u;
 export const hasEmoji = (s) => EMOJI_RE.test(s);
@@ -160,6 +163,7 @@ export const ensureFontsFor = async (doc) => {
 				for (const style of stylesIn(e.text))
 					loads.push(document.fonts.load(cssFont({ ...e, ...style }, 20), text || "A"));
 			if (hasEmoji(text)) loads.push(document.fonts.load(`400 20px "${EMOJI_MONO_FONT}"`, text));
+			if (hasIcon(text)) loads.push(document.fonts.load(`400 20px ${ICONS}`, text));
 		} else if (e.type === "barcode" && e.showText && !GENERIC.has(e.textFont)) {
 			loads.push(document.fonts.load(`600 20px "${e.textFont}"`, e.data || "0123456789"));
 		}

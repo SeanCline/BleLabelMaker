@@ -527,8 +527,8 @@
 						<button
 							type="button"
 							class="insert-emoji icon-button"
-							title="Insert an emoji"
-							aria-label="Insert an emoji"
+							title="Insert an emoji or icon"
+							aria-label="Insert an emoji or icon"
 						>
 							<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#smile" /></svg>
 						</button>
@@ -1217,24 +1217,43 @@
 			</form>
 		</dialog>
 
-		<dialog id="emojiDialog" aria-labelledby="emojiTitle">
-			<form method="dialog" class="stack">
-				<h2 id="emojiTitle">Choose an emoji</h2>
+		<dialog id="emojiDialog" class="picker-dialog" aria-labelledby="emojiTitle">
+			<div class="history-head row">
+				<h2 id="emojiTitle">Choose an emoji or icon</h2>
+				<span class="spacer"></span>
+				<form method="dialog">
+					<button class="icon-button" value="cancel" aria-label="Close" title="Close">
+						<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#x" /></svg>
+					</button>
+				</form>
+			</div>
+			<!-- Enter in the search box submits this form with its first button: the first match. -->
+			<form method="dialog" class="picker-form">
 				<span class="search-field">
 					<svg class="icon" aria-hidden="true"><use href="icons/ui.svg#search" /></svg>
 					<input
 						type="search"
 						id="emojiSearch"
 						placeholder="Search: jar, frozen, warning…"
-						aria-label="Search emoji by name"
+						aria-label="Search emoji and icons by name"
 						autocomplete="off"
 					/>
 				</span>
-				<div class="emoji-grid" id="emojiGrid"></div>
-				<p class="hint" id="emojiNone" hidden>
-					Nothing matches. Any emoji can also be typed or pasted straight into the text.
-				</p>
-				<div class="dialog-actions row"><button value="cancel">Cancel</button></div>
+				<div class="emoji-results">
+					<h3 id="emojiHeading">Emoji</h3>
+					<div class="emoji-grid" id="emojiGrid" role="group" aria-labelledby="emojiHeading"></div>
+					<h3 id="iconHeading">Icons</h3>
+					<div
+						class="emoji-grid icon-grid"
+						id="iconGrid"
+						role="group"
+						aria-labelledby="iconHeading"
+					></div>
+					<p class="hint" id="iconHint"></p>
+					<p class="hint" id="emojiNone" hidden>
+						Nothing matches. Any emoji can also be typed or pasted straight into the text.
+					</p>
+				</div>
 			</form>
 		</dialog>
 

@@ -50,12 +50,23 @@
 	box-sizing: border-box;
 }
 
+/* The icon font (src/text/icons.js), for icons in text: in the page's own font too, so they show
+   in the settings' text field and the picker. Only its own characters, so other text never
+   fetches it. */
+@font-face {
+	font-family: "Material Design Icons";
+	font-display: block;
+	src: url(fonts/mdi.woff2) format("woff2");
+	unicode-range: U+F0000-FFFFD;
+}
+
 body {
 	margin: 0;
 	background: var(--bg);
 	color: var(--text);
 	font:
-		14px/1.4 system-ui,
+		14px/1.4 "Material Design Icons",
+		system-ui,
 		-apple-system,
 		"Segoe UI",
 		sans-serif;
@@ -1427,17 +1438,66 @@ dialog {
 dialog::backdrop {
 	background: rgb(0 0 0 / 0.35);
 }
+/* The emoji and icon picker: a fixed size, so it doesn't jump about as a search narrows. */
+.picker-dialog {
+	width: min(620px, calc(100vw - 32px));
+	max-width: none;
+}
+.picker-dialog[open] {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap-section);
+}
+.picker-form {
+	display: flex;
+	flex-direction: column;
+	gap: var(--gap-section);
+}
+.emoji-results {
+	height: min(440px, calc(100vh - 220px));
+	overflow: auto;
+	/* Room for a focused tile's outline at the edges. */
+	padding: 2px;
+	margin: -2px;
+}
+/* Each heading stays in view over its own tiles. */
+.emoji-results h3 {
+	position: sticky;
+	top: -2px;
+	z-index: 1;
+	margin: 0;
+	padding: 4px 0 6px;
+	background: var(--surface);
+	font-size: 13px;
+	font-weight: 600;
+	color: var(--muted);
+}
 .emoji-grid {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(40px, 1fr));
-	gap: var(--gap-small);
-	max-height: 300px;
-	overflow: auto;
+	grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+	margin-bottom: var(--gap-section);
 }
+/* Flat tiles: a grid of boxed buttons is mostly borders. */
 .emoji-grid button {
-	font-size: 22px;
-	padding: 4px;
-	line-height: 1.2;
+	display: grid;
+	place-items: center;
+	height: 44px;
+	padding: 0;
+	border-color: transparent;
+	background: transparent;
+	/* As they print by default: in black, from the outline emoji font, not the colour one. */
+	font:
+		500 24px/1 "Noto Emoji",
+		sans-serif;
+}
+.emoji-grid button:hover {
+	background: var(--surface-2);
+}
+.icon-grid button {
+	font: 26px/1 "Material Design Icons";
+}
+.emoji-results .hint {
+	margin: 0 0 var(--gap-section);
 }
 .dialog-actions {
 	justify-content: flex-end;

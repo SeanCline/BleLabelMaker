@@ -33,6 +33,7 @@ src/
     caretmap.js  caret positions on laid-out text, for the inline editor
     fonts.js     the font list, and loading each face before it's drawn
     emoji.js     the emoji picker's list and its search
+    icons.js     the icon font (Material Design Icons) in text, and the picker's icon search
   batch.js       batch lists: lines, spreadsheet cells, CSV
   render.js      document → canvas at printer resolution, 1-bit; element cache
   painters/      how each element type draws: text, shapes, codes, image

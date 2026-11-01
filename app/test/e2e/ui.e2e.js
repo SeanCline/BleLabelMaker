@@ -163,7 +163,7 @@ test("emoji in text: the picker inserts at the cursor, and emoji print as crisp 
 		t.setSelectionRange(2, 2);
 	});
 	await page.click("#quickbar .insert-emoji");
-	// The picker's emoji carry U+FE0F, so they show in colour there; the text doesn't keep it.
+	// The picker's emoji carry U+FE0F (it inserts them as listed); the text doesn't keep it.
 	await pick("❄\uFE0F");
 	assert.equal(await text(), "Te❄xt");
 	assert.equal(
@@ -215,6 +215,44 @@ test("emoji in text: the picker inserts at the cursor, and emoji print as crisp 
 	assert.equal((await appState(page)).doc.elements[0].text, "❄", "the file loaded");
 	const { black } = await labelPixels(page);
 	assert.ok(black > 300, `snowflake has ${black} black dots`);
+	assert.deepEqual(page.errors, []);
+});
+
+test("icons: found by name in the picker, and drawn from the icon font, even in an opened file", async () => {
+	const page = await env.open();
+	// A file with an icon in it draws it on a fresh page, before the picker has ever been opened.
+	const carrot = String.fromCodePoint(0xf010f);
+	await page.evaluate(async (char) => {
+		const { createDocument } = await import("/src/model.js");
+		const { serialize } = await import("/src/fileformat.js");
+		const doc = createDocument();
+		doc.elements[0].text = char;
+		await window.labelApp.loadText(serialize(doc, { selectedIds: [] }));
+	}, carrot);
+	const { black } = await labelPixels(page);
+	assert.ok(black > 300, `the icon has ${black} black dots`);
+
+	await page.click(".box");
+	const id = (await appState(page)).selectedId;
+	await page.click("#quickbar .insert-emoji");
+	await page.waitForSelector("#iconHint:not([hidden])");
+	assert.match(await page.$eval("#iconHint", (p) => p.textContent), /one of [\d,]+ icons/);
+	await page.type("#emojiSearch", "carrot");
+	await page.waitForSelector(`#iconGrid button[value="${carrot}"]`);
+	assert.equal(
+		await page.$eval("#iconGrid button", (b) => b.title),
+		"carrot",
+		"the plainest name first",
+	);
+	// Words besides the name find it too: MDI files the carrot under food.
+	await page.$eval("#emojiSearch", (s) => (s.value = ""));
+	await page.type("#emojiSearch", "food carrot");
+	await page.waitForSelector(`#iconGrid button[value="${carrot}"]`);
+	await page.click(`#iconGrid button[value="${carrot}"]`);
+	await page.waitForFunction(() => !document.querySelector("#emojiDialog").open);
+	await page.evaluate(() => new Promise((r) => setTimeout(r)));
+	const text = (await appState(page)).doc.elements.find((e) => e.id === id).text;
+	assert.equal(text, carrot + carrot);
 	assert.deepEqual(page.errors, []);
 });
 
@@ -916,7 +954,7 @@ test("the font list shows each face, ends with a request for one, and has no str
 		);
 	const list = await options();
 	assert.ok(!list.some(([name]) => name.includes("undefined")), JSON.stringify(list));
-	assert.deepEqual(list[0], ["Inter", "Inter, sans-serif, Noto Emoji"]);
+	assert.deepEqual(list[0], ["Inter", "Material Design Icons, Inter, sans-serif, Noto Emoji"]);
 	assert.deepEqual(list.at(-1), ["Request a font…", ""]);
 
 	await page.select("#quickbar .font-select", "request-font");
