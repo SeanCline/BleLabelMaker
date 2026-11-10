@@ -1084,13 +1084,83 @@ test("typing stops when the text being typed on goes away", async () => {
 	assert.deepEqual(page.errors, []);
 });
 
-test("autosave says so, once, when the browser's storage is full", async () => {
+test("typing stops when a label dropped on the page replaces the one being typed on", async () => {
 	const page = await env.open();
+	const overlay = await (await page.$("#overlay")).boundingBox();
+	await page.mouse.click(overlay.x + overlay.width / 2, overlay.y + overlay.height / 2, {
+		count: 2,
+	});
+	await page.waitForSelector(".inline-edit");
+	// The same label with other words: its text has the id of the one being typed on.
 	await page.evaluate(() => {
+		const file = JSON.parse(window.labelApp.serialize());
+		file.elements[0].text = "Opened";
+		const dt = new DataTransfer();
+		dt.items.add(new File([JSON.stringify(file)], "other.label"));
+		document.body.dispatchEvent(
+			new DragEvent("drop", { dataTransfer: dt, bubbles: true, cancelable: true }),
+		);
+	});
+	await page.waitForFunction(() => window.labelApp.state.doc.elements[0].text === "Opened");
+	assert.equal(await page.$(".inline-edit"), null);
+	await page.keyboard.type("x");
+	assert.equal((await appState(page)).doc.elements[0].text, "Opened", "the opened label as it was");
+	assert.deepEqual(page.errors, []);
+});
+
+/** Makes localStorage too small for any autosave but IndexedDB's stand-in, on every load. */
+const fillLocalStorage = (page) => {
+	const full = () => {
 		const real = Storage.prototype.setItem;
 		Storage.prototype.setItem = function (key, value) {
-			if (/autosave/.test(key)) throw new DOMException("full", "QuotaExceededError");
+			if (/autosave/.test(key) && value !== "indexeddb")
+				throw new DOMException("full", "QuotaExceededError");
 			return real.call(this, key, value);
+		};
+	};
+	return Promise.all([page.evaluateOnNewDocument(full), page.evaluate(full)]);
+};
+
+test("a label too big for localStorage is kept in IndexedDB and back after a reload", async () => {
+	const page = await env.open();
+	await fillLocalStorage(page);
+	const x = async () => (await appState(page)).doc.elements[0].x;
+	const before = await x();
+	await page.focus("#overlay");
+	await page.keyboard.press("ArrowRight");
+	// Not just the marker, which a save at startup may have set: the moved label itself.
+	await page.waitForFunction(
+		async (want) => {
+			const key = Object.keys(localStorage).find((k) => /autosave/.test(k));
+			if (localStorage.getItem(key) !== "indexeddb") return false;
+			const name = (await indexedDB.databases()).find((d) => /values/.test(d.name))?.name;
+			const db = await new Promise(
+				(r) => (indexedDB.open(name).onsuccess = (e) => r(e.target.result)),
+			);
+			const text = await new Promise(
+				(r) =>
+					(db.transaction("values").objectStore("values").get(key).onsuccess = (e) =>
+						r(e.target.result)),
+			);
+			db.close();
+			return JSON.parse(text).elements[0].x > want;
+		},
+		{},
+		before,
+	);
+	await page.reload({ waitUntil: "load" });
+	await page.waitForFunction(() => window.labelApp?.state);
+	assert.ok((await x()) > before, "the moved text is where it was moved to");
+	assert.equal(await page.$eval("#toast", (t) => t.textContent), "", "nothing to warn about");
+	assert.deepEqual(page.errors, []);
+});
+
+test("autosave says so, once, when there's nowhere to keep the label", async () => {
+	const page = await env.open();
+	await fillLocalStorage(page);
+	await page.evaluate(() => {
+		IDBObjectStore.prototype.put = () => {
+			throw new DOMException("full", "QuotaExceededError");
 		};
 	});
 	await page.focus("#overlay");

@@ -16,7 +16,10 @@ export class VirtualPrinter extends Connection {
 		firmware: [1, 0, 0],
 		autoPowerOff: 30,
 	};
-	/** @type {{labels: any[], events: any[]} | null} what the current send produced */
+	/**
+	 * What the current print produced, and what it took to send.
+	 * @type {{labels: any[], events: any[], bytes: number, packets: number} | null}
+	 */
 	#job = null;
 	#decoder = this.#newDecoder();
 
@@ -40,6 +43,10 @@ export class VirtualPrinter extends Connection {
 	}
 
 	async write(bytes) {
+		if (this.#job) {
+			this.#job.bytes += bytes.length;
+			this.#job.packets++;
+		}
 		this.#decoder.feed(bytes);
 	}
 
@@ -49,21 +56,29 @@ export class VirtualPrinter extends Connection {
 	}
 
 	/**
-	 * @param {Uint8Array} bytes
-	 * @param {import("./connection.js").OnProgress} [onProgress]
+	 * Prints through the model's driver like a real connection, decoding what it's sent.
+	 * @param {import("../printers/index.js").RasterLabel[]} labels
+	 * @param {Omit<import("../printers/index.js").PrintOptions, "printer">} opts
 	 */
-	async send(bytes, onProgress) {
-		this.#job = { labels: [], events: [] };
+	async print(labels, opts) {
+		this.#job = { labels: [], events: [], bytes: 0, packets: 0 };
 		this.#decoder = this.#newDecoder();
-		const sent = await super.send(bytes, onProgress);
-		const { labels, events } = this.#job;
-		this.#job = null;
+		let job;
+		try {
+			await super.print(labels, opts);
+		} finally {
+			job = this.#job;
+			this.#job = null;
+		}
 		const leftover = this.#decoder.leftover;
 		if (leftover) throw new Error(`virtual printer: ${leftover} bytes of an incomplete command`);
 		// As a real printer would, one that can't print prints nothing, and says why.
 		const s = this.simulate;
-		const blocked = this.driver.simulator.blocks(s);
-		for (const r of this.driver.simulator.afterJob(s, labels.length > 0)) this.heard(r);
-		return { ...sent, labels: blocked ? [] : labels, events };
+		for (const r of this.driver.simulator.afterJob(s, job.labels.length > 0)) this.heard(r);
+		if (this.driver.simulator.blocks(s)) {
+			const why = [s.coverOpen && "cover open", !s.paper && "out of labels"].filter(Boolean);
+			throw new Error(`the printer reports ${why.join(" · ")}`);
+		}
+		return { decoded: job };
 	}
 }

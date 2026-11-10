@@ -40,13 +40,14 @@ src/
   painters/      how each element type draws: text, shapes, codes, image
   codes/         barcode.js (1D), datamatrix.js, qr.js, and qrcontent.js (what a QR code holds)
   raster.js      canvas pixels → printer-oriented 1bpp rows, centred on the head
-  printjob.js    design → labels to print (batch, copies, counter) → job bytes
+  printjob.js    design → labels to print (batch, copies, counter) → rasters for the head
   print.js       a whole print without UI: plan, connect, check, render, send, outcome
   transport/     ways to reach a printer (transport.js re-exports them)
-    connection.js  what they share: queueing, chunked sends, status, SendError
+    connection.js  what they share: queueing, chunked sends, print, status
+    errors.js    SendError (bytes) and PartialPrintError (labels)
     bluetooth.js, serial.js  the Web Bluetooth and Web Serial links
     virtual.js   the virtual printer: the driver's decoder and simulator as the far end
-  history.js     undo/redo over document snapshots
+  history.js     undo/redo over document snapshots, pictures kept once across them
   printhistory.js  print history entries, export/import
   share.js       labels as links
   report.js      diagnostics, bug and "it works" reports, GitHub issue links
@@ -86,6 +87,15 @@ test/e2e/        headless-Chromium tests of the UI (npm run test:e2e), with a fa
 UI modules wire themselves up on import and re-render by subscribing to the
 store. Every change goes through `commit()`, which records undo history,
 notifies subscribers and autosaves.
+
+The autosave goes to localStorage, which writes synchronously, so a save made
+as the page closes lands. A label too big for it (a few photos) goes to
+IndexedDB instead, and localStorage then holds only a marker saying so.
+Startup waits on IndexedDB only when it finds that marker. Until a big save is
+stored, localStorage keeps the last one that fitted, so a page closed part way
+through one loses only the newest edits. Only when neither can keep it does
+the app say a reload would lose it. Undo keeps a hundred snapshots. Pictures,
+the one big thing in them, are kept once and shared.
 
 Every module that doesn't touch the DOM (printers and their drivers, model,
 fileformat, fields, batch, layout, raster, printjob, history and more) is tested
@@ -283,15 +293,24 @@ different lists.
 
 The app is a label designer with printers plugged in. Nothing outside
 `src/printers/` knows what brand a printer is. Generic code asks the selected
-**model** for its sizes and asks the model's **driver** for bytes.
+**model** for its sizes and hands the model's **driver** the labels to print.
 
 - A **driver** (`PrinterDriver` in `src/printers/index.js`) is one kind of
   printer's protocol: its Bluetooth service and write characteristic, packet
-  size, job builder, darkness values, status queries and status parser, an
+  size, how it prints, darkness values, status queries and status parser, an
   optional auto power-off setting, and a decoder and simulator for the virtual
   printer. Status comes back in a shared vocabulary (battery, charging, paper,
   cover, firmware, autoPowerOff, printed), so the UI treats every printer the
   same.
+- A driver's `print(link, labels, options)` gets every label as a 1-bit
+  raster with its copy count, and the link to itself for the whole print, so
+  no status query lands between its steps. A printer that takes a job as bytes
+  and answers only afterwards (the D-series) uses `streamed(buildJob)` from
+  `printers/stream.js`: every label's job back to back in one send. One that
+  answers each step (Niimbot's page start, rows, page end) writes its own.
+  Either way a link lost part way throws `PartialPrintError` counted in
+  labels, which is what the app needs (which serials were used, which batch
+  row to carry on from); byte counts stay inside the driver that has them.
 - A **model** (`PrinterModel`) is data: the names it uses over Bluetooth, its
   head width, its default continuous feed, the label sizes it takes, whether
   it has been printed with this app (`tested`), and its driver.
@@ -322,8 +341,9 @@ label sizes. Set `tested: true` once it has printed.
 
 **A new kind of printer:** add a folder under `src/printers/` with a
 `driver.js` implementing `PrinterDriver` and a `models.js`, and add its
-models to `PRINTERS` in `src/printers/index.js`. Unit-test the job builder
-against its decoder the way `test/phomemo-protocol.test.js` does; the virtual
+models to `PRINTERS` in `src/printers/index.js`. Unit-test its print
+against its decoder the way `test/printjob.test.js` does, through a link
+that records what it's sent; the virtual
 printer then works for it with no further code. A model's `dotsPerMm` sets
 the resolution everything is drawn at, preview included, and its `labelTurn`
 how a label goes under the head (`raster.js`): 90 for a tape printer, whose
@@ -331,12 +351,15 @@ head spans the label's height, or 0 for one whose head spans its width. The
 user's Flip 180° adds half a turn to it. Things the interface doesn't
 cover yet, because no printer has needed them:
 
+1. **Replies.** The link a driver's print gets only sends. A printer that
+   answers each step needs it to wait for a reply too (a `request` beside
+   `send`, fed from `heard()`), which the first such driver adds.
 1. **Margins.** `MARGIN` in `model.js` is shared by every model today. A
    printer with other margins would carry its own. It's more than a number:
    `textFillsLabel` compares a text box with the printable area to decide that
    it fills the label (and so follows its size), so the margin would have to
    reach the model functions that resize labels.
-2. **Label limits.** `LIMITS.labelHeightMm` (6–15 mm) and the label bar's
+1. **Label limits.** `LIMITS.labelHeightMm` (6–15 mm) and the label bar's
    inputs assume a 12 mm head. A wider printer needs its own range.
 
 ## The Phomemo D-series driver
@@ -417,7 +440,8 @@ last-packet slice is wrong, so it sends empty writes.
 
 ## Virtual printer
 
-`VirtualPrinter` has the same interface as the BLE transport. It sends every
+`VirtualPrinter` has the same interface as the BLE transport, and prints
+through the driver's `print` like it. It sends every
 packet to the driver's decoder (`printers/phomemo/decoder.js`), which parses the byte stream as the printer would
 (ESC @, offset, density, copies, GS v 0, ESC d, status queries) and rebuilds
 each printed bitmap, once per copy. It answers status queries with real D30-format notifications, and its

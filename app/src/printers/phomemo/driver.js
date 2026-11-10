@@ -10,6 +10,7 @@ import {
 } from "./protocol.js";
 import { StatusParser, statusRecord, answerQuery } from "./status.js";
 import { PrinterDecoder } from "./decoder.js";
+import { streamed } from "../stream.js";
 
 const phomemoBlocks = (s) => !s.paper || s.coverOpen;
 
@@ -21,7 +22,7 @@ export const dSeries = {
 		write: "0000ff02-0000-1000-8000-00805f9b34fb",
 	},
 	packetSize: PACKET_SIZE,
-	buildJob: buildPrintJob,
+	print: streamed(buildPrintJob),
 	densities: DENSITY,
 	statusQueries: STATUS_QUERIES,
 	statusParser: (onEvent) => new StatusParser(onEvent),

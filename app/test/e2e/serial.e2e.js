@@ -78,11 +78,17 @@ test("serial port: problems reported by the printer show up; Disconnect keeps th
 	);
 	assert.equal(await fake(page, "f.pickerCount"), 1);
 
+	// A port slow to close: "forgotten" is said once it has, not while it's still connected.
+	await page.evaluate(() => {
+		const close = window.fakeSerial.port.close;
+		window.fakeSerial.port.close = () => new Promise((r) => setTimeout(r, 400)).then(close);
+	});
 	await page.click(".advanced summary");
 	await clickInMenu(page, "#btnForget");
 	await page.waitForFunction(() =>
-		/Not connected/.test(document.querySelector("#printerStatus").textContent),
+		/Printer forgotten/.test(document.querySelector("#toast").textContent),
 	);
+	assert.match(await statusText(page), /Not connected/);
 	await page.evaluate(() => (window.fakeSerial.state.coverOpen = false));
 	await page.click("#btnPrint");
 	await page.waitForFunction(() => window.fakeSerial.labels.length === 1);

@@ -33,6 +33,11 @@ const fakePrinter = ({ status = {}, send = async () => {} } = {}) => ({
 	connect: async () => assert.fail("already connected"),
 	refreshStatus: async () => {},
 	send,
+	// As Connection.print does, without a link to hold.
+	async print(labels, opts) {
+		await this.model.driver.print({ send: this.send }, labels, { ...opts, printer: this.model });
+		return {};
+	},
 });
 
 test("a print to the virtual printer decodes a label per batch row", async () => {
@@ -49,14 +54,11 @@ test("a print to the virtual printer decodes a label per batch row", async () =>
 	assert.equal(outcome.doc, doc, "the design that was printed, for the history");
 });
 
-/** A model whose jobs say which model they were built for. */
+/** A model whose prints say which model they were for. */
 const recording = (id, built) => ({
 	...printer,
 	id,
-	driver: {
-		...printer.driver,
-		buildJob: (_raster, opts) => (built.push(opts.printer.id), Uint8Array.of(0)),
-	},
+	driver: { ...printer.driver, print: async (_link, _labels, opts) => built.push(opts.printer.id) },
 });
 
 test("the job is for the model that connected, and a long batch asks once it has", async () => {
@@ -82,7 +84,7 @@ test("the job is for the model that connected, and a long batch asks once it has
 		}),
 	);
 	assert.equal(outcome.result, "printed");
-	assert.deepEqual(built, ["connected", "connected"]);
+	assert.deepEqual(built, ["connected"]);
 	assert.deepEqual(
 		asked,
 		[["Print 22 labels?", true]],

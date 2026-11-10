@@ -81,13 +81,15 @@ export class BluetoothPrinter extends Connection {
 
 	write(bytes) {
 		const ch = this.characteristic;
+		if (!ch) throw new Error("the printer isn't connected");
 		// Waiting for each write's response is the printer's only flow control.
 		return ch.writeValueWithResponse ? ch.writeValueWithResponse(bytes) : ch.writeValue(bytes);
 	}
 
 	async disconnect() {
-		if (this.device?.gatt?.connected) this.device.gatt.disconnect();
+		// First, so the gattserverdisconnected that gatt.disconnect() fires sees it's said here.
 		this.characteristic = null;
+		if (this.device?.gatt?.connected) this.device.gatt.disconnect();
 		this.lost();
 	}
 

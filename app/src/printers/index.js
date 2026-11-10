@@ -21,14 +21,32 @@ import { MODELS as PHOMEMO } from "./phomemo/models.js";
  */
 
 /**
+ * One label ready for the printer, and how many of it.
+ * @typedef {{raster: import("../raster.js").Raster, copies: number}} RasterLabel
+ */
+
+/**
+ * @typedef {{paper: "gaps"|"continuous", density: number | null, printer: PrinterModel,
+ *   feedLines?: number, onProgress?: (sent: number, total: number) => void}} PrintOptions
+ */
+
+/**
+ * What a driver's print talks through. send writes bytes in the link's own chunks and pacing,
+ * throwing SendError with how many got through if the link fails part way.
+ * @typedef {{send(bytes: Uint8Array, onProgress?: (sent: number, total: number) => void):
+ *   Promise<unknown>}} PrintLink
+ */
+
+/**
  * A kind of printer: its commands, how to reach it, and how to understand what it says.
  * @typedef {object} PrinterDriver
  * @property {string} id
  * @property {{service: string, write: string}} bluetooth GATT service and write characteristic
  * @property {number} packetSize bytes per Bluetooth write the printer reliably takes
- * @property {(raster: import("../raster.js").Raster, opts: {copies: number,
- *   paper: "gaps"|"continuous", density: number | null, printer: PrinterModel,
- *   feedLines?: number}) => Uint8Array} buildJob one label, printed `copies` times
+ * @property {(link: PrintLink, labels: RasterLabel[], opts: PrintOptions) => Promise<void>}
+ *   print every label, in order, with the link to itself for the whole print. When the link
+ *   fails part way it throws PartialPrintError (transport/errors.js) saying how many labels got
+ *   out whole. A printer that takes its job as bytes uses streamed(buildJob) from stream.js
  * @property {{light: number, normal: number, dark: number}} densities its values for each
  * @property {Uint8Array[]} statusQueries sent on connect and after each print
  * @property {(onEvent: (e: StatusEvent) => void) => {feed(bytes: Uint8Array): void}}

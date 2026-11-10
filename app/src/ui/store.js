@@ -5,8 +5,12 @@ import { History } from "../history.js";
 import { loadText, toast } from "./dom.js";
 import { storageKey } from "../app-info.js";
 import { signal } from "./signal.js";
+import { idbGet, idbPut, idbDelete } from "./idb.js";
 
 const AUTOSAVE_KEY = storageKey("autosave");
+// The autosave lives in localStorage, which writes synchronously and so still saves as the page
+// closes. One too big for it (a few photos) goes to IndexedDB, and this stands in its place.
+const IN_IDB = "indexeddb";
 
 /**
  * @type {{doc: import("../model.js").Doc, selectedIds: string[], readonly selectedId: string|null}}
@@ -25,9 +29,11 @@ export const state = {
 const orFirst = (selectedIds, doc) =>
 	selectedIds.length ? selectedIds : doc.elements.slice(0, 1).map((e) => e.id);
 
-const restoreAutosave = () => {
+const restoreAutosave = async () => {
 	try {
-		const raw = loadText(AUTOSAVE_KEY);
+		let raw = loadText(AUTOSAVE_KEY);
+		// Startup waits on IndexedDB only for a label that needed it.
+		if (raw === IN_IDB) raw = await idbGet(AUTOSAVE_KEY);
 		if (!raw) return;
 		const { doc, editor } = parse(raw);
 		state.doc = doc;
@@ -36,7 +42,7 @@ const restoreAutosave = () => {
 		// A corrupt autosave must never block startup.
 	}
 };
-restoreAutosave();
+await restoreAutosave();
 state.selectedIds = orFirst(state.selectedIds, state.doc);
 
 const snapshot = () => ({ doc: state.doc });
@@ -54,22 +60,49 @@ export const notify = () => {
 // wasted work; save once things settle, and straight away if the page is going away.
 let autosaveTimer = null;
 let warnedFull = false;
+let inIdb = loadText(AUTOSAVE_KEY) === IN_IDB;
+// IndexedDB saves finish later, in order; each knows whether a newer save has replaced it.
+let bigSaves = Promise.resolve();
+let saves = 0;
 const autosave = () => {
 	clearTimeout(autosaveTimer);
 	autosaveTimer = null;
+	const text = currentFile();
+	const save = ++saves;
 	try {
-		localStorage.setItem(AUTOSAVE_KEY, currentFile());
+		localStorage.setItem(AUTOSAVE_KEY, text);
 		warnedFull = false;
+		if (inIdb) {
+			inIdb = false;
+			bigSaves = bigSaves.then(() => idbDelete(AUTOSAVE_KEY)).catch(() => {});
+		}
 	} catch (err) {
-		// Storage that's turned off is the browser's choice; storage that's full (a few photos'
-		// worth) loses work on a reload, which nobody would expect, so it's said once.
-		if (err?.name !== "QuotaExceededError" || warnedFull) return;
-		warnedFull = true;
-		toast(
-			"This label is too big to keep in the browser, so a reload would lose it. Save it as a file to keep it.",
-			{ error: true },
-		);
+		// Storage that's turned off is the browser's choice, and there's nothing to say.
+		if (err?.name === "QuotaExceededError") saveBig(text, save);
 	}
+};
+/**
+ * Puts a label too big for localStorage into IndexedDB. localStorage keeps the last save that
+ * fitted until this one is safely stored, so a page closed part way loses only the newest edits.
+ */
+const saveBig = (text, save) => {
+	bigSaves = bigSaves
+		.then(() => idbPut(AUTOSAVE_KEY, text))
+		.then(() => {
+			if (save !== saves) return;
+			localStorage.setItem(AUTOSAVE_KEY, IN_IDB);
+			inIdb = true;
+			warnedFull = false;
+		})
+		.catch(() => {
+			// Nowhere to keep it, so a reload would lose it, which nobody would expect: said once.
+			if (warnedFull) return;
+			warnedFull = true;
+			toast(
+				"This label is too big to keep in the browser, so a reload would lose it. Save it as a file to keep it.",
+				{ error: true },
+			);
+		});
 };
 const scheduleAutosave = () => {
 	clearTimeout(autosaveTimer);
@@ -166,8 +199,16 @@ const applySnapshot = (snap) => {
 export const undo = () => applySnapshot(history.undo());
 export const redo = () => applySnapshot(history.redo());
 
+const replacing = signal();
+/**
+ * Before a whole other label replaces this one. Ids are only unique within a label, so
+ * anything holding on to an element by id (the text being typed on) lets go here.
+ */
+export const onReplacing = replacing.on;
+
 /** Replaces the whole editor state (file open); undoable like any other change. */
 export const loadState = ({ doc, editor }) => {
+	replacing.emit();
 	commit(doc, { selectedIds: orFirst(editor.selectedIds, doc) });
 	history.seal();
 };

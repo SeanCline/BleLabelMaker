@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { planLabels, buildJobs, sentPart } from "../src/printjob.js";
+import { planLabels, rasterize, sentPart } from "../src/printjob.js";
+import { SendError, PartialPrintError } from "../src/transport.js";
 import { createDocument } from "../src/model.js";
 import { printerById } from "../src/printers/index.js";
 import { PrinterDecoder } from "../src/printers/phomemo/decoder.js";
@@ -41,7 +42,19 @@ test("{0} is each batch row's line as it was typed", () => {
 	assert.deepEqual(plan.labels.map(text), ["Test1,  a|a"]);
 });
 
-test("jobs decode back to one label per planned copy, centred on the head", async () => {
+/** A link that keeps what it's sent, and breaks off after `limit` bytes if given. */
+const recordingLink = (limit = Infinity) => {
+	const parts = [];
+	return {
+		parts,
+		async send(bytes) {
+			if (bytes.length > limit) throw new SendError(new Error("link lost"), limit);
+			parts.push(bytes);
+		},
+	};
+};
+
+test("labels print as jobs that decode back to one label per copy, centred on the head", async () => {
 	const plan = planLabels(docWith("x"), {
 		copies: 2,
 		batch: { columns: null, rows: [["a"], ["b"]] },
@@ -50,37 +63,41 @@ test("jobs decode back to one label per planned copy, centred on the head", asyn
 	});
 	// A 15 mm tall label (120 dots) for a 12 mm head: each job is 96 dots across.
 	const render = async () => makeImage(40, 120, (x) => x === 0);
-	const { bytes, firstImage } = await buildJobs(plan, {
-		render,
-		printer: printerById("a30"),
-		paper: "gaps",
-		density: 2,
-		flip180: false,
-	});
+	const printer = printerById("a30");
+	const { labels, firstImage } = await rasterize(plan, { render, printer, flip180: false });
 	assert.equal(firstImage.height, 120);
+	const link = recordingLink();
+	await printer.driver.print(link, labels, { printer, paper: "gaps", density: 2 });
+	assert.equal(link.parts.length, 1, "a batch goes out in one send");
 	const d = new PrinterDecoder();
-	d.feed(bytes);
+	d.feed(link.parts[0]);
 	assert.equal(d.labels.length, 4);
 	assert.ok(d.labels.every((l) => l.bytesPerRow === 12 && l.rows === 40));
 });
 
-test("a send that broke off counts only the labels whose bytes all went out", async () => {
+test("a print that broke off counts only the labels whose bytes all went out", async () => {
 	const batch = { columns: null, rows: [["A"], ["B"], ["C"]] };
 	const plan = planLabels(docWith("{1}-{n}"), { copies: 1, batch, counterStart: 5, now });
-	const { ends } = await buildJobs(plan, {
+	const printer = printerById("d30");
+	const { labels } = await rasterize(plan, {
 		render: async () => makeImage(8, 96),
-		printer: printerById("d30"),
-		paper: "gaps",
-		density: null,
+		printer,
 		flip180: false,
 	});
-	assert.equal(ends.length, 3);
-	const midSecond = Math.round((ends[0] + ends[1]) / 2);
-	assert.deepEqual(sentPart(plan, ends, midSecond, 5), {
-		labels: 1,
-		nextCounter: 6,
-		firstUnsentRow: 1,
-	});
-	assert.deepEqual(sentPart(plan, ends, 10, 5), { labels: 0, nextCounter: 5, firstUnsentRow: 0 });
-	assert.equal(sentPart(plan, ends, ends[2], 5).labels, 3);
+	const opts = { printer, paper: /** @type {const} */ ("gaps"), density: null };
+	const whole = recordingLink();
+	await printer.driver.print(whole, labels, opts);
+	const oneJob = whole.parts[0].length / 3;
+	const brokenAt = async (limit) => {
+		const err = await printer.driver.print(recordingLink(limit), labels, opts).catch((e) => e);
+		assert.ok(err instanceof PartialPrintError);
+		assert.equal(err.message, "link lost");
+		return err.labelsSent;
+	};
+	assert.equal(await brokenAt(Math.round(oneJob * 1.5)), 1);
+	assert.equal(await brokenAt(10), 0);
+	assert.equal(await brokenAt(oneJob * 3 - 1), 2);
+	assert.deepEqual(sentPart(plan, 1, 5), { labels: 1, nextCounter: 6, firstUnsentRow: 1 });
+	assert.deepEqual(sentPart(plan, 0, 5), { labels: 0, nextCounter: 5, firstUnsentRow: 0 });
+	assert.equal(sentPart(plan, 3, 5).labels, 3);
 });

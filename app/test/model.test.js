@@ -41,6 +41,23 @@ test("history groups, undoes and redoes", () => {
 	assert.equal(h.canRedo, false);
 });
 
+test("history keeps a picture once however many steps have it, and lets go of it", () => {
+	const picture = `data:image/png;base64,${"A".repeat(300_000)}`;
+	const doc = (x, src = picture) => ({ elements: [{ x, src }, { text: "Salt" }] });
+	const h = new History(doc(0));
+	for (let x = 1; x <= 50; x++) h.push(doc(x));
+	assert.equal(h.pooled, 1);
+	const held = h.stack.reduce((n, s) => n + s.length, 0);
+	assert.ok(held < 10_000, `${held} characters for 51 steps`);
+	assert.deepEqual(h.undo(), doc(49), "undo gives the picture back");
+	// Another picture, then enough steps that the first is out of undo's reach.
+	const other = `data:image/png;base64,${"B".repeat(3000)}`;
+	const small = new History(doc(0), 3);
+	for (let x = 1; x <= 3; x++) small.push(doc(x, other));
+	assert.equal(small.pooled, 1, "the first picture is gone with the steps that had it");
+	assert.deepEqual(small.undo(), doc(2, other));
+});
+
 test("threshold and dither produce pure black/white", () => {
 	const mk = () => {
 		const data = new Uint8ClampedArray(16 * 16 * 4);

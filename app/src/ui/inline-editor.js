@@ -30,7 +30,7 @@ import { $, el, DRAG_SLACK_PX } from "./dom.js";
 import { rememberCaret } from "./caret.js";
 import { placeStyle } from "./viewport.js";
 import { currentScale } from "./settings.js";
-import { state, history, updateElement, elementById } from "./store.js";
+import { state, history, updateElement, elementById, onReplacing } from "./store.js";
 import { signal } from "./signal.js";
 
 const canvas = $("#labelCanvas");
@@ -544,3 +544,6 @@ export const stopInlineEdit = () => {
 	// Fields in the text it was showing as typed get filled in again.
 	editingChanged();
 };
+// A label opened while typing (a file dropped on the page doesn't take the focus) may have a
+// text with the same id, which the typing would carry on into.
+onReplacing(stopInlineEdit);

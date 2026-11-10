@@ -4,6 +4,9 @@
 // business of the model's driver (src/printers/).
 import { packetize } from "../bytes.js";
 import { DEFAULT_PRINTER } from "../printers/index.js";
+import { SendError } from "./errors.js";
+
+export { SendError, PartialPrintError } from "./errors.js";
 
 /** @typedef {(sent: number, total: number) => void} OnProgress */
 /** @typedef {ReturnType<typeof emptyStatus>} PrinterStatus */
@@ -36,19 +39,6 @@ const applyEvent = (status, e) => {
 export const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Enough to show a connect and a print's worth of status replies.
 const MESSAGES_KEPT = 40;
-
-/** A send that broke off part way, saying how much got through first. */
-export class SendError extends Error {
-	/**
-	 * @param {unknown} cause
-	 * @param {number} sent bytes written before the failure
-	 */
-	constructor(cause, sent) {
-		super(/** @type {any} */ (cause)?.message ?? String(cause), { cause });
-		this.name = "SendError";
-		this.sent = sent;
-	}
-}
 
 /**
  * What every connection shares. Subclasses implement open(), write() and disconnect(), report
@@ -169,7 +159,8 @@ export class Connection {
 		if (!this.connected) return;
 		try {
 			await this.exclusive(async () => {
-				for (const q of this.driver.statusQueries) await this.write(q);
+				// The link can go while these wait behind a print, or between them.
+				for (const q of this.driver.statusQueries) if (this.connected) await this.write(q);
 			});
 		} catch (err) {
 			console.warn("status query failed:", err);
@@ -182,23 +173,47 @@ export class Connection {
 	 * @returns {Promise<{packets: number, bytes: number}>}
 	 * @throws {SendError} when the link fails part way
 	 */
-	async send(bytes, onProgress = () => {}) {
+	async send(bytes, onProgress) {
 		if (!this.connected) await this.connect();
+		return this.exclusive(() => this.#sendNow(bytes, onProgress));
+	}
+
+	/**
+	 * Prints labels the way the model's driver does, with the link to itself throughout: a
+	 * driver that waits for replies between steps can't have a status query land in between.
+	 * @param {import("../printers/index.js").RasterLabel[]} labels
+	 * @param {Omit<import("../printers/index.js").PrintOptions, "printer">} opts
+	 * @returns {Promise<{decoded?: any}>} decoded: what a virtual printer made of it
+	 * @throws {import("./errors.js").PartialPrintError} when the link fails part way
+	 */
+	async print(labels, opts) {
+		if (!this.connected) await this.connect();
+		const printer = this.model;
+		/** @type {import("../printers/index.js").PrintLink} */
+		const link = { send: (bytes, onProgress) => this.#sendNow(bytes, onProgress) };
+		await this.exclusive(() => printer.driver.print(link, labels, { ...opts, printer }));
+		return {};
+	}
+
+	/**
+	 * Writes in chunks; the caller holds the link.
+	 * @param {Uint8Array} bytes
+	 * @param {OnProgress} [onProgress]
+	 */
+	async #sendNow(bytes, onProgress = () => {}) {
 		const packets = packetize(bytes, this.chunkSize || this.driver.packetSize);
-		return this.exclusive(async () => {
-			let sent = 0;
-			for (const [i, p] of packets.entries()) {
-				try {
-					await this.write(p);
-				} catch (err) {
-					throw new SendError(err, sent);
-				}
-				sent += p.length;
-				onProgress(sent, bytes.length);
-				await this.pace(i);
+		let sent = 0;
+		for (const [i, p] of packets.entries()) {
+			try {
+				await this.write(p);
+			} catch (err) {
+				throw new SendError(err, sent);
 			}
-			return { packets: packets.length, bytes: bytes.length };
-		});
+			sent += p.length;
+			onProgress(sent, bytes.length);
+			await this.pace(i);
+		}
+		return { packets: packets.length, bytes: bytes.length };
 	}
 
 	/**

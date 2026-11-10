@@ -2,22 +2,47 @@
 // included) and outgrows localStorage's ~5 MB long before IndexedDB's quota, a share of the
 // free disk. Each entry is its own record, so a print writes one entry rather than the
 // whole history: quicker, and nothing is lost if the tab closes right after printing.
-import { STORAGE_ID } from "../app-info.js";
+// An autosave too big for localStorage goes here too, in a database of its own.
+import { STORAGE_ID, storageKey } from "../app-info.js";
 
 const DB = STORAGE_ID;
 export const HISTORY = "history";
 
-let dbPromise;
-const open = () =>
-	(dbPromise ??= new Promise((resolve, reject) => {
-		const req = indexedDB.open(DB, 1);
-		req.onupgradeneeded = () => req.result.createObjectStore(HISTORY, { keyPath: "id" });
-		req.onsuccess = () => resolve(req.result);
-		req.onerror = () => reject(req.error);
-	}));
+// Its own database rather than a store in the history's: adding a store means a new version,
+// which a tab still open on the old one blocks until it closes.
+const VALUES_DB = storageKey("values");
+const VALUES = "values";
+
+/** @type {Map<string, Promise<IDBDatabase>>} */
+const opened = new Map();
+/**
+ * @param {string} name
+ * @param {(db: IDBDatabase) => void} create
+ * @returns {Promise<IDBDatabase>}
+ */
+const open = (name, create) => {
+	if (!opened.has(name)) {
+		const db = new Promise((resolve, reject) => {
+			const req = indexedDB.open(name, 1);
+			req.onupgradeneeded = () => create(req.result);
+			req.onsuccess = () => resolve(req.result);
+			req.onerror = () => reject(req.error);
+		});
+		// A failed open is tried again next time, not remembered.
+		db.catch(() => opened.delete(name));
+		opened.set(name, db);
+	}
+	return /** @type {Promise<IDBDatabase>} */ (opened.get(name));
+};
+
+/** @type {Record<string, [string, (db: IDBDatabase) => void]>} */
+const DATABASES = {
+	[HISTORY]: [DB, (db) => db.createObjectStore(HISTORY, { keyPath: "id" })],
+	[VALUES]: [VALUES_DB, (db) => db.createObjectStore(VALUES)],
+};
 
 const transact = async (store, mode, fn) => {
-	const db = await open();
+	const db = await open(...DATABASES[store]);
 	return new Promise((resolve, reject) => {
 		const tx = db.transaction(store, mode);
 		const result = fn(tx.objectStore(store));
@@ -55,3 +80,9 @@ export const keepStorage = async () => {
 		console.warn("couldn't ask to keep storage:", err);
 	}
 };
+
+/** @returns {Promise<any>} what's kept under `key`, or undefined */
+export const idbGet = (key) => transact(VALUES, "readonly", (s) => s.get(key));
+/** Resolves once it's stored, not just asked for. */
+export const idbPut = (key, value) => transact(VALUES, "readwrite", (s) => s.put(value, key));
+export const idbDelete = (key) => transact(VALUES, "readwrite", (s) => s.delete(key));

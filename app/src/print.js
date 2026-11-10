@@ -1,10 +1,10 @@
 // A print from start to finish, without any UI: plan the labels, connect, check the printer,
 // render and encode each label, send, and say what came of it. The page decides what to ask
 // and what to tell; anything else that prints (a script, a test) can use this as it is.
-import { planLabels, buildJobs, sentPart } from "./printjob.js";
+import { planLabels, rasterize, sentPart } from "./printjob.js";
 import { renderLabel, withAutoLength } from "./render.js";
 import { ensureFontsFor } from "./text/fonts.js";
-import { SendError, VirtualPrinter } from "./transport.js";
+import { PartialPrintError } from "./transport.js";
 import { dotScale } from "./units.js";
 
 /**
@@ -95,34 +95,27 @@ export const printDocument = async (doc, o) => {
 		return { ...outcome, result: "declined" };
 	o.onStart?.();
 	const dots = dotScale(printer.dotsPerMm);
-	const {
-		bytes,
-		firstImage: image,
-		ends,
-	} = await buildJobs(plan, {
+	const { labels, firstImage: image } = await rasterize(plan, {
 		render: (d) => render(d, dots),
 		printer,
-		paper: doc.label.continuous ? "continuous" : "gaps",
-		density: printer.driver.densities[settings.density],
 		flip180: settings.flip180,
-		feedLines: settings.feedLines,
 	});
 	/** @type {PrintOutcome} */
 	const printed = { ...outcome, result: "printed", labels: plan.total, image, doc };
-	if (t instanceof VirtualPrinter) {
-		const decoded = await t.send(bytes, o.onProgress);
-		// A virtual printer told to be out of paper prints nothing, like the real one.
-		if (!decoded.labels.length) throw new Error(`the printer reports ${describeStatus(t.status)}`);
-		return { ...printed, nextCounter: plan.nextCounter, decoded };
-	}
+	let decoded;
 	try {
-		await t.send(bytes, o.onProgress);
+		({ decoded } = await t.print(labels, {
+			paper: doc.label.continuous ? "continuous" : "gaps",
+			density: printer.driver.densities[settings.density],
+			feedLines: settings.feedLines,
+			onProgress: o.onProgress,
+		}));
 	} catch (err) {
-		if (!(err instanceof SendError)) throw err;
+		if (!(err instanceof PartialPrintError)) throw err;
 		// The labels that did go out are printed: their serials are used and they're history.
-		const part = sentPart(plan, ends, err.sent, o.counterStart);
+		const part = sentPart(plan, err.labelsSent, o.counterStart);
 		return { ...printed, ...part, result: "partial", error: err };
 	}
 	t.refreshStatus();
-	return { ...printed, nextCounter: plan.nextCounter };
+	return { ...printed, nextCounter: plan.nextCounter, decoded };
 };
