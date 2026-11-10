@@ -18,6 +18,29 @@ const phone = async () => {
 	await page.evaluate(() => window.labelApp.ready);
 	return page;
 };
+/**
+ * Two taps sent together. touchscreen.tap waits on the browser for each press and lift, and
+ * on a busy machine those waits can outlast the double-tap window: a finger's taps don't wait.
+ */
+const doubleTap = async (page, x, y) => {
+	// What each press landed on, and when: if the word isn't selected, this says why.
+	await page.evaluate(() => {
+		window.presses = [];
+		document.addEventListener(
+			"pointerdown",
+			(e) => window.presses.push(`${Math.round(e.timeStamp)} ms on ${e.target.className}`),
+			{ capture: true },
+		);
+	});
+	const cdp = await page.createCDPSession();
+	const point = [{ x, y }];
+	const send = (type) =>
+		cdp.send("Input.dispatchTouchEvent", { type, touchPoints: type === "touchEnd" ? [] : point });
+	await Promise.all(["touchStart", "touchEnd", "touchStart", "touchEnd"].map(send));
+	await cdp.detach();
+	return page.evaluate(() => window.presses.join(", "));
+};
+
 const rect = (page, selector) =>
 	page.$eval(selector, (e) => JSON.parse(JSON.stringify(e.getBoundingClientRect())));
 
@@ -67,9 +90,8 @@ test("typing by touch: double tap or hold for a word, handles to drag the ends",
 
 	const f = await (await page.$(".inline-editor")).boundingBox();
 	const hello = [f.x + f.width * 0.25, f.y + f.height / 2];
-	await page.touchscreen.tap(...hello);
-	await page.touchscreen.tap(...hello);
-	assert.deepEqual(await selection(), [0, 5], "a double tap selects the word");
+	const taps = await doubleTap(page, ...hello);
+	assert.deepEqual(await selection(), [0, 5], `a double tap selects the word (taps: ${taps})`);
 	assert.deepEqual(await shown(), [true, true], "a handle at each end");
 
 	// The end handle, dragged right, takes in the next word; it aims at the line, not the finger.
