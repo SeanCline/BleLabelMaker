@@ -24,6 +24,8 @@ export class SerialPrinter extends Connection {
 	/** @type {WritableStreamDefaultWriter | null} */
 	writer = null;
 	reader = null;
+	/** A lost link's port being closed, which a reconnect waits for. */
+	closing = Promise.resolve();
 
 	get name() {
 		// A port has no name to recognise a model by, so it is whichever one is selected.
@@ -42,15 +44,23 @@ export class SerialPrinter extends Connection {
 		const serial = /** @type {any} */ (navigator).serial;
 		this.port ??= await serial.requestPort({ allowedBluetoothServiceClassIds: [SPP] });
 		this.onStatus("connecting");
+		await this.closing;
 		try {
-			// Bluetooth serial ignores the rate; a USB adapter needs one, and 115200 is the norm.
-			await this.port.open({ baudRate: 115200 });
-		} catch (err) {
-			// Already open (a second connect) is fine; anything else isn't.
-			if (err?.name !== "InvalidStateError") {
-				this.onStatus("disconnected");
-				throw err;
+			try {
+				// Bluetooth serial ignores the rate; a USB adapter needs one, and 115200 is the norm.
+				await this.port.open({ baudRate: 115200 });
+			} catch (err) {
+				// Already open (a second connect) is fine; anything else isn't.
+				if (err?.name !== "InvalidStateError") throw err;
+				// Open, but its streams went with a lost link: only closing it brings them back.
+				if (!this.port.readable || !this.port.writable) {
+					await this.port.close().catch(() => {});
+					await this.port.open({ baudRate: 115200 });
+				}
 			}
+		} catch (err) {
+			this.onStatus("disconnected");
+			throw err;
 		}
 		this.writer = this.port.writable.getWriter();
 		this.#readStatus();
@@ -73,6 +83,9 @@ export class SerialPrinter extends Connection {
 				this.writer?.releaseLock();
 				this.writer = null;
 				this.reader = null;
+				// The port stays open after its streams fail (the printer turned off), and an open
+				// port can't be opened again; closed, the next connect opens it afresh.
+				this.closing = this.port.close().catch(() => {});
 				this.lost();
 			}
 		}

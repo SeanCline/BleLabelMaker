@@ -9,23 +9,48 @@
  *   1A 07 x y z      firmware version x.y.z
  *   1A 09 nn         auto power-off after nn × 5 minutes (0 = never)
  *   1A 0F 0C         print finished
+ *
+ * Other models send more record types, such as 1A 40 (a smart roll's part number and size),
+ * whose lengths aren't known. Reading one as a one-byte record would misread its payload as
+ * records of its own (a stray 06 88 as "out of labels"), so an unknown type skips ahead to
+ * the next 1A, the start of the next record.
  */
 const BATTERY_CODES = { 0xa1: 10, 0xa2: 5, 0xa3: 3, 0xa4: null };
+// Value bytes after each known type byte.
+const SIZES = { 0x03: 1, 0x04: 1, 0x05: 1, 0x06: 1, 0x07: 3, 0x09: 1, 0x0f: 1 };
 
 export class StatusParser {
 	/** @param {(event: {type: string, [detail: string]: any}) => void} onEvent */
 	constructor(onEvent) {
 		this.onEvent = onEvent;
 		this.buffer = [];
+		// Inside an unknown record, which may go on into the next notification.
+		this.skipping = false;
 	}
 
 	feed(bytes) {
 		this.buffer.push(...bytes);
 		for (;;) {
+			if (this.skipping) {
+				const next = this.buffer.indexOf(0x1a);
+				if (next < 0) {
+					this.buffer = [];
+					return;
+				}
+				this.buffer.splice(0, next);
+				this.skipping = false;
+			}
 			const i = this.buffer[0] === 0x1a ? 1 : 0;
 			const type = this.buffer[i];
 			if (type === undefined) return;
-			const size = type === 0x07 ? 3 : 1;
+			const size = SIZES[type];
+			if (size === undefined) {
+				// Kept visible for bug reports, though what follows it can't be read.
+				this.onEvent({ type: "unknown", code: type });
+				this.buffer.splice(0, i + 1);
+				this.skipping = true;
+				continue;
+			}
 			if (this.buffer.length < i + 1 + size) return;
 			const value = this.buffer.slice(i + 1, i + 1 + size);
 			this.buffer.splice(0, i + 1 + size);
@@ -69,8 +94,7 @@ const decode = (type, [v, ...rest]) => {
 		case 0x0f:
 			return v === 0x0c ? { type: "printed" } : null;
 		default:
-			// Other models send more record types; keep them visible for debugging only.
-			return { type: "unknown", code: type, value: v };
+			return null;
 	}
 };
 

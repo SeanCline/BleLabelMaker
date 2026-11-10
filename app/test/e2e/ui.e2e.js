@@ -1042,3 +1042,65 @@ test("the menus' lists are drawn by the page too, with their groups named", asyn
 	assert.equal((await appState(page)).doc.label.continuous, true);
 	assert.deepEqual(page.errors, []);
 });
+
+test("quarter turns in a row add up: two are a half turn, four give back the original", async () => {
+	const page = await env.open();
+	await page.click('.rail [data-add="barcode"]');
+	const box = async () => {
+		const { x, y, w, h, rotation } = (await appState(page)).doc.elements.at(-1);
+		return { x, y, w, h, rotation };
+	};
+	const start = await box();
+	assert.ok(start.w > 12, "wider than the label is tall, so a quarter turn has to cut it down");
+	await page.focus("#overlay");
+	await page.keyboard.press("r");
+	assert.ok((await box()).h <= 12, "turned on its side, it still fits the label");
+	await page.keyboard.press("r");
+	assert.deepEqual(await box(), { ...start, rotation: 180 });
+	await page.keyboard.press("r");
+	await page.keyboard.press("r");
+	assert.deepEqual(await box(), start);
+	// Another change in between, and a turn starts from what's there now.
+	await page.keyboard.press("r");
+	await page.keyboard.press("ArrowLeft");
+	const moved = await box();
+	await page.keyboard.press("r");
+	assert.equal((await box()).w, moved.h);
+	assert.deepEqual(page.errors, []);
+});
+
+test("typing stops when the text being typed on goes away", async () => {
+	const page = await env.open();
+	const overlay = await (await page.$("#overlay")).boundingBox();
+	await page.mouse.click(overlay.x + overlay.width / 2, overlay.y + overlay.height / 2, {
+		count: 2,
+	});
+	await page.waitForSelector(".inline-edit");
+	// The bar's Delete hides while typing; this is anything else that removes the element.
+	await page.$eval('#quickbar [data-qb-action="delete"]', (b) => b.click());
+	assert.equal((await appState(page)).doc.elements.length, 0);
+	assert.equal(await page.$(".inline-edit"), null, "the editor went with its text");
+	await page.keyboard.type("x");
+	assert.deepEqual(page.errors, []);
+});
+
+test("autosave says so, once, when the browser's storage is full", async () => {
+	const page = await env.open();
+	await page.evaluate(() => {
+		const real = Storage.prototype.setItem;
+		Storage.prototype.setItem = function (key, value) {
+			if (/autosave/.test(key)) throw new DOMException("full", "QuotaExceededError");
+			return real.call(this, key, value);
+		};
+	});
+	await page.focus("#overlay");
+	await page.keyboard.press("ArrowRight");
+	await page.waitForFunction(() =>
+		/too big to keep in the browser/.test(document.querySelector("#toast").textContent),
+	);
+	await page.evaluate(() => (document.querySelector("#toast").textContent = ""));
+	await page.keyboard.press("ArrowRight");
+	await new Promise((r) => setTimeout(r, 600));
+	assert.equal(await page.$eval("#toast", (t) => t.textContent), "", "said only once");
+	assert.deepEqual(page.errors, []);
+});

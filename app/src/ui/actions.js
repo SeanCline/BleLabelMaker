@@ -28,23 +28,38 @@ import {
 	updateElements,
 	selected,
 	selectedElements,
+	elementById,
 } from "./store.js";
 import { startInlineEdit } from "./inline-editor.js";
 import { labelPointAt } from "./stage.js";
 import { rovingToolbar } from "./toolbar.js";
 
+/**
+ * The last turn: the elements before it, how far they've turned since, and what they became.
+ * A turn that doesn't fit the label is cut down to it, and the next turn in a row starts again
+ * from before that, so two quarter turns are a half turn and four give back what was there.
+ * @type {{from: import("../model.js").Element[], turned: number,
+ *   to: import("../model.js").Element[]} | null}
+ */
+let lastTurn = null;
+
 /** Turns each element a quarter turn (or three) about its own centre, as one undo step. */
 export const rotateElements = (els, deltaDeg) => {
+	// Any other change since makes new element objects, which ends the run of turns.
+	const inRow = lastTurn?.to.length === els.length && els.every((e, i) => e === lastTurn.to[i]);
+	const from = inRow ? lastTurn.from : els;
+	const turned = ((((inRow ? lastTurn.turned : 0) + deltaDeg) % 360) + 360) % 360;
 	const patches = {};
-	for (const e of els) {
+	for (const e of from) {
 		const { rotation, x, y, w, h } = clampToLabel(
-			rotateTo(e, /** @type {0|90|180|270} */ ((e.rotation + deltaDeg) % 360)),
+			rotateTo(e, /** @type {0|90|180|270} */ ((e.rotation + turned) % 360)),
 			state.doc.label,
 		);
 		patches[e.id] = { rotation, x, y, w, h };
 	}
 	updateElements(patches);
 	history.seal();
+	lastTurn = { from, turned, to: from.map((e) => elementById(e.id)) };
 	announce(
 		els.length === 1
 			? `Rotated to ${patches[els[0].id].rotation}°`

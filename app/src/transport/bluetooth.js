@@ -37,6 +37,8 @@ export class BluetoothPrinter extends Connection {
 						},
 			);
 			this.device.addEventListener("gattserverdisconnected", () => {
+				// Already said by disconnect(), whose gatt.disconnect() fires this too.
+				if (!this.characteristic) return;
 				this.characteristic = null;
 				this.lost();
 			});

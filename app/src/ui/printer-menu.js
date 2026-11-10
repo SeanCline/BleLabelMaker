@@ -253,9 +253,13 @@ $("#setAutoPower").addEventListener("change", async (ev) => {
 		reportPrintError(err);
 	}
 });
-$("#btnForget").addEventListener("click", () => {
-	hardware()?.forget();
-	toast("Printer forgotten. The next print will ask you to pick one.");
+$("#btnForget").addEventListener("click", async () => {
+	try {
+		await hardware()?.forget();
+		toast("Printer forgotten. The next print will ask you to pick one.");
+	} catch (err) {
+		reportPrintError(err);
+	}
 });
 $("#btnConnect").addEventListener("click", () => {
 	const real = hardware();

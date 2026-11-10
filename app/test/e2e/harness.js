@@ -124,6 +124,11 @@ export const setup = async () => {
 		server.on("request", (req) => req.socket.destroy());
 		server.closeAllConnections();
 	};
+	/** A connection that's there but never answers: requests are taken and left hanging. */
+	const goSlow = () => {
+		server.removeAllListeners("request");
+		server.on("request", () => {});
+	};
 	const stopServer = () =>
 		new Promise((done) => {
 			server.close(done);
@@ -153,7 +158,7 @@ export const setup = async () => {
 		await browser.close();
 		await stopServer();
 	};
-	return { url, open, goOffline, teardown };
+	return { url, open, goOffline, goSlow, teardown };
 };
 
 /** Waits for a page (re)loaded with waitUntil "load" to be drawn, with its fonts. */

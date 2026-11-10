@@ -47,11 +47,15 @@ export const installFakeSerial = () => {
 				}),
 		));
 
+	// Open is the port's own state, apart from its streams: as in Web Serial, a lost link
+	// leaves the port open with no streams, and only close() lets it open again.
+	let opened = false;
 	const port = {
 		readable: null,
 		writable: null,
 		async open(options) {
-			if (port.readable) throw new DOMException("The port is already open.", "InvalidStateError");
+			if (opened) throw new DOMException("The port is already open.", "InvalidStateError");
+			opened = true;
 			fake.openOptions = options;
 			port.readable = new ReadableStream({ start: (c) => (incoming = c) });
 			port.writable = new WritableStream({
@@ -63,9 +67,16 @@ export const installFakeSerial = () => {
 			});
 		},
 		async close() {
+			opened = false;
 			incoming = null;
 			port.readable = port.writable = null;
 		},
+	};
+	/** The printer turns off: the streams fail, and the port stays open without them. */
+	fake.loseLink = () => {
+		incoming?.error(new DOMException("The device has been lost.", "NetworkError"));
+		incoming = null;
+		port.readable = port.writable = null;
 	};
 	fake.port = port;
 

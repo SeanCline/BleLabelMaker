@@ -48,14 +48,15 @@ const renderForPrint = async (doc, dots) => {
  * @property {Error} [error] why a partial print stopped
  * @property {any} [image] the first label's pixels, for the history
  * @property {any} [decoded] what the virtual printer made of the job
+ * @property {import("./model.js").Doc} [doc] the design as it was when printed, for the history
  */
 
 /**
  * Prints a document: each batch row, each copy, with its fields filled in.
  * @param {import("./model.js").Doc} doc
  * @param {object} o
- * @param {import("./transport.js").Connection} o.connection
- * @param {import("./printers/index.js").PrinterModel} o.printer
+ * @param {import("./transport.js").Connection} o.connection the job is for the model it's
+ *   talking to, known once it has connected: a printer's name can say it's another model
  * @param {number} o.copies per batch row
  * @param {{columns: string[] | null, rows: string[][], lines?: string[]} | null} o.batch
  * @param {number} o.counterStart the value {n} starts at
@@ -71,7 +72,7 @@ const renderForPrint = async (doc, dots) => {
  * @returns {Promise<PrintOutcome>} throws when nothing could be printed
  */
 export const printDocument = async (doc, o) => {
-	const { connection: t, printer, settings, confirm = () => true, render = renderForPrint } = o;
+	const { connection: t, settings, confirm = () => true, render = renderForPrint } = o;
 	const plan = planLabels(doc, {
 		copies: o.copies,
 		batch: o.batch,
@@ -79,12 +80,13 @@ export const printDocument = async (doc, o) => {
 		now: new Date(),
 	});
 	const outcome = { labels: 0, total: plan.total, nextCounter: o.counterStart };
+	// Ask for the device first: the picker needs the click's user activation, which lasts a few
+	// seconds, and awaiting fonts and rendering, or a question, could outlast it.
+	if (!t.connected) await t.connect({ showAllDevices: settings.showAllDevices });
+	const printer = t.model;
 	// A long batch uses a lot of labels; make sure it's meant.
 	if (plan.total > 20 && !confirm(`Print ${plan.total} labels?`))
 		return { ...outcome, result: "declined" };
-	// Ask for the device first: the picker needs the click's user activation, which awaiting
-	// fonts and rendering could use up.
-	if (!t.connected) await t.connect({ showAllDevices: settings.showAllDevices });
 	// The status mapping is reverse-engineered, so a reported problem asks rather than blocks.
 	if (
 		hasProblem(t.status) &&
@@ -106,7 +108,7 @@ export const printDocument = async (doc, o) => {
 		feedLines: settings.feedLines,
 	});
 	/** @type {PrintOutcome} */
-	const printed = { ...outcome, result: "printed", labels: plan.total, image };
+	const printed = { ...outcome, result: "printed", labels: plan.total, image, doc };
 	if (t instanceof VirtualPrinter) {
 		const decoded = await t.send(bytes, o.onProgress);
 		// A virtual printer told to be out of paper prints nothing, like the real one.

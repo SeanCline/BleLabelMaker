@@ -11,7 +11,7 @@ import {
 import { thumbnails } from "./thumbs.js";
 import { $, el, icon, toast, download, plural } from "./dom.js";
 import { idbAll, idbWrite, keepStorage, HISTORY } from "./idb.js";
-import { state, loadState } from "./store.js";
+import { loadState } from "./store.js";
 import { onPrinted, print } from "./printing.js";
 
 let entries = [];
@@ -68,9 +68,9 @@ const setEntries = (next) => {
 		.catch((err) => toast(`Couldn't save the print history: ${err.message}`, { error: true }));
 };
 
-onPrinted(async ({ copies, target }) => {
-	// Captured now: by the time the stored history has loaded, the design may have changed.
-	const printed = { doc: state.doc, copies, target };
+onPrinted(async ({ copies, target, doc }) => {
+	// The design as it was sent: it may have been edited while a long print went out.
+	const printed = { doc, copies, target };
 	await historyReady;
 	setEntries(recordPrint(entries, printed));
 	keepStorage();

@@ -25,19 +25,46 @@ self.addEventListener("activate", (event) => {
 	);
 });
 
+// A connection that's there but barely (one bar in the garage) can take a minute to fail.
+// Past this, what's cached is served instead, and the network's answer still updates the cache.
+const NETWORK_WAIT_MS = 4000;
+// The app is dozens of modules, each imported by the last: waiting on each in turn would add
+// up to minutes. So once the network has been that slow, the cache answers at once for a while.
+const SLOW_FOR_MS = 60_000;
+let slowUntil = 0;
+
 self.addEventListener("fetch", (event) => {
 	const req = event.request;
 	if (req.method !== "GET" || new URL(req.url).origin !== self.location.origin) return;
 	event.respondWith(
 		(async () => {
 			const cache = await caches.open(CACHE);
-			try {
-				const res = await fetch(req);
-				// Kept alive until stored; a full cache just means this one isn't kept offline.
-				if (res.ok) event.waitUntil(cache.put(req, res.clone()).catch(() => {}));
+			let stored;
+			const network = fetch(req).then((res) => {
+				// A full cache just means this one isn't kept offline.
+				if (res.ok) stored = cache.put(req, res.clone()).catch(() => {});
 				return res;
+			});
+			// Kept alive until stored, even when the cache answered first.
+			event.waitUntil(
+				network.then(
+					() => stored,
+					() => {},
+				),
+			);
+			const cached = () => cache.match(req, { ignoreSearch: true });
+			const wait = Date.now() < slowUntil ? 0 : NETWORK_WAIT_MS;
+			const slow = new Promise((r) => setTimeout(r, wait)).then(async () => {
+				const hit = await cached();
+				if (hit && wait) slowUntil = Date.now() + SLOW_FOR_MS;
+				return hit ?? network;
+			});
+			// Once the race is over, nothing waits on the loser.
+			slow.catch(() => {});
+			try {
+				return await Promise.race([network, slow]);
 			} catch {
-				const hit = await cache.match(req, { ignoreSearch: true });
+				const hit = await cached();
 				if (hit) return hit;
 				throw new Error(`offline and not cached: ${req.url}`);
 			}

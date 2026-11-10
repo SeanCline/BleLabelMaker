@@ -100,8 +100,10 @@ const positionInline = (e) => {
  * @param {HTMLElement} [overlay]
  */
 export const relayoutInline = (overlay) => {
-	const e = inline && elementById(inline.id);
-	if (!e) return;
+	if (!inline) return;
+	const e = elementById(inline.id);
+	// Its text is gone (deleted, or another label opened): there's nothing left to type on.
+	if (e?.type !== "text") return stopInlineEdit();
 	positionInline(e);
 	if (overlay && !inline.frame.isConnected) overlay.append(inline.frame);
 };
@@ -280,6 +282,7 @@ const listenForTyping = (textarea, id) => {
 	textarea.addEventListener("input", () => {
 		inline.goalX = null;
 		const current = /** @type {import("../model.js").TextElement} */ (elementById(id));
+		if (!current) return stopInlineEdit();
 		const edit = diffText(textOf(current.text), textarea.value, textarea.selectionEnd);
 		const style = inline.pending?.at === edit.at ? inline.pending.style : undefined;
 		const { pasting } = inline;

@@ -55,6 +55,28 @@ test("battery codes, unprefixed records, and records split across notifications"
 	assert.deepEqual(parseAll(Uint8Array.of(0x06, 0x88)), [{ type: "paper", present: false }]);
 });
 
+test("a record of unknown length is skipped whole, even across notifications", () => {
+	// A smart roll's 1A 40 record, whose payload holds 06 88: not "out of labels".
+	const material = Uint8Array.of(0x1a, 0x40, 0x31, 0x06, 0x88, 0x0c, 0x00);
+	assert.deepEqual(parseAll(material, statusRecord.battery(80)), [
+		{ type: "unknown", code: 0x40 },
+		{ type: "battery", percent: 80 },
+	]);
+	assert.deepEqual(
+		parseAll(
+			material.subarray(0, 3),
+			material.subarray(3),
+			Uint8Array.of(0x05, 0x99),
+			statusRecord.paper(true),
+		),
+		[
+			{ type: "unknown", code: 0x40 },
+			{ type: "paper", present: true },
+		],
+		"the payload's continuation in the next notification is skipped too",
+	);
+});
+
 test("density is sent right after init and decodes; omitted when unset", () => {
 	const raster = { bytesPerRow: 1, rows: 1, data: Uint8Array.of(0xff) };
 	const job = buildPrintJob(raster, { printer: D30, density: DENSITY.dark });

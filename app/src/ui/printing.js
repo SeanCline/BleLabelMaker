@@ -21,7 +21,7 @@ import { signal } from "./signal.js";
 
 let busy = false;
 const printed = signal();
-/** Called after every print that got labels out, with { copies, target, image }. */
+/** Called after every print that got labels out, with { copies, target, image, doc }. */
 export const onPrinted = printed.on;
 
 // A count from anywhere (the box, a reprint) as one the printer takes: blank or NaN is 1.
@@ -43,7 +43,6 @@ export const print = async ({ copies = currentCopies(), only = false } = {}) => 
 	try {
 		const outcome = await printDocument(state.doc, {
 			connection: t,
-			printer: currentPrinter(),
 			copies,
 			batch: only ? previewedOnly() : batchData(),
 			counterStart: settings.counterStart,
@@ -79,14 +78,14 @@ export const print = async ({ copies = currentCopies(), only = false } = {}) => 
  * After labels went out: the counter moves past the values they used, and listeners hear.
  * @param {import("../print.js").PrintOutcome} outcome
  */
-const finishPrint = ({ labels, nextCounter, image }) => {
+const finishPrint = ({ labels, nextCounter, image, doc }) => {
 	if (nextCounter !== settings.counterStart) {
 		settings.counterStart = nextCounter;
 		saveSettings();
 		renderPrintBar();
 		refreshPreview();
 	}
-	printed.emit({ copies: labels, target: settings.target, image });
+	printed.emit({ copies: labels, target: settings.target, image, doc });
 };
 
 /**

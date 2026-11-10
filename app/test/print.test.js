@@ -12,7 +12,6 @@ const settings = { density: "normal", flip180: false, feedLines: 23, showAllDevi
 const render = async () => makeImage(40, 96, noise(1));
 const batch = { columns: null, rows: [["a"], ["b"]], lines: ["a", "b"] };
 const options = (more) => ({
-	printer,
 	copies: 1,
 	batch,
 	counterStart: 1,
@@ -28,6 +27,7 @@ const options = (more) => ({
  */
 const fakePrinter = ({ status = {}, send = async () => {} } = {}) => ({
 	name: "D30",
+	model: printer,
 	connected: true,
 	status: { battery: 80, paper: true, coverOpen: false, ...status },
 	connect: async () => assert.fail("already connected"),
@@ -46,6 +46,48 @@ test("a print to the virtual printer decodes a label per batch row", async () =>
 	assert.equal(outcome.decoded.labels.length, 2);
 	assert.equal(outcome.nextCounter, 3, "{n} moves past the two labels");
 	assert.ok(outcome.image, "the first label's picture, for the history");
+	assert.equal(outcome.doc, doc, "the design that was printed, for the history");
+});
+
+/** A model whose jobs say which model they were built for. */
+const recording = (id, built) => ({
+	...printer,
+	id,
+	driver: {
+		...printer.driver,
+		buildJob: (_raster, opts) => (built.push(opts.printer.id), Uint8Array.of(0)),
+	},
+});
+
+test("the job is for the model that connected, and a long batch asks once it has", async () => {
+	const built = [];
+	const asked = [];
+	const connection = {
+		...fakePrinter(),
+		connected: false,
+		// What the app had selected before connecting.
+		model: recording("selected", built),
+		async connect() {
+			// The printer's Bluetooth name says it's another model.
+			this.model = recording("connected", built);
+			this.connected = true;
+		},
+	};
+	const outcome = await printDocument(
+		createDocument(),
+		options({
+			connection,
+			copies: 11,
+			confirm: (q) => (asked.push([q, connection.connected]), true),
+		}),
+	);
+	assert.equal(outcome.result, "printed");
+	assert.deepEqual(built, ["connected", "connected"]);
+	assert.deepEqual(
+		asked,
+		[["Print 22 labels?", true]],
+		"asked after the picker, which needs the click's few seconds of user activation",
+	);
 });
 
 test("a reported problem or a long batch asks first, and no stops the print", async () => {

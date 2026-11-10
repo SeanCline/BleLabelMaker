@@ -9,7 +9,8 @@ server. Nothing is loaded from the network at runtime. Fonts are self-hosted in
 one sprite, `icons/ui.svg`, of Lucide's (regenerate with `npm run ui-icons`,
 which lists the ones used), and a network-first
 service worker (`sw.js`) caches the app so it works offline and can be
-installed. Its file list and cache name are generated into `precache.js` by
+installed. A network that hasn't answered in 4 seconds is treated as offline for
+a minute, so a weak signal opens the cached app rather than hanging. Its file list and cache name are generated into `precache.js` by
 `npm run precache`. The cache name changes whenever the list does, which clears
 out removed files. `test/sw.test.js` fails if `precache.js` is out of date.
 
@@ -229,6 +230,9 @@ different lists.
 - `x/y/w/h` are in mm from the label's top-left, as you read the label. They
   describe the element's box _after_ rotation, so the box is always
   axis-aligned. Rotating a quarter turn swaps `w` and `h` around the centre.
+  The editor cuts a turned box down to the label if it no longer fits, and
+  counts turns in a row from before the first, so two make a half turn at the
+  original size.
 - `rotation` is 0, 90, 180 or 270 degrees clockwise. Only quarter turns are
   supported, so one-dot lines and barcode bars stay exact on the printer's dot grid.
 - Shapes are `rect` (with optional rounded corners), `ellipse` or `line` (a
@@ -379,6 +383,10 @@ Status:
 | `1F 11 07` firmware       | `1A 07 x y z`                                                                         |
 | `1F 11 0E` auto power-off | `1A 09 nn`: off after nn × 5 minutes, 0 = never (set with `1B 4E 07 nn`; confirmed)   |
 | (unsolicited)             | `1A 0F 0C` print finished                                                             |
+
+A record of any other type has no known length (`1A 40`, a smart roll's
+details, is one), so the parser skips to the next `1A` rather than read its
+payload as records of its own.
 
 The D30's density values are 1, 2 and 4, for Light, Normal and Dark. Normal is
 the default. These are Print Master's own values for the D30 (5.23.1: its

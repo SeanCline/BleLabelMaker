@@ -2,7 +2,7 @@ import { createDocument, normalizeText } from "../model.js";
 import { STYLE_PROPS, retext } from "../text/richtext.js";
 import { parse, serialize } from "../fileformat.js";
 import { History } from "../history.js";
-import { loadText, storeJson } from "./dom.js";
+import { loadText, toast } from "./dom.js";
 import { storageKey } from "../app-info.js";
 import { signal } from "./signal.js";
 
@@ -53,10 +53,23 @@ export const notify = () => {
 // A drag commits every frame, and serializing the label (images and all) that often is
 // wasted work; save once things settle, and straight away if the page is going away.
 let autosaveTimer = null;
+let warnedFull = false;
 const autosave = () => {
 	clearTimeout(autosaveTimer);
 	autosaveTimer = null;
-	storeJson(AUTOSAVE_KEY, currentFile());
+	try {
+		localStorage.setItem(AUTOSAVE_KEY, currentFile());
+		warnedFull = false;
+	} catch (err) {
+		// Storage that's turned off is the browser's choice; storage that's full (a few photos'
+		// worth) loses work on a reload, which nobody would expect, so it's said once.
+		if (err?.name !== "QuotaExceededError" || warnedFull) return;
+		warnedFull = true;
+		toast(
+			"This label is too big to keep in the browser, so a reload would lose it. Save it as a file to keep it.",
+			{ error: true },
+		);
+	}
 };
 const scheduleAutosave = () => {
 	clearTimeout(autosaveTimer);

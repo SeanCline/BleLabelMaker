@@ -90,3 +90,23 @@ test("serial port: problems reported by the printer show up; Disconnect keeps th
 	assert.match(await statusText(page), /Connected/);
 	assert.deepEqual(page.errors, []);
 });
+
+test("serial port: after the printer turns off and on, Connect opens the port again", async () => {
+	const page = await openWithFakeSerial();
+	await clickInMenu(page, "#btnConnect");
+	await page.waitForFunction(() =>
+		/Connected/.test(document.querySelector("#printerStatus").textContent),
+	);
+	await page.evaluate(() => window.fakeSerial.loseLink());
+	await page.waitForFunction(() =>
+		/Not connected/.test(document.querySelector("#printerStatus").textContent),
+	);
+	await clickInMenu(page, "#btnConnect");
+	await page.waitForFunction(() =>
+		/Connected/.test(document.querySelector("#printerStatus").textContent),
+	);
+	assert.equal(await fake(page, "f.pickerCount"), 1, "the same port, without asking");
+	await page.click("#btnPrint");
+	await page.waitForFunction(() => window.fakeSerial.labels.length === 1);
+	assert.deepEqual(page.errors, []);
+});

@@ -161,3 +161,21 @@ test("history holds more than localStorage could: big images survive a reload", 
 	assert.equal(await page.evaluate(() => window.labelApp.historyEntries().length), 3);
 	assert.deepEqual(page.errors, []);
 });
+
+test("the history keeps the design that was printed, not an edit made while it went out", async () => {
+	const page = await env.open();
+	const recorded = await page.evaluate(async () => {
+		const app = window.labelApp;
+		const printing = app.print();
+		// An edit while the print is still rendering and sending.
+		app.state.doc = {
+			...app.state.doc,
+			elements: app.state.doc.elements.map((e) => ({ ...e, text: "Edited meanwhile" })),
+		};
+		await printing;
+		await app.historySaved();
+		return app.historyEntries()[0].file.elements[0].text;
+	});
+	assert.equal(recorded, "Hello world");
+	assert.deepEqual(page.errors, []);
+});
